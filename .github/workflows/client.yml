@@ -6,12 +6,17 @@ jobs:
   build-deploy:
     runs-on: ubuntu-18.04
     steps:
-      working-directory: client
     - uses: actions/checkout@master
     - name: Setup node
       uses: dcodeIO/setup-node-nvm@master
       with:
         node-version: lts/*
-    - run: npm install
-    - run: npm run build
-    - run: npm test
+    - name: install npm deps
+      working-directory: ./client
+      run: npm install
+    - name: build site
+      working-directory: ./client
+      run: npm run build
+    - name: run node tests
+      working-directory: ./client
+      run: npm test
