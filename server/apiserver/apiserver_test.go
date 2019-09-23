@@ -1,14 +1,14 @@
-package server_test
+package apiserver_test
 
 import (
 	"testing"
 
-	"github.com/rgreen312/owlplace/server"
+	"github.com/rgreen312/owlplace/server/apiserver"
 )
 
 func TestHello(t *testing.T) {
 	want := "Hello, world."
-	if got := server.Hello(); got != want {
+	if got := apiserver.Hello(); got != want {
 		t.Errorf("Hello() = %q, want %q", got, want)
 	}
 }
