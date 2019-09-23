@@ -6,6 +6,7 @@ jobs:
   build-deploy:
     runs-on: ubuntu-18.04
     steps:
+      working-directory: client
     - uses: actions/checkout@master
     - name: Setup node
       uses: dcodeIO/setup-node-nvm@master
