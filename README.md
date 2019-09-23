@@ -12,6 +12,6 @@ Distributed Program Construction during the Fall of 2019.
 
 ## Development
 
-### Frontend
+### [Frontend](./client)
 
-### Backend
+### [Backend](./backend)
