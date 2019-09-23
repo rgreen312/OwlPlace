@@ -1,0 +1,16 @@
+name: build & test frontend
+
+on: [push, pull_request]
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-18.04
+    steps:
+    - uses: actions/checkout@master
+    - name: Setup node
+      uses: dcodeIO/setup-node-nvm@master
+      with:
+        node-version: lts/*
+    - run: npm install
+    - run: npm run build
+    - run: npm test
