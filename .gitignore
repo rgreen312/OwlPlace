@@ -1,5 +1,7 @@
 # General Rules
 **/.DS_Store
+*.swp
+*.swo
 
 # https://raw.githubusercontent.com/github/gitignore/master/Go.gitignore
 #
