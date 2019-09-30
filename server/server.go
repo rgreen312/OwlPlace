@@ -70,7 +70,10 @@ func main() {
 	http.HandleFunc("/hello", apiserver.Hello)
 	http.HandleFunc("/headers", apiserver.Headers)
 
-	http.ListenAndServe(":3000", nil)
+	// Start API listening asynchronously (TODO: pass in channel)
+	go func() {
+		http.ListenAndServe(":3000", nil)
+	}()
 
 	nodeID := flag.Int("nodeid", 1, "NodeID to use")
 	addr := flag.String("addr", "", "Nodehost address")
