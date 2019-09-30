@@ -1,14 +1,12 @@
 package main
 
 import (
-	"net/http"
-
-	"github.com/rgreen312/owlplace/server/apiserver"
 	"bufio"
 	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -21,6 +19,7 @@ import (
 	"github.com/lni/dragonboat/v3/config"
 	"github.com/lni/dragonboat/v3/logger"
 	"github.com/lni/goutils/syncutil"
+	"github.com/rgreen312/owlplace/server/apiserver"
 )
 
 type RequestType uint64
@@ -70,7 +69,7 @@ func main() {
 	http.HandleFunc("/hello", apiserver.Hello)
 	http.HandleFunc("/headers", apiserver.Headers)
 
-	http.ListenAndServe(":3000", nil)
+	//http.ListenAndServe(":3000", nil)
 
 	nodeID := flag.Int("nodeid", 1, "NodeID to use")
 	addr := flag.String("addr", "", "Nodehost address")
@@ -121,6 +120,7 @@ func main() {
 		RaftAddress:    nodeAddr,
 	}
 	nh, err := dragonboat.NewNodeHost(nhc)
+
 	if err != nil {
 		panic(err)
 	}
