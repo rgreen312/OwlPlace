@@ -5,12 +5,12 @@ maintains consensus with other replicas.
 
 ## Structure
 
-### API Server: [`github.com/rgreen312/owlplace/backend/apiserver`]()
+### API Server: [`github.com/rgreen312/owlplace/server/apiserver`]()
 
 Our API server supports the following requests:
 TODO
 
-### Consensus Module: [`github.com/rgreen312/owlplace/backend/consensus`]()
+### Consensus Module: [`github.com/rgreen312/owlplace/server/consensus`]()
 
 The 
 
