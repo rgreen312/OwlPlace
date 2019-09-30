@@ -5,8 +5,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-
-	"github.com/rgreen312/owlplace/server/apiserver"
 )
 
 type handlerTest struct {
