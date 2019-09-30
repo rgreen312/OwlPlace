@@ -26,11 +26,14 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
-	"strconv"
+	"image"
+	"image/color"
 	"sync"
 	"sync/atomic"
 	"time"
 	"unsafe"
+    "strconv"
+    "regexp"
 
 	"github.com/lni/dragonboat-example/v3/ondisk/gorocksdb"
 	sm "github.com/lni/dragonboat/v3/statemachine"
@@ -249,15 +252,18 @@ type DiskKV struct {
 	nodeID      uint64
 	lastApplied uint64
 	db          unsafe.Pointer
+	mImage      image.RGBA
 	closed      bool
 	aborted     bool
 }
 
 // NewDiskKV creates a new disk kv test state machine.
 func NewDiskKV(clusterID uint64, nodeID uint64) sm.IOnDiskStateMachine {
+
 	d := &DiskKV{
 		clusterID: clusterID,
 		nodeID:    nodeID,
+		mImage: *image.NewRGBA(image.Rect(0, 0, 1000, 1000)),
 	}
 	return d
 }
@@ -332,6 +338,31 @@ func (d *DiskKV) Lookup(key interface{}) (interface{}, error) {
 	return nil, errors.New("db closed")
 }
 
+
+func (d *DiskKV) GetInMemoryImage() image.RGBA{
+	return d.mImage
+}
+
+func (d *DiskKV) UpdateInMemoryImage(dataKV *KVData){
+	re_key := regexp.MustCompile("pixel\\((.*),\\s*(.*)\\)")
+	re_value := regexp.MustCompile("\\((.*),\\s*(.*),\\s*(.*),\\s*(.*)\\)")
+	match_key := re_key.FindStringSubmatch(dataKV.Key)
+	match_val := re_value.FindStringSubmatch(dataKV.Val)
+	// Check to make sure this is acutally a pixel update message. Otherwise reject
+	if(len(match_key) == 3 && len(match_val) == 5){
+		// This is an image update. We need to update the in-memory image
+		x, xerr := strconv.ParseUint(match_key[1], 10, 32)
+		y, yerr := strconv.ParseUint(match_key[2], 10, 32)
+		r, rerr := strconv.ParseUint(match_val[1], 10, 32)
+		g, gerr := strconv.ParseUint(match_val[2], 10, 32)
+		b, berr := strconv.ParseUint(match_val[3], 10, 32)
+		a, aerr := strconv.ParseUint(match_val[4], 10, 32)
+		if(xerr == nil && yerr == nil && rerr == nil && gerr == nil && berr == nil && aerr == nil){
+			d.mImage.SetRGBA(int(x), int(y), color.RGBA{R: uint8(r), G: uint8(g), B: uint8(b), A: uint8(a)})
+		}
+	}
+}
+
 // Update updates the state machine. In this example, all updates are put into
 // a RocksDB write batch and then atomically written to the DB together with
 // the index of the last Raft Log entry. For simplicity, we always Sync the
@@ -353,6 +384,7 @@ func (d *DiskKV) Update(ents []sm.Entry) ([]sm.Entry, error) {
 		if err := json.Unmarshal(e.Cmd, dataKV); err != nil {
 			panic(err)
 		}
+		d.UpdateInMemoryImage(dataKV)	
 		wb.Put([]byte(dataKV.Key), []byte(dataKV.Val))
 		ents[idx].Result = sm.Result{Value: uint64(len(ents[idx].Cmd))}
 	}
@@ -462,6 +494,7 @@ func (d *DiskKV) SaveSnapshot(ctx interface{},
 // the existing DB to complete the recovery.
 func (d *DiskKV) RecoverFromSnapshot(r io.Reader,
 	done <-chan struct{}) error {
+
 	if d.closed {
 		panic("recover from snapshot called after Close()")
 	}
@@ -495,6 +528,7 @@ func (d *DiskKV) RecoverFromSnapshot(r io.Reader,
 			panic(err)
 		}
 		wb.Put([]byte(dataKv.Key), []byte(dataKv.Val))
+		d.UpdateInMemoryImage(dataKv)
 	}
 	if err := db.db.Write(db.wo, wb); err != nil {
 		return err
@@ -522,6 +556,7 @@ func (d *DiskKV) RecoverFromSnapshot(r io.Reader,
 
 // Close closes the state machine.
 func (d *DiskKV) Close() error {
+
 	db := (*rocksdb)(atomic.SwapPointer(&d.db, unsafe.Pointer(nil)))
 	if db != nil {
 		d.closed = true
