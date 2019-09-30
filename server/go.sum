@@ -1,2 +1,4 @@
+github.com/gorilla/websocket v1.4.1 h1:q7AeDBpnBk8AogcD4DSag/Ukw/KV+YhzLj2bP5HvKCM=
+github.com/gorilla/websocket v1.4.1/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
 github.com/rgreen312/owlplace v0.0.0-20190923194021-b586deed4655 h1:aR4BOStz/erio42Y1Ac0FJstagA6Nkk7DF9iR+6lHHg=
 github.com/rgreen312/owlplace v0.0.0-20190923203400-fede005253a4 h1:AVbah+qTtEg7/zVzjCXyGSUWluljqqJ0SQPUZcKIoho=
