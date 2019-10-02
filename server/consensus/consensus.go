@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"flag"
 	"fmt"
+	"encoding/json"
 	"image"
 	"image/png"
 	"os"
@@ -12,6 +13,9 @@ import (
 	"path/filepath"
 	"runtime"
 	"syscall"
+	"time"
+	"context"
+	"strings"
 
 	// "context"
 	// "time"
@@ -39,6 +43,8 @@ const (
 	UPDATE_PIXEL         int = 1
 	ADD_USER             int = 2
 	GET_LAST_USER_UPDATE int = 3
+	SUCCESS              int = 4
+	FAILURE              int = 5
 )
 
 type ConsensusMessage struct {
@@ -53,7 +59,7 @@ func NewImageMessage(img image.RGBA) ConsensusMessage {
 
 	// The Buffer satisfies the Writer interface so we can use it with Encode
 	// In previous example we encoded to a file, this time to a temp buffer
-	png.Encode(&buff, img)
+	png.Encode(&buff, &img)
 
 	// Encode the bytes in the buffer to a base64 string
 	encodedString := base64.StdEncoding.EncodeToString(buff.Bytes())
@@ -63,6 +69,21 @@ func NewImageMessage(img image.RGBA) ConsensusMessage {
 		Data: encodedString,
 	}
 }
+
+func SuccessMessage() ConsensusMessage {
+	return ConsensusMessage{
+		Type: SUCCESS,
+		Data: "Success\n",
+	}
+}
+
+func FailureMessage() ConsensusMessage {
+	return ConsensusMessage{
+		Type: FAILURE,
+		Data: "Failure\n",
+	}
+}
+
 
 type BackendMessage struct {
 	Type int
@@ -83,6 +104,24 @@ func printUsage() {
 	fmt.Fprintf(os.Stdout, "put key value\n")
 	fmt.Fprintf(os.Stdout, "get key\n")
 }
+
+func parseCommand(msg string) (RequestType, string, string, bool) {
+	parts := strings.Split(strings.TrimSpace(msg), " ")
+	if len(parts) == 0 || (parts[0] != "put" && parts[0] != "get") {
+		return PUT, "", "", false
+	}
+	if parts[0] == "put" {
+		if len(parts) != 3 {
+			return PUT, "", "", false
+		}
+		return PUT, parts[1], parts[2], true
+	}
+	if len(parts) != 2 {
+		return GET, "", "", false
+	}
+	return GET, parts[1], "", true
+}
+
 
 func MainConsensus(recvc chan BackendMessage, sendc chan ConsensusMessage) {
 
@@ -140,61 +179,57 @@ func MainConsensus(recvc chan BackendMessage, sendc chan ConsensusMessage) {
 	}
 	var imgGetter func() image.RGBA
 	stateMachineProvider := func(clusterID uint64, nodeID uint64) sm.IOnDiskStateMachine {
-		dkv := NewDiskKV(clusterID, nodeID)
-		imgGetter = dkv.GetInMemoryImage
+		dkv := NewDiskKV(clusterID, nodeID).(*DiskKV)
+		imgGetter =  dkv.GetInMemoryImage
 		return dkv
 	}
-	if err := nh.StartOnDiskCluster(peers, *join, NewDiskKV, rc); err != nil {
+	if err := nh.StartOnDiskCluster(peers, *join, stateMachineProvider, rc); err != nil {
 		fmt.Fprintf(os.Stderr, "failed to add cluster, %v\n", err)
 		os.Exit(1)
 	}
 	raftStopper := syncutil.NewStopper()
 	raftStopper.RunWorker(func() {
-		// cs := nh.GetNoOPSession(exampleClusterID)
+		cs := nh.GetNoOPSession(exampleClusterID)
 		for {
 			select {
 			case backend_msg, ok := <-recvc:
 				if !ok {
 					return
 				}
-
-				// ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-
 				switch backend_msg.Type {
 				case GET_IMAGE:
-					recv_channel <- NewImageMessage(imgGetter())
+					sendc <- NewImageMessage(imgGetter())
 				case UPDATE_PIXEL:
-					fmt.Fprintf(os.Stderr, "UPDATE_PIXEL Not Implemented\n", err)
+					ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+					_, key, val, ok := parseCommand(backend_msg.Data)
+					if(!ok){
+						sendc <- FailureMessage()
+					} else {
+						kv := &KVData{
+							Key: key,
+							Val: val,
+						}
+						data, err := json.Marshal(kv)
+						if err != nil {
+							panic(err)
+						}
+						_, err = nh.SyncPropose(ctx, cs, data)
+						if err != nil {
+							fmt.Fprintf(os.Stderr, "SyncPropose returned error %v\n", err)
+						}
+						sendc <- SuccessMessage()
+					}
+					cancel()
+
 				case ADD_USER:
 					fmt.Fprintf(os.Stderr, "ADD_USER Not Implemented\n", err)
 				case GET_LAST_USER_UPDATE:
 					fmt.Fprintf(os.Stderr, "GET_LAST_USER_UPDATE Not Implemented\n", err)
 				}
 
-				// rt, key, val, ok := parseCommand(msg)
 
-				// if rt == PUT {
-				// 	kv := &KVData{
-				// 		Key: key,
-				// 		Val: val,
-				// 	}
-				// 	data, err := json.Marshal(kv)
-				// 	if err != nil {
-				// 		panic(err)
-				// 	}
-				// 	_, err = nh.SyncPropose(ctx, cs, data)
-				// 	if err != nil {
-				// 		fmt.Fprintf(os.Stderr, "SyncPropose returned error %v\n", err)
-				// 	}
-				// } else {
-				// 	result, err := nh.SyncRead(ctx, exampleClusterID, []byte(key))
-				// 	if err != nil {
-				// 		fmt.Fprintf(os.Stderr, "SyncRead returned error %v\n", err)
-				// 	} else {
-				// 		fmt.Fprintf(os.Stdout, "query key: %s, result: %s\n", key, result)
-				// 	}
-				// }
-				// cancel()
+				
+
 			case <-raftStopper.ShouldStop():
 				return
 			}

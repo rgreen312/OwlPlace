@@ -45,6 +45,8 @@ const (
 	testDBDirName      string = "example-data"
 	currentDBFilename  string = "current"
 	updatingDBFilename string = "current.updating"
+	IMAGE_WIDTH        int    = 1000
+	IMAGE_HEIGHT       int    = 1000
 )
 
 type KVData struct {
@@ -263,7 +265,7 @@ func NewDiskKV(clusterID uint64, nodeID uint64) sm.IOnDiskStateMachine {
 	d := &DiskKV{
 		clusterID: clusterID,
 		nodeID:    nodeID,
-		mImage:    *image.NewRGBA(image.Rect(0, 0, 1000, 1000)),
+		mImage:    *image.NewRGBA(image.Rect(0, 0, IMAGE_WIDTH, IMAGE_HEIGHT)),
 	}
 	return d
 }
@@ -281,9 +283,30 @@ func (d *DiskKV) queryAppliedIndex(db *rocksdb) (uint64, error) {
 	return strconv.ParseUint(string(data), 10, 64)
 }
 
+func (d *DiskKV) loadImageFromDB(db *rocksdb){
+	fmt.Fprintf(os.Stdout,"Loading image from DB...\n")
+	for i := 0; i<IMAGE_WIDTH; i++{
+		for j := 0; j<IMAGE_HEIGHT; j++{
+			key := fmt.Sprintf("pixel(%d,%d)", i, j)
+			val, err := db.db.Get(db.ro, []byte(key))
+
+			if(err == nil && string(val.Data()) != ""){
+				dataKV := &KVData{
+					Key: key, 
+					Val: string(val.Data()),
+				}
+				d.UpdateInMemoryImage(dataKV)
+			}
+		}
+	}
+	fmt.Fprintf(os.Stdout,"Done loading image from DB\n")
+}
+
 // Open opens the state machine and return the index of the last Raft Log entry
 // already updated into the state machine.
 func (d *DiskKV) Open(stopc <-chan struct{}) (uint64, error) {
+
+
 	dir := getNodeDBDirName(d.clusterID, d.nodeID)
 	if err := createNodeDataDir(dir); err != nil {
 		panic(err)
@@ -316,7 +339,12 @@ func (d *DiskKV) Open(stopc <-chan struct{}) (uint64, error) {
 	if err != nil {
 		return 0, err
 	}
+
 	atomic.SwapPointer(&d.db, unsafe.Pointer(db))
+
+	// Load the image into memory
+	d.loadImageFromDB(db)
+
 	appliedIndex, err := d.queryAppliedIndex(db)
 	if err != nil {
 		panic(err)
@@ -343,8 +371,8 @@ func (d *DiskKV) GetInMemoryImage() image.RGBA {
 }
 
 func (d *DiskKV) UpdateInMemoryImage(dataKV *KVData) {
-	re_key := regexp.MustCompile("pixel\\((.*),\\s*(.*)\\)")
-	re_value := regexp.MustCompile("\\((.*),\\s*(.*),\\s*(.*),\\s*(.*)\\)")
+	re_key := regexp.MustCompile("pixel\\(([^,]*),*([^,]*)\\)")
+	re_value := regexp.MustCompile("\\(([^,]*),*([^,]*),*([^,]*),*([^,]*)\\)")
 	match_key := re_key.FindStringSubmatch(dataKV.Key)
 	match_val := re_value.FindStringSubmatch(dataKV.Val)
 	// Check to make sure this is acutally a pixel update message. Otherwise reject
@@ -356,6 +384,7 @@ func (d *DiskKV) UpdateInMemoryImage(dataKV *KVData) {
 		g, gerr := strconv.ParseUint(match_val[2], 10, 32)
 		b, berr := strconv.ParseUint(match_val[3], 10, 32)
 		a, aerr := strconv.ParseUint(match_val[4], 10, 32)
+
 		if xerr == nil && yerr == nil && rerr == nil && gerr == nil && berr == nil && aerr == nil {
 			d.mImage.SetRGBA(int(x), int(y), color.RGBA{R: uint8(r), G: uint8(g), B: uint8(b), A: uint8(a)})
 		}
@@ -493,6 +522,9 @@ func (d *DiskKV) SaveSnapshot(ctx interface{},
 // the existing DB to complete the recovery.
 func (d *DiskKV) RecoverFromSnapshot(r io.Reader,
 	done <-chan struct{}) error {
+
+	fmt.Fprintf(os.Stdout, "Recovering from snapshot\n")
+
 
 	if d.closed {
 		panic("recover from snapshot called after Close()")

@@ -54,9 +54,12 @@ func (api *ApiServer) GetImage(w http.ResponseWriter, req *http.Request) {
 }
 
 func (api *ApiServer) UpdatePixel(w http.ResponseWriter, req *http.Request) {
-	fmt.Fprintf(os.Stdout, "Not Implemented.\n")
+	// Testing with some dummy data
+	m := consensus.BackendMessage{ Type: consensus.UPDATE_PIXEL, Data: "put pixel(10,10) (255,0,0,255)" }
+	api.sendc <- m
+	image_msg := <- api.recvc
+	fmt.Fprintf(os.Stdout, image_msg.Data)
 }
-
 
 func (api *ApiServer) Headers(w http.ResponseWriter, req *http.Request) {
 
