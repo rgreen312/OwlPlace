@@ -1,26 +1,20 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import React from "react";
+import "./App.css";
 
 const App: React.FC = () => {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div>
+      <div className="top-nav-bar">
+        <button className="login-btn">
+          <p className="login-text">login</p>
+        </button>
+      </div>
+      <div className="main-wrapper">
+        <h1>owlplaces</h1>
+        <h2>change the canvas one pixel at a time</h2>
+      </div>
     </div>
   );
-}
+};
 
 export default App;
