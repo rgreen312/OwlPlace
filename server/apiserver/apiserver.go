@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"github.com/rgreen312/owlplace/server/consensus"
 	"html/template"
-
 )
 
 
@@ -54,11 +53,17 @@ func (api *ApiServer) GetImage(w http.ResponseWriter, req *http.Request) {
 }
 
 func (api *ApiServer) UpdatePixel(w http.ResponseWriter, req *http.Request) {
-	// Testing with some dummy data
-	m := consensus.BackendMessage{ Type: consensus.UPDATE_PIXEL, Data: "put pixel(10,10) (255,0,0,255)" }
-	api.sendc <- m
-	image_msg := <- api.recvc
-	fmt.Fprintf(os.Stdout, image_msg.Data)
+
+	// Decode the request
+	update := req.URL.Query().Get("update")
+	if(update != ""){
+		fmt.Fprintf(os.Stdout, update)
+		// Testing with some dummy data
+		m := consensus.BackendMessage{ Type: consensus.UPDATE_PIXEL, Data: update }
+		api.sendc <- m
+		image_msg := <- api.recvc
+		fmt.Fprintf(os.Stdout, image_msg.Data)
+	}
 }
 
 func (api *ApiServer) Headers(w http.ResponseWriter, req *http.Request) {
