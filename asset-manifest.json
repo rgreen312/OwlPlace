@@ -1,0 +1,16 @@
+{
+  "files": {
+    "main.css": "/OwlPlace/static/css/main.dfca195d.chunk.css",
+    "main.js": "/OwlPlace/static/js/main.91e184df.chunk.js",
+    "main.js.map": "/OwlPlace/static/js/main.91e184df.chunk.js.map",
+    "runtime-main.js": "/OwlPlace/static/js/runtime-main.99db3b79.js",
+    "runtime-main.js.map": "/OwlPlace/static/js/runtime-main.99db3b79.js.map",
+    "static/js/2.8d69a4dc.chunk.js": "/OwlPlace/static/js/2.8d69a4dc.chunk.js",
+    "static/js/2.8d69a4dc.chunk.js.map": "/OwlPlace/static/js/2.8d69a4dc.chunk.js.map",
+    "index.html": "/OwlPlace/index.html",
+    "precache-manifest.8789e791a811e71d680e55e7dec246d2.js": "/OwlPlace/precache-manifest.8789e791a811e71d680e55e7dec246d2.js",
+    "service-worker.js": "/OwlPlace/service-worker.js",
+    "static/css/main.dfca195d.chunk.css.map": "/OwlPlace/static/css/main.dfca195d.chunk.css.map",
+    "static/media/logo.svg": "/OwlPlace/static/media/logo.25bf045c.svg"
+  }
+}
