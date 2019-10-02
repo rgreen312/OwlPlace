@@ -28,6 +28,17 @@ func main() {
 	// Start consensus service
 	consensus.MainConsensus(backendChannel)
 
+	http.ListenAndServe(":3000", nil)
+
+	// Make the backend channel that the api server and consensus module communicate with
+	backendChannel := make(chan consensus.BackendMessage)
+	// Start API listening asynchronously (TODO: pass in channel)
+	server := apiserver.NewApiServer(backendChannel)
+	go server.ListenAndServe()
+
+	// Start consensus service
+	consensus.MainConsensus(backendChannel)
+
 }
 
 var homeTemplate = template.Must(template.New("").Parse(`
