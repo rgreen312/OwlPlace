@@ -21,19 +21,19 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"image"
+	"image/color"
 	"io"
 	"io/ioutil"
 	"math/rand"
 	"os"
 	"path/filepath"
-	"image"
-	"image/color"
+	"regexp"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
 	"unsafe"
-    "strconv"
-    "regexp"
 
 	"github.com/lni/dragonboat-example/v3/ondisk/gorocksdb"
 	sm "github.com/lni/dragonboat/v3/statemachine"
@@ -263,7 +263,7 @@ func NewDiskKV(clusterID uint64, nodeID uint64) sm.IOnDiskStateMachine {
 	d := &DiskKV{
 		clusterID: clusterID,
 		nodeID:    nodeID,
-		mImage: *image.NewRGBA(image.Rect(0, 0, 1000, 1000)),
+		mImage:    *image.NewRGBA(image.Rect(0, 0, 1000, 1000)),
 	}
 	return d
 }
@@ -338,18 +338,17 @@ func (d *DiskKV) Lookup(key interface{}) (interface{}, error) {
 	return nil, errors.New("db closed")
 }
 
-
-func (d *DiskKV) GetInMemoryImage() image.RGBA{
+func (d *DiskKV) GetInMemoryImage() image.RGBA {
 	return d.mImage
 }
 
-func (d *DiskKV) UpdateInMemoryImage(dataKV *KVData){
+func (d *DiskKV) UpdateInMemoryImage(dataKV *KVData) {
 	re_key := regexp.MustCompile("pixel\\((.*),\\s*(.*)\\)")
 	re_value := regexp.MustCompile("\\((.*),\\s*(.*),\\s*(.*),\\s*(.*)\\)")
 	match_key := re_key.FindStringSubmatch(dataKV.Key)
 	match_val := re_value.FindStringSubmatch(dataKV.Val)
 	// Check to make sure this is acutally a pixel update message. Otherwise reject
-	if(len(match_key) == 3 && len(match_val) == 5){
+	if len(match_key) == 3 && len(match_val) == 5 {
 		// This is an image update. We need to update the in-memory image
 		x, xerr := strconv.ParseUint(match_key[1], 10, 32)
 		y, yerr := strconv.ParseUint(match_key[2], 10, 32)
@@ -357,7 +356,7 @@ func (d *DiskKV) UpdateInMemoryImage(dataKV *KVData){
 		g, gerr := strconv.ParseUint(match_val[2], 10, 32)
 		b, berr := strconv.ParseUint(match_val[3], 10, 32)
 		a, aerr := strconv.ParseUint(match_val[4], 10, 32)
-		if(xerr == nil && yerr == nil && rerr == nil && gerr == nil && berr == nil && aerr == nil){
+		if xerr == nil && yerr == nil && rerr == nil && gerr == nil && berr == nil && aerr == nil {
 			d.mImage.SetRGBA(int(x), int(y), color.RGBA{R: uint8(r), G: uint8(g), B: uint8(b), A: uint8(a)})
 		}
 	}
@@ -384,7 +383,7 @@ func (d *DiskKV) Update(ents []sm.Entry) ([]sm.Entry, error) {
 		if err := json.Unmarshal(e.Cmd, dataKV); err != nil {
 			panic(err)
 		}
-		d.UpdateInMemoryImage(dataKV)	
+		d.UpdateInMemoryImage(dataKV)
 		wb.Put([]byte(dataKV.Key), []byte(dataKV.Val))
 		ents[idx].Result = sm.Result{Value: uint64(len(ents[idx].Cmd))}
 	}
