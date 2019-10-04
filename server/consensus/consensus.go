@@ -43,8 +43,9 @@ const (
 	UPDATE_PIXEL         int = 1
 	ADD_USER             int = 2
 	GET_LAST_USER_UPDATE int = 3
-	SUCCESS              int = 4
-	FAILURE              int = 5
+	SET_LAST_USER_UPDATE int = 4	
+	SUCCESS              int = 5
+	FAILURE              int = 6
 )
 
 type ConsensusMessage struct {
@@ -67,6 +68,15 @@ func NewImageMessage(img image.RGBA) ConsensusMessage {
 	return ConsensusMessage{
 		Type: GET_IMAGE,
 		Data: encodedString,
+	}
+}
+
+
+func GetTimestampMessage(timestamp string) ConsensusMessage {
+
+	return ConsensusMessage{
+		Type: GET_LAST_USER_UPDATE,
+		Data: timestamp,
 	}
 }
 
@@ -199,7 +209,7 @@ func MainConsensus(recvc chan BackendMessage, sendc chan ConsensusMessage) {
 				switch backend_msg.Type {
 				case GET_IMAGE:
 					sendc <- NewImageMessage(imgGetter())
-				case UPDATE_PIXEL:
+				case UPDATE_PIXEL, SET_LAST_USER_UPDATE:
 					ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 					_, key, val, ok := parseCommand(backend_msg.Data)
 					if(!ok){
@@ -221,10 +231,19 @@ func MainConsensus(recvc chan BackendMessage, sendc chan ConsensusMessage) {
 					}
 					cancel()
 
-				case ADD_USER:
-					fmt.Fprintf(os.Stderr, "ADD_USER Not Implemented\n", err)
 				case GET_LAST_USER_UPDATE:
-					fmt.Fprintf(os.Stderr, "GET_LAST_USER_UPDATE Not Implemented\n", err)
+					ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+					_, key, _, ok := parseCommand(backend_msg.Data)
+					if(!ok){
+						sendc <- FailureMessage()
+					}
+					result, err := nh.SyncRead(ctx, exampleClusterID, []byte(key))
+					if err != nil {
+						sendc <- FailureMessage()
+					} else {
+						sendc <- GetTimestampMessage(result.(string))
+					}
+					cancel()
 				}
 
 

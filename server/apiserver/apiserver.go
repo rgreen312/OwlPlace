@@ -66,6 +66,24 @@ func (api *ApiServer) UpdatePixel(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+func (api *ApiServer) GetLastUserModification(user_id string) string{
+
+	// Testing with some dummy data
+	m := consensus.BackendMessage{ Type: consensus.GET_LAST_USER_UPDATE, Data: fmt.Sprintf("get %s", user_id)}
+	api.sendc <- m
+	image_msg := <- api.recvc
+	return image_msg.Data
+}
+
+func (api *ApiServer) SetLastUserModification(user_id string, last_modification string) bool{
+
+	// Testing with some dummy data
+	m := consensus.BackendMessage{ Type: consensus.SET_LAST_USER_UPDATE, Data: fmt.Sprintf("put %s %s", user_id, last_modification)}
+	api.sendc <- m
+	image_msg := <- api.recvc
+	return image_msg.Type == consensus.SUCCESS
+}
+
 func (api *ApiServer) Headers(w http.ResponseWriter, req *http.Request) {
 
 	for name, headers := range req.Header {
