@@ -4,56 +4,51 @@ import "./App.scss";
 let socket = new WebSocket("ws://127.0.0.1:3010/ws");
 console.log("Attempting Connection...");
 
+// open message is 0 
 socket.onopen = () => {
     console.log("Successfully Connected");
-    socket.send("Hi From the Client!")
+    socket.send(JSON.stringify({ 
+      type: 0, 
+      message: "Hi From the Client! The websocket just opened"}))
 };
 
+// close message is 9 
 socket.onclose = event => {
     console.log("Socket Closed Connection: ", event);
-    socket.send("Client Closed!")
+    socket.send(JSON.stringify({ 
+      type: 9, 
+      message: "Client Closed!"}))
 };
 
 socket.onerror = error => {
     console.log("Socket Error: ", error);
 };
 
-const App: React.FC = () => {
+socket.onmessage = event => {
+    var message = event.data;
+    console.log("Recieved a message from the server, message: " + message)
+}
 
-  // var ws: WebSocket | null;
+// updateMessage is type 1
+const updateMessage = (id: string, x: number, y: number, r: number, g: number, b: number) => {
+  return JSON.stringify({
+    type: 1,
+    userId: id,
+    x: x,
+    y: y,
+    r: r,
+    g: g,
+    b: b,
+  })
+}
+const onClickP1 = (id: string, x: number, y: number, r: number, g: number, b: number) => {
+  console.log("Sending update of Pixel 1");
+  socket.send(updateMessage(id, x, y, r, g, b));
   
-  // const onClickOpen = () => {
-  //   console.log("opening")
-  //       if (ws) {
-  //           return false;
-  //       }
-  //       ws = new WebSocket("ws://localhost:3010/");
-  //       ws.onopen = function(evt) {
-  //           console.log("OPEN");
-  //       }
-  //       ws.onclose = function(evt) {
-  //           console.log("CLOSE");
-  //           ws = null;
-  //       }
-  //       ws.onmessage = function(evt) {
-  //           console.log("RESPONSE: " + evt.data);
-  //       }
-  //       ws.onerror = function(evt) {
-  //           console.log("ERROR! " + evt.type);
-  //       }
-  //       // return false;
-  // }
-  //   const onClickP1 = () => {
+  return true;
+}
 
-  //   }
-
-  //   const onClickClose = () => {
-  //     if (!ws) {
-  //       return false;
-  //     }
-  //     ws.close();
-  //     return false;
-  //   }
+const App: React.FC = () => {
 
   return (
     <div>
@@ -69,65 +64,11 @@ const App: React.FC = () => {
           "Send" to send a message to the server and "Close" to close the connection. 
           You can change the message and send multiple times.
           </p>
-          {/* <button onClick= {onClickOpen} id="open"> Open </button> */}
-          {/* <button onClick= {onClickP1} id="p1"> Pixel 1 </button>
-          <button onClick= {onClickClose} id="close">Close</button> */}
+          <button onClick = {() => onClickP1("user1", 10, 400, 255, 255, 255)} id="p1"> Pixel 1 </button>
+          {/* <button onClick= {onClickClose} id="close">Close</button> */}
       </div>
     </div>
-
-
-    
   );
 };
-
-// <script>  
-// window.addEventListener("load", function(evt) {
-//     var output = document.getElementById("output");
-//     var input = document.getElementById("input");
-//     var ws;
-//     var print = function(message) {
-//         var d = document.createElement("div");
-//         d.innerHTML = message;
-//         output.appendChild(d);
-//     };
-//     document.getElementById("open").onclick = function(evt) {
-//         if (ws) {
-//             return false;
-//         }
-//         ws = new WebSocket("{{.}}");
-//         ws.onopen = function(evt) {
-//             print("OPEN");
-//         }
-//         ws.onclose = function(evt) {
-//             print("CLOSE");
-//             ws = null;
-//         }
-//         ws.onmessage = function(evt) {
-//             print("RESPONSE: " + evt.data);
-//         }
-//         ws.onerror = function(evt) {
-//             print("ERROR: " + evt.data);
-//         }
-//         return false;
-//     };
-//     document.getElementById("send").onclick = function(evt) {
-//         if (!ws) {
-//             return false;
-//         }
-//         print("SEND: " + input.value);
-//         ws.send(input.value);
-//         return false;
-//     };
-//     document.getElementById("close").onclick = function(evt) {
-//         if (!ws) {
-//             return false;
-//         }
-//         ws.close();
-//         return false;
-//     };
-// });
-// </script>
-
-
 
 export default App;

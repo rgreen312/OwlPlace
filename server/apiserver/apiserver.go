@@ -1,6 +1,7 @@
 package apiserver
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
@@ -87,19 +88,49 @@ var upgrader = websocket.Upgrader{} // use default options
 func reader(conn *websocket.Conn) {
 	for {
 		// read in a message
+		// messageType is an int with value websocket.BinaryMessage or websocket.TextMessage
+		// p is []byte
 		messageType, p, err := conn.ReadMessage()
 		if err != nil {
 			log.Println(err)
 			return
 		}
-		// print out that message for clarity
-		fmt.Println(string(p))
+		fmt.Println(messageType) // to get rid of unused variable
 
-		if err := conn.WriteMessage(messageType, p); err != nil {
-			log.Println(err)
-			return
+		// holds a map of strings to arbitrary data types
+		var dat map[string]interface{}
+
+		if err := json.Unmarshal(p, &dat); err != nil {
+			log.Printf("error decoding client response: %v", err)
+			if e, ok := err.(*json.SyntaxError); ok {
+				log.Printf("syntax error at byte offset %d", e.Offset)
+			}
+			log.Printf("client response: %q", p)
+			panic(err)
 		}
+		fmt.Println(dat)
 
+		// convert each attribute to appropriate type
+		msgType := dat["type"].(float64)
+		fmt.Println(msgType)
+
+		switch msgType {
+		case 1:
+			fmt.Println("one") // call the updating function
+
+			// TODO: call the updating function
+
+			// send message back to the client saying it's been updated
+			byt := []byte(`Pixel 1 has been updated!`)
+			if err := conn.WriteMessage(websocket.TextMessage, byt); err != nil {
+				log.Println(err)
+				return
+			}
+		case 2:
+			fmt.Println("two")
+		case 3:
+			fmt.Println("three")
+		}
 	}
 }
 
@@ -115,30 +146,8 @@ func (api *ApiServer) wsEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	// helpful log statement to show connections
 	log.Println("Client Connected")
-	err = ws.WriteMessage(1, []byte("Hi Client!")) // sent upon connection to any clients
+	err = ws.WriteMessage(1, []byte("Hi Client! We just connected :)")) // sent upon connection to any clients
 
 	reader(ws)
 
-}
-
-func (api *ApiServer) Echo(w http.ResponseWriter, r *http.Request) {
-	c, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		log.Print("upgrade:", err)
-		return
-	}
-	defer c.Close()
-	for {
-		mt, message, err := c.ReadMessage()
-		if err != nil {
-			log.Println("read:", err)
-			break
-		}
-		log.Printf("recv: %s", message)
-		err = c.WriteMessage(mt, message)
-		if err != nil {
-			log.Println("write:", err)
-			break
-		}
-	}
 }
