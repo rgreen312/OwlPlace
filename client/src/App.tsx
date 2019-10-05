@@ -1,42 +1,59 @@
 import React from "react";
 import "./App.scss";
 
+let socket = new WebSocket("ws://127.0.0.1:3010/ws");
+console.log("Attempting Connection...");
+
+socket.onopen = () => {
+    console.log("Successfully Connected");
+    socket.send("Hi From the Client!")
+};
+
+socket.onclose = event => {
+    console.log("Socket Closed Connection: ", event);
+    socket.send("Client Closed!")
+};
+
+socket.onerror = error => {
+    console.log("Socket Error: ", error);
+};
+
 const App: React.FC = () => {
 
-  var ws: WebSocket | null;
+  // var ws: WebSocket | null;
   
-  const onClickOpen = () => {
-    console.log("opening")
-        if (ws) {
-            return false;
-        }
-        ws = new WebSocket("ws://localhost:3000/");
-        ws.onopen = function(evt) {
-            console.log("OPEN");
-        }
-        ws.onclose = function(evt) {
-            console.log("CLOSE");
-            ws = null;
-        }
-        ws.onmessage = function(evt) {
-            console.log("RESPONSE: " + evt.data);
-        }
-        ws.onerror = function(evt) {
-            console.log("ERROR! ");
-        }
-        // return false;
-  }
-    const onClickP1 = () => {
+  // const onClickOpen = () => {
+  //   console.log("opening")
+  //       if (ws) {
+  //           return false;
+  //       }
+  //       ws = new WebSocket("ws://localhost:3010/");
+  //       ws.onopen = function(evt) {
+  //           console.log("OPEN");
+  //       }
+  //       ws.onclose = function(evt) {
+  //           console.log("CLOSE");
+  //           ws = null;
+  //       }
+  //       ws.onmessage = function(evt) {
+  //           console.log("RESPONSE: " + evt.data);
+  //       }
+  //       ws.onerror = function(evt) {
+  //           console.log("ERROR! " + evt.type);
+  //       }
+  //       // return false;
+  // }
+  //   const onClickP1 = () => {
 
-    }
+  //   }
 
-    const onClickClose = () => {
-      if (!ws) {
-        return false;
-      }
-      ws.close();
-      return false;
-    }
+  //   const onClickClose = () => {
+  //     if (!ws) {
+  //       return false;
+  //     }
+  //     ws.close();
+  //     return false;
+  //   }
 
   return (
     <div>
@@ -52,14 +69,13 @@ const App: React.FC = () => {
           "Send" to send a message to the server and "Close" to close the connection. 
           You can change the message and send multiple times.
           </p>
-          <button onClick= {onClickOpen} id="open"> Open </button>
-          <button onClick= {onClickP1} id="p1"> Pixel 1 </button>
-          <button onClick= {onClickClose} id="close">Close</button>
-        
+          {/* <button onClick= {onClickOpen} id="open"> Open </button> */}
+          {/* <button onClick= {onClickP1} id="p1"> Pixel 1 </button>
+          <button onClick= {onClickClose} id="close">Close</button> */}
       </div>
-
-      
     </div>
+
+
     
   );
 };

@@ -1,6 +1,7 @@
 package apiserver
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -28,7 +29,8 @@ func (api *ApiServer) ListenAndServe() {
 	http.HandleFunc("/headers", api.Headers)
 	http.HandleFunc("/get_image", api.GetImage)
 	http.HandleFunc("/update_pixel", api.UpdatePixel)
-	http.ListenAndServe(":3000", nil)
+	http.HandleFunc("/ws", api.wsEndpoint)
+	log.Fatal(http.ListenAndServe(":3010", nil))
 }
 
 func (api *ApiServer) GetImage(w http.ResponseWriter, req *http.Request) {
@@ -51,7 +53,6 @@ func (api *ApiServer) GetImage(w http.ResponseWriter, req *http.Request) {
 			fmt.Fprintf(os.Stdout, "Unable to execute template.\n")
 		}
 	}
-
 }
 
 func (api *ApiServer) UpdatePixel(w http.ResponseWriter, req *http.Request) {
@@ -68,6 +69,8 @@ func (api *ApiServer) UpdatePixel(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+var serverAddr = flag.String("addr_server", "localhost:3010", "http service address")
+
 func (api *ApiServer) Headers(w http.ResponseWriter, req *http.Request) {
 
 	for name, headers := range req.Header {
@@ -77,12 +80,48 @@ func (api *ApiServer) Headers(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+// Upgrader "upgrades" HTTP endpoint to WS endpoint, this requires a Read and Write buffer size
 var upgrader = websocket.Upgrader{} // use default options
 
-func Echo(w http.ResponseWriter, r *http.Request) {
+// define a reader which will listen for new messages being sent to our WebSocket endpoint
+func reader(conn *websocket.Conn) {
+	for {
+		// read in a message
+		messageType, p, err := conn.ReadMessage()
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		// print out that message for clarity
+		fmt.Println(string(p))
 
-	// fmt.Fprintf(w, "ECHO\n")
+		if err := conn.WriteMessage(messageType, p); err != nil {
+			log.Println(err)
+			return
+		}
 
+	}
+}
+
+func (api *ApiServer) wsEndpoint(w http.ResponseWriter, r *http.Request) {
+	// checks if incoming request is allowed to connect, otherwise CORS error, currently always true
+	upgrader.CheckOrigin = func(r *http.Request) bool { return true }
+
+	// upgrade this connection to a WebSocket connection
+	ws, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Println(err)
+	}
+
+	// helpful log statement to show connections
+	log.Println("Client Connected")
+	err = ws.WriteMessage(1, []byte("Hi Client!")) // sent upon connection to any clients
+
+	reader(ws)
+
+}
+
+func (api *ApiServer) Echo(w http.ResponseWriter, r *http.Request) {
 	c, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Print("upgrade:", err)
@@ -92,13 +131,13 @@ func Echo(w http.ResponseWriter, r *http.Request) {
 	for {
 		mt, message, err := c.ReadMessage()
 		if err != nil {
-			log.Println("server read:", err)
+			log.Println("read:", err)
 			break
 		}
-		log.Printf("server recv: %s", message)
+		log.Printf("recv: %s", message)
 		err = c.WriteMessage(mt, message)
 		if err != nil {
-			log.Println("server write:", err)
+			log.Println("write:", err)
 			break
 		}
 	}
