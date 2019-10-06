@@ -85,7 +85,7 @@ var upgrader = websocket.Upgrader{} // use default options
 func reader(conn *websocket.Conn) {
 	for {
 		// read in a message
-		// messageType is an int with value websocket.BinaryMessage or websocket.TextMessage
+		// _ (message type) is an int with value websocket.BinaryMessage or websocket.TextMessage
 		// p is []byte
 		_, p, err := conn.ReadMessage()
 		if err != nil {
@@ -107,7 +107,7 @@ func reader(conn *websocket.Conn) {
 		fmt.Println(dat)
 
 		// convert each attribute to appropriate type
-		msgType := dat["type"].(int)
+		msgType := dat["type"].(float64) // interface {} is float64, not int
 		fmt.Println(msgType)
 
 		switch msgType {
