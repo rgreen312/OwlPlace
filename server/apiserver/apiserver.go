@@ -2,7 +2,6 @@ package apiserver
 
 import (
 	"encoding/json"
-	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -70,8 +69,6 @@ func (api *ApiServer) UpdatePixel(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-var serverAddr = flag.String("addr_server", "localhost:3010", "http service address")
-
 func (api *ApiServer) Headers(w http.ResponseWriter, req *http.Request) {
 
 	for name, headers := range req.Header {
@@ -90,12 +87,11 @@ func reader(conn *websocket.Conn) {
 		// read in a message
 		// messageType is an int with value websocket.BinaryMessage or websocket.TextMessage
 		// p is []byte
-		messageType, p, err := conn.ReadMessage()
+		_, p, err := conn.ReadMessage()
 		if err != nil {
 			log.Println(err)
 			return
 		}
-		fmt.Println(messageType) // to get rid of unused variable
 
 		// holds a map of strings to arbitrary data types
 		var dat map[string]interface{}
@@ -111,12 +107,12 @@ func reader(conn *websocket.Conn) {
 		fmt.Println(dat)
 
 		// convert each attribute to appropriate type
-		msgType := dat["type"].(float64)
+		msgType := dat["type"].(int)
 		fmt.Println(msgType)
 
 		switch msgType {
 		case 1:
-			fmt.Println("one") // call the updating function
+			fmt.Println("one")
 
 			// TODO: call the updating function
 
