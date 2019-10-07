@@ -9,7 +9,7 @@ import { Provider } from 'react-redux';
 import thunk from 'redux-thunk';
 
 const rootReducer = combineReducers({
-  canvas: canvasReducers,
+  // canvas: canvasReducers,
   login: loginReducers
 });
 

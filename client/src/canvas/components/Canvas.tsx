@@ -8,8 +8,7 @@ const Canvas: FC<Props> = ({ onClick }) => {
   return (
     <div>
       <div>
-        This is a canvas
-        <button onClick={onClick}>Test</button>
+        <canvas></canvas>
       </div>
     </div>
   );

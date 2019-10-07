@@ -1,3 +1,4 @@
+// TODO (ryan): add stricter typing to handlers
 export function createReducer<T>(
   initialState: T,
   handlers
