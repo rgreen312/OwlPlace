@@ -5,13 +5,10 @@ interface Props {
 }
 
 const Canvas: FC<Props> = ({ onClick }) => {
-
-  const test = () => console.log('test');
   return (
     <div>
       <div>
-        This is a canvas
-        <button onClick={onClick}>Test</button>
+        <canvas></canvas>
       </div>
     </div>
   );

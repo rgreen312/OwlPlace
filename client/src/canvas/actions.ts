@@ -9,7 +9,6 @@ const fetchImageDataStart = () => ({
 
 export type FetchImageDataStart = ReturnType<typeof fetchImageDataStart>;
 
-//@ts-ignore
 export const fetchImageData = () => (dispatch) => {
   dispatch(fetchImageDataStart());
   
@@ -27,11 +26,7 @@ const testActionType = (data: string) => ({
 });
 export type TestActionType = ReturnType<typeof testActionType>;
 
-export const testAction = () => {
-  console.log('In test action');
-  //@ts-ignore
-  return (dispatch) => {
-    console.log('dispatching action');
-    dispatch(testActionType('testing'));
-  }
+export const testAction = () => (dispatch, getState) => {
+  console.log('dispatching action');
+  dispatch(testActionType('testing'));
 }
