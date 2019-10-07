@@ -1,25 +1,4 @@
-h1 {
-  font-family: Verdana, Geneva, Tahoma, sans-serif;
-  font-size: 75px;
-  font-style: italic;
-  padding-top: 120px;
-}
-
-.login-btn {
-  align-items: center;
-  background-color: grey;
-  border: none;
-  justify-content: center;
-  width: 12.5%;
-}
-
-.login-text {
-  align-items: center;
-  font-family: Verdana, Geneva, Tahoma, sans-serif;
-  font-size: 20px;
-  font-style: italic;
-  justify-content: center;
-}
+@import "~antd/dist/antd.css";
 
 .main-wrapper {
   align-items: center;
@@ -28,12 +7,6 @@ h1 {
   justify-content: center;
 }
 
-.top-nav-bar {
-  align-items: center;
-  background-color: black;
-  display: flex;
-  height: 50px;
-  justify-content: flex-end;
-  overflow: hidden;
-  width: 100%;
+.login-btn {
+  margin-top: 100px;
 }

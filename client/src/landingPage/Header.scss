@@ -1,19 +1,12 @@
-h1 {
+.header {
   font-family: "Caveat", cursive;
   font-size: 100px;
-  padding-top: 10px;
+  padding-top: 100px;
+  text-align: center;
 }
 
-h2 {
+.sub-header {
   font-family: "Kalam", cursive;
   font-size: 30px;
-  color: #2a8b0f;
-  margin-top: -30px;
-}
-
-.main-wrapper {
-  align-items: center;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+  color: #31a810;
 }
