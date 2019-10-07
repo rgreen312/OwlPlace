@@ -28,7 +28,7 @@ func NewApiServer(send_channel chan consensus.BackendMessage, recv_channel chan 
 func (api *ApiServer) ListenAndServe() {
 	http.HandleFunc("/headers", api.Headers)
 	http.HandleFunc("/get_image", api.GetImage)
-	http.HandleFunc("/update_pixel", api.UpdatePixel)
+	// http.HandleFunc("/update_pixel", api.UpdatePixel)
 	http.HandleFunc("/ws", api.wsEndpoint)
 	log.Fatal(http.ListenAndServe(":3010", nil))
 }
@@ -55,19 +55,20 @@ func (api *ApiServer) GetImage(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func (api *ApiServer) UpdatePixel(w http.ResponseWriter, req *http.Request) {
+// func (api *ApiServer) UpdatePixel(w http.ResponseWriter, req *http.Request) {
 
-	// Decode the request
-	update := req.URL.Query().Get("update")
-	if update != "" {
-		fmt.Fprintf(os.Stdout, update)
-		// Testing with some dummy data
-		m := consensus.BackendMessage{Type: consensus.UPDATE_PIXEL, Data: update}
-		api.sendc <- m
-		image_msg := <-api.recvc
-		fmt.Fprintf(os.Stdout, image_msg.Data)
-	}
-}
+// 	// Decode the request
+// 	update := req.URL.Query().Get("update")
+// 	if update != "" {
+// 		fmt.Fprintf(os.Stdout, update)
+// 		// Testing with some dummy data
+// 		//put pixel(x,y) (r,g,b,a)
+// 		m := consensus.BackendMessage{Type: consensus.UPDATE_PIXEL, Data: update}
+// 		api.sendc <- m
+// 		image_msg := <-api.recvc
+// 		fmt.Fprintf(os.Stdout, image_msg.Data)
+// 	}
+// }
 
 func (api *ApiServer) Headers(w http.ResponseWriter, req *http.Request) {
 
@@ -82,7 +83,7 @@ func (api *ApiServer) Headers(w http.ResponseWriter, req *http.Request) {
 var upgrader = websocket.Upgrader{} // use default options
 
 // define a reader which will listen for new messages being sent to our WebSocket endpoint
-func reader(conn *websocket.Conn) {
+func (api *ApiServer) reader(conn *websocket.Conn) {
 	for {
 		// read in a message
 		// _ (message type) is an int with value websocket.BinaryMessage or websocket.TextMessage
@@ -110,24 +111,56 @@ func reader(conn *websocket.Conn) {
 		msgType := dat["type"].(float64) // interface {} is float64, not int
 		fmt.Println(msgType)
 
+		byt := []byte("empty")
 		switch msgType {
 		case 1:
 			fmt.Println("one")
-
-			// TODO: call the updating function
-
-			// send message back to the client saying it's been updated
-			byt := []byte(`Pixel 1 has been updated!`)
-			if err := conn.WriteMessage(websocket.TextMessage, byt); err != nil {
-				log.Println(err)
-				return
-			}
+			byt = api.updateMethod(dat)
 		case 2:
 			fmt.Println("two")
+			byt = []byte("two")
 		case 3:
 			fmt.Println("three")
+			byt = []byte("three")
+		}
+
+		if err := conn.WriteMessage(websocket.TextMessage, byt); err != nil {
+			log.Println(err)
 		}
 	}
+}
+
+func (api *ApiServer) updateMethod(dat map[string]interface{}) []byte {
+	userID := dat["id"].(float64)
+	x := dat["x"].(float64)
+	y := dat["y"].(float64)
+	r := dat["r"].(float64)
+	g := dat["g"].(float64)
+	b := dat["b"].(float64)
+
+	updateString := fmt.Sprintf("put pixel(%d,%d) (%d,%d,%d,%d)", x, y, r, g, b, 255)
+	// The update string must conform to: put pixel(x,y) (r,g,b,a)
+	fmt.Sprintf("DEBUGGING: SHOULD LOOK LIKE put pixel(x,y) (r,g,b,a): %s", updateString)
+
+	// TODO verify that the user is able to update a pizel with the User Data Team
+	userVerification := true
+	// imageMsg := ""
+	if !userVerification {
+		// User verification failed
+		log.Println(fmt.Sprintf("USER %s failed authentication", userID))
+		// TODO return the appropriate failure message
+		imageMsg := "FAILURERESSES TODO make this properly formatted"
+
+	} else {
+		// User has been verified
+		m := consensus.BackendMessage{Type: consensus.UPDATE_PIXEL, Data: updateString}
+		api.sendc <- m
+		imageMsg := <-api.recvc
+	}
+
+	// send message back to the client saying it's been updated or if it failed
+	byt := []byte(imageMsg)
+	return byt
 }
 
 func (api *ApiServer) wsEndpoint(w http.ResponseWriter, r *http.Request) {

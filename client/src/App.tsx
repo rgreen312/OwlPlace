@@ -105,14 +105,14 @@ function onSignIn() {
 const App: React.FC = () => {
   return (
     <div className="main-wrapper">
-      {/* <p>Click "Pixel 1" to send an update message to the server!</p>
+      <p>Click "Pixel 1" to send an update message to the server!</p>
       <button
         onClick={() => onClickP1("user1", 10, 400, 255, 255, 255)}
         id="p1"
       >
         {" "}
         Pixel 1{" "}
-      </button> */}
+      </button>
       <Header />
       <Button
         className="login-btn"

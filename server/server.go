@@ -11,6 +11,7 @@ func main() {
 	backend_to_api_channel := make(chan consensus.ConsensusMessage)
 	// Start API listening asynchronously (TODO: pass in channel)
 	server := apiserver.NewApiServer(api_to_backend_channel, backend_to_api_channel)
+
 	go server.ListenAndServe()
 
 	// Start consensus service
