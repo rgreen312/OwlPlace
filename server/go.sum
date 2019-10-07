@@ -1,3 +1,5 @@
+github.com/gorilla/websocket v1.4.1 h1:q7AeDBpnBk8AogcD4DSag/Ukw/KV+YhzLj2bP5HvKCM=
+github.com/gorilla/websocket v1.4.1/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
 github.com/VictoriaMetrics/metrics v1.5.0 h1:WvQqPn+z9pR1U7J58CgaGiWrN8phNGSpr2xUSxJnfpE=
 github.com/VictoriaMetrics/metrics v1.5.0/go.mod h1:QZAL5yLaXvhSPeib0ahluGo9VK0HXDZHovKaKlpuWvs=
 github.com/golang/protobuf v1.2.0/go.mod h1:6lQm79b+lXiMfvg/cZm0SGofjICqVBUtrP5yJMmIC1U=
