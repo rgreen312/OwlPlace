@@ -5,33 +5,46 @@ import RoutingContainer from './RoutingContainer';
 let socket = new WebSocket("ws://127.0.0.1:3010/ws");
 console.log("Attempting Connection...");
 
-// open message is 0 
+// open message is 0
 socket.onopen = () => {
-    console.log("Successfully Connected");
-    socket.send(JSON.stringify({ 
-      type: 0, 
-      message: "Hi From the Client! The websocket just opened"}))
+  console.log("Successfully Connected");
+  socket.send(
+    JSON.stringify({
+      type: 0,
+      message: "Hi From the Client! The websocket just opened"
+    })
+  );
 };
 
-// close message is 9 
+// close message is 9
 socket.onclose = event => {
-    console.log("Socket Closed Connection: ", event);
-    socket.send(JSON.stringify({ 
-      type: 9, 
-      message: "Client Closed!"}))
+  console.log("Socket Closed Connection: ", event);
+  socket.send(
+    JSON.stringify({
+      type: 9,
+      message: "Client Closed!"
+    })
+  );
 };
 
 socket.onerror = error => {
-    console.log("Socket Error: ", error);
+  console.log("Socket Error: ", error);
 };
 
 socket.onmessage = event => {
-    var message = event.data;
-    console.log("Recieved a message from the server, message: " + message)
-}
+  var message = event.data;
+  console.log("Recieved a message from the server, message: " + message);
+};
 
 // updateMessage is type 1
-const updateMessage = (id: string, x: number, y: number, r: number, g: number, b: number) => {
+const updateMessage = (
+  id: string,
+  x: number,
+  y: number,
+  r: number,
+  g: number,
+  b: number
+) => {
   return JSON.stringify({
     type: 1,
     userId: id,
@@ -39,13 +52,20 @@ const updateMessage = (id: string, x: number, y: number, r: number, g: number, b
     y: y,
     r: r,
     g: g,
-    b: b,
-  })
-}
-const onClickP1 = (id: string, x: number, y: number, r: number, g: number, b: number) => {
+    b: b
+  });
+};
+const onClickP1 = (
+  id: string,
+  x: number,
+  y: number,
+  r: number,
+  g: number,
+  b: number
+) => {
   console.log("Sending update of Pixel 1");
   socket.send(updateMessage(id, x, y, r, g, b));
-  
+
   return true;
 }
 

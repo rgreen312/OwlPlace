@@ -1,11 +1,12 @@
 .header {
-  background-color: blue;
-  height: 50px;
+  font-family: "Caveat", cursive;
+  font-size: 100px;
+  padding-top: 100px;
+  text-align: center;
+}
 
-  .login-button {
-    background-color: black;
-    color: white;
-    height: 100%;
-    right: 0;
-  }
+.sub-header {
+  font-family: "Kalam", cursive;
+  font-size: 30px;
+  color: #31a810;
 }
