@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "es5",
+    "target": "es6",
     "lib": [
       "dom",
       "dom.iterable",
@@ -16,9 +16,10 @@
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "noEmit": true,
+    "noEmit": true, 
+    "noImplicitAny": false,
     "jsx": "react",
-    "types" : ["gapi", "gapi.auth2"]
+    "types" : ["gapi", "gapi.auth2", "jest"]
   },
   "include": [
     "src"
