@@ -10,7 +10,7 @@ interface Update {
   color: Color;
 }
 
-interface State {
+export interface State {
   image: Color[][];
   location: {
     x: number;

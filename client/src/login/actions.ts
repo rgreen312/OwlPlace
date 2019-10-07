@@ -6,7 +6,12 @@ const loginStart = () => ({
 export type LoginStart = ReturnType<typeof loginStart>;
 
 const loginSuccess = (name: string, id: string, email: string) => ({
-  type: ActionTypes.LoginSuccess
+  type: ActionTypes.LoginSuccess,
+  payload: {
+    name,
+    id,
+    email,
+  }
 });
 export type LoginSuccess = ReturnType<typeof loginSuccess>;
 
@@ -15,7 +20,7 @@ const loginError = () => ({
 });
 export type LoginError = ReturnType<typeof loginError>;
 
-export const login = () => dispatch => {
+export const login = () => async dispatch => {
   dispatch(loginStart());
 
   /**
@@ -23,22 +28,25 @@ export const login = () => dispatch => {
    */
   let auth2: any;
 
-  gapi.load('auth2', function() {
-    /**
-     * Retrieve the singleton for the GoogleAuth library and set up the
-     * client.
-     */
-    auth2 = gapi.auth2.init({
-        client_id: '634069824484-ch6gklc2fevg9852aohe6sv2ctq7icbk.apps.googleusercontent.com'
+  const googleAPILoaded: Promise<void> = new Promise(resolve => {
+    gapi.load('auth2', () => {
+      /**
+       * Retrieve the singleton for the GoogleAuth library and set up the
+       * client.
+       */
+      auth2 = gapi.auth2.init({
+          client_id: '634069824484-ch6gklc2fevg9852aohe6sv2ctq7icbk.apps.googleusercontent.com'
+      });
+      resolve();
     });
   });
 
-    gapi.auth2.getAuthInstance().signIn().then( function() {
-        const googleUser = gapi.auth2.getAuthInstance().currentUser.get();
-        var profile = googleUser.getBasicProfile();
-        console.log('ID: ' + profile.getId()); // Do not send to your backend! Use an ID token instead.
-        console.log('Name: ' + profile.getName());
-        console.log('Email: ' + profile.getEmail()); // This is null if the 'email' scope is
-      }
-    ); 
+  await googleAPILoaded;
+
+  await gapi.auth2.getAuthInstance().signIn();
+  const googleUser = gapi.auth2.getAuthInstance().currentUser.get();
+  const profile = googleUser.getBasicProfile();
+
+  console.log('setting name: ', profile.getName());
+  dispatch(loginSuccess(profile.getName(), profile.getId(), profile.getEmail()));
 }
