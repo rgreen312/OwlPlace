@@ -5,7 +5,6 @@ import (
 	"github.com/rgreen312/owlplace/server/consensus"
 )
 
-
 func main() {
 	// Make the backend channel that the api server and consensus module communicate with
 	api_to_backend_channel := make(chan consensus.BackendMessage)

@@ -20,10 +20,10 @@ interface State {
   test: string;
 }
 
-const imageReducer = createReducer([][], {
-  [ActionTypes.FetchImageError]: () =>  [][],
-  [ActionTypes.FetchImageSuccess]: (state: State, action) => [][],
-});
+// const imageReducer = createReducer([][], {
+//   [ActionTypes.FetchImageError]: () =>  [][],
+//   [ActionTypes.FetchImageSuccess]: (state: State, action) => [][],
+// });
 
 const testReducer = createReducer(null, {
   [ActionTypes.FetchImageError]: () =>  null,

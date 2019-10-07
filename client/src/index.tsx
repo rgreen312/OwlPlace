@@ -4,16 +4,16 @@ import './index.scss';
 import App from './App';
 import { combineReducers, createStore, applyMiddleware } from 'redux';
 import canvasReducers from './canvas/reducers';
+import loginReducers from './login/reducers';
 import { Provider } from 'react-redux';
 import thunk from 'redux-thunk';
-import { testAction } from './canvas/actions';
 
 const rootReducer = combineReducers({
-  canvas: canvasReducers
+  canvas: canvasReducers,
+  login: loginReducers
 });
 
-const store = createStore(canvasReducers, applyMiddleware(thunk));
-// store.dispatch(testAction());
+const store = createStore(rootReducer, applyMiddleware(thunk));
 
 render(
   <Provider store={store}>

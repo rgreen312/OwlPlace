@@ -1,8 +1,12 @@
-//@ts-ignore
-export const createReducer = (initialState, handlers) => (state = initialState, action) => {
-  if (handlers.hasOwnProperty(action.type)) {
-    return handlers[action.type](state, action)
-  } else {
-    return state
-  }
+export function createReducer<T>(
+  initialState: T,
+  handlers
+) {
+  return function(state: T = initialState, action): T {
+    const handler = handlers[action && action.type];
+    if (!handler) {
+      return state;
+    }
+    return handler(state, action);
+  };
 }

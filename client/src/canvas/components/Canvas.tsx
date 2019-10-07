@@ -5,8 +5,6 @@ interface Props {
 }
 
 const Canvas: FC<Props> = ({ onClick }) => {
-
-  const test = () => console.log('test');
   return (
     <div>
       <div>
