@@ -1,18 +1,11 @@
-import React from "react";
+import React, { FC } from "react";
 import "./App.scss";
+import RoutingContainer from './RoutingContainer';
 
-const App: React.FC = () => {
+const App: FC = () => {
   return (
-    <div>
-      <div className="top-nav-bar">
-        <button className="login-btn">
-          <p className="login-text">login</p>
-        </button>
-      </div>
-      <div className="main-wrapper">
-        <h1>owlplaces</h1>
-        <h2>change the canvas one pixel at a time</h2>
-      </div>
+    <div className='App'>
+      <RoutingContainer />
     </div>
   );
 };

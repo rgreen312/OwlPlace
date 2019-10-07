@@ -1,12 +1,23 @@
 import React from 'react';
-import ReactDOM from 'react-dom';
-import './index.css';
+import { render } from 'react-dom'
+import './index.scss';
 import App from './App';
-import * as serviceWorker from './serviceWorker';
+import { combineReducers, createStore, applyMiddleware } from 'redux';
+import canvasReducers from './canvas/reducers';
+import { Provider } from 'react-redux';
+import thunk from 'redux-thunk';
+import { testAction } from './canvas/actions';
 
-ReactDOM.render(<App />, document.getElementById('root'));
+const rootReducer = combineReducers({
+  canvas: canvasReducers
+});
 
-// If you want your app to work offline and load faster, you can change
-// unregister() to register() below. Note this comes with some pitfalls.
-// Learn more about service workers: https://bit.ly/CRA-PWA
-serviceWorker.unregister();
+const store = createStore(canvasReducers, applyMiddleware(thunk));
+// store.dispatch(testAction());
+
+render(
+  <Provider store={store}>
+    <App />
+  </Provider>,
+  document.getElementById('root')
+)
