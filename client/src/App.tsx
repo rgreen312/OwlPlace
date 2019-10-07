@@ -114,7 +114,12 @@ const App: React.FC = () => {
         Pixel 1{" "}
       </button> */}
       <Header />
-      <Button className="login-btn" type="primary" icon="google">
+      <Button
+        className="login-btn"
+        type="primary"
+        icon="google"
+        onClick={onSignIn}
+      >
         Login with Google
       </Button>
       <Footer />
