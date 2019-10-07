@@ -19,7 +19,7 @@
     "noEmit": true, 
     "noImplicitAny": false,
     "jsx": "react",
-    "types" : ["gapi", "gapi.auth2", "redux-thunk"]
+    "types" : ["gapi", "gapi.auth2", "jest"]
   },
   "include": [
     "src"

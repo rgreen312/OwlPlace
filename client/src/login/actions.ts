@@ -47,6 +47,5 @@ export const login = () => async dispatch => {
   const googleUser = gapi.auth2.getAuthInstance().currentUser.get();
   const profile = googleUser.getBasicProfile();
 
-  console.log('setting name: ', profile.getName());
   dispatch(loginSuccess(profile.getName(), profile.getId(), profile.getEmail()));
 }
