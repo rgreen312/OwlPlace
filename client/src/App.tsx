@@ -57,6 +57,17 @@ const updateMessage = (
     b: b
   });
 };
+// createUserMessage is type 2
+const createUserMessage = (
+  id: string
+) => {
+  return JSON.stringify({
+    type: 2
+    userId: id
+  })
+}
+
+
 const onClickP1 = (
   id: string,
   x: number,
@@ -96,6 +107,7 @@ function onSignIn() {
     .then(function() {
       const googleUser = gapi.auth2.getAuthInstance().currentUser.get();
       var profile = googleUser.getBasicProfile();
+      socket.send(createUserMessage(profile.getId()));
       console.log("ID: " + profile.getId()); // Do not send to your backend! Use an ID token instead.
       console.log("Name: " + profile.getName());
       console.log("Email: " + profile.getEmail()); // This is null if the 'email' scope is
