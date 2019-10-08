@@ -43,12 +43,12 @@ func (api *ApiServer) GetImage(w http.ResponseWriter, req *http.Request) {
 	var ImageTemplate string = `<!DOCTYPE html>
 								<html lang="en"><head></head>
 								<body><img src="data:image/jpg;base64,{{.Image}}"></body>`
-	image_msg := <-api.recvc
+	imageMsg := <-api.recvc
 
 	if tmpl, err := template.New("image").Parse(ImageTemplate); err != nil {
 		fmt.Fprintf(os.Stdout, "Unable to parse image template.\n")
 	} else {
-		data := map[string]interface{}{"Image": image_msg.Data}
+		data := map[string]interface{}{"Image": imageMsg.Data}
 		if err = tmpl.Execute(w, data); err != nil {
 			fmt.Fprintf(os.Stdout, "Unable to execute template.\n")
 		}
@@ -70,22 +70,22 @@ func (api *ApiServer) GetImage(w http.ResponseWriter, req *http.Request) {
 // 	}
 // }
 
-func (api *ApiServer) GetLastUserModification(user_id string) string{
+func (api *ApiServer) GetLastUserModification(user_id string) string {
 
 	// Testing with some dummy data
-	m := consensus.BackendMessage{ Type: consensus.GET_LAST_USER_UPDATE, Data: fmt.Sprintf("get %s", user_id)}
+	m := consensus.BackendMessage{Type: consensus.GET_LAST_USER_UPDATE, Data: fmt.Sprintf("get %s", user_id)}
 	api.sendc <- m
-	image_msg := <- api.recvc
-	return image_msg.Data
+	imageMsg := <-api.recvc
+	return imageMsg.Data
 }
 
-func (api *ApiServer) SetLastUserModification(user_id string, last_modification string) bool{
+func (api *ApiServer) SetLastUserModification(user_id string, last_modification string) bool {
 
 	// Testing with some dummy data
-	m := consensus.BackendMessage{ Type: consensus.SET_LAST_USER_UPDATE, Data: fmt.Sprintf("put %s %s", user_id, last_modification)}
+	m := consensus.BackendMessage{Type: consensus.SET_LAST_USER_UPDATE, Data: fmt.Sprintf("put %s %s", user_id, last_modification)}
 	api.sendc <- m
-	image_msg := <- api.recvc
-	return image_msg.Type == consensus.SUCCESS
+	imageMsg := <-api.recvc
+	return imageMsg.Type == consensus.SUCCESS
 }
 
 func (api *ApiServer) Headers(w http.ResponseWriter, req *http.Request) {
@@ -129,8 +129,10 @@ func (api *ApiServer) reader(conn *websocket.Conn) {
 		msgType := dat["type"].(float64) // interface {} is float64, not int
 		fmt.Println(msgType)
 
-		byt := []byte("empty")
+		byt := []byte("Default message")
 		switch msgType {
+		case 0:
+			byt = []byte("Hello from the server! We are connected.")
 		case 1:
 			fmt.Println("one")
 			byt = api.updateMethod(dat)
@@ -149,6 +151,8 @@ func (api *ApiServer) reader(conn *websocket.Conn) {
 }
 
 func (api *ApiServer) updateMethod(dat map[string]interface{}) []byte {
+
+	// TODO: later this will be unnecessary
 	userID := dat["id"].(float64)
 	x := dat["x"].(float64)
 	y := dat["y"].(float64)
@@ -169,15 +173,17 @@ func (api *ApiServer) updateMethod(dat map[string]interface{}) []byte {
 		// TODO return the appropriate failure message
 		imageMsg := "FAILURERESSES TODO make this properly formatted"
 
-	} else {
-		// User has been verified
-		m := consensus.BackendMessage{Type: consensus.UPDATE_PIXEL, Data: updateString}
-		api.sendc <- m
-		imageMsg := <-api.recvc
+		// send message back to the client saying it's been updated or if it failed
+		byt := []byte(imageMsg)
+		return byt
 	}
 
+	// User has been verified
+	m := consensus.BackendMessage{Type: consensus.UPDATE_PIXEL, Data: updateString}
+	api.sendc <- m
+	imageMsg := <-api.recvc
 	// send message back to the client saying it's been updated or if it failed
-	byt := []byte(imageMsg)
+	byt := []byte(imageMsg.Data)
 	return byt
 }
 
@@ -195,6 +201,6 @@ func (api *ApiServer) wsEndpoint(w http.ResponseWriter, r *http.Request) {
 	log.Println("Client Connected")
 	err = ws.WriteMessage(1, []byte("Hi Client! We just connected :)")) // sent upon connection to any clients
 
-	reader(ws)
+	api.reader(ws)
 
 }
