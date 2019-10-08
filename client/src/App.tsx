@@ -1,6 +1,8 @@
 import React, { FC } from "react";
 import "./App.scss";
 import RoutingContainer from './RoutingContainer';
+import * as ActionTypes from './login/actionTypes';
+import { loginStart, loginSuccess } from "./login/actions";
 
 let socket = new WebSocket("ws://127.0.0.1:3010/ws");
 console.log("Attempting Connection...");
@@ -68,6 +70,40 @@ const onClickP1 = (
 
   return true;
 }
+
+/**
+ * The Sign-In client object.
+ */
+let auth2: any;
+let googleUser: any;
+
+export const googleAPILoaded: Promise<void> = new Promise(resolve => {
+  gapi.load('auth2', () => {
+    /**
+     * Retrieve the singleton for the GoogleAuth library and set up the
+     * client.
+     */
+    gapi.auth2.init({
+        client_id: '634069824484-ch6gklc2fevg9852aohe6sv2ctq7icbk.apps.googleusercontent.com'
+    }).then( function() {
+        // Sign in the user if they are currently signed in.
+        auth2 = gapi.auth2.getAuthInstance(); 
+        if (auth2.isSignedIn.get() == true) {
+          console.log("someone is already signed in"); 
+          const profile = googleUser.getBasicProfile();
+          
+          const login = () => async dispatch => {
+            dispatch(loginStart());
+          
+            dispatch(loginSuccess(profile.getName(), profile.getId(), profile.getEmail()));
+          }
+        } 
+      }
+    );
+
+    resolve();
+  });
+});
 
 
 const App: FC = () => {

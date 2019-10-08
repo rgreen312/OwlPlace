@@ -1,11 +1,12 @@
 import * as ActionTypes from './actionTypes';
+import { googleAPILoaded } from '../App';
 
-const loginStart = () => ({
+export const loginStart = () => ({
   type: ActionTypes.LoginStart
 });
 export type LoginStart = ReturnType<typeof loginStart>;
 
-const loginSuccess = (name: string, id: string, email: string) => ({
+export const loginSuccess = (name: string, id: string, email: string) => ({
   type: ActionTypes.LoginSuccess,
   payload: {
     name,
@@ -22,24 +23,6 @@ export type LoginError = ReturnType<typeof loginError>;
 
 export const login = () => async dispatch => {
   dispatch(loginStart());
-
-  /**
-   * The Sign-In client object.
-   */
-  let auth2: any;
-
-  const googleAPILoaded: Promise<void> = new Promise(resolve => {
-    gapi.load('auth2', () => {
-      /**
-       * Retrieve the singleton for the GoogleAuth library and set up the
-       * client.
-       */
-      auth2 = gapi.auth2.init({
-          client_id: '634069824484-ch6gklc2fevg9852aohe6sv2ctq7icbk.apps.googleusercontent.com'
-      });
-      resolve();
-    });
-  });
 
   await googleAPILoaded;
 
