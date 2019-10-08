@@ -1,7 +1,7 @@
 import * as ActionTypes from './actionTypes';
 import { googleAPILoaded } from '../App';
 
-export const loginStart = () => ({
+const loginStart = () => ({
   type: ActionTypes.LoginStart
 });
 export type LoginStart = ReturnType<typeof loginStart>;

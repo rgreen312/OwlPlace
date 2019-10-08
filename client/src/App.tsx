@@ -2,7 +2,7 @@ import React, { FC } from "react";
 import "./App.scss";
 import RoutingContainer from './RoutingContainer';
 import * as ActionTypes from './login/actionTypes';
-import { loginStart, loginSuccess, login } from "./login/actions";
+import { loginSuccess, login } from "./login/actions";
 import { store } from "./index";
 
 let socket = new WebSocket("ws://127.0.0.1:3010/ws");
