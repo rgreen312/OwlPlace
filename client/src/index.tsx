@@ -15,7 +15,7 @@ const rootReducer = combineReducers({
 
 // @ts-ignore - redux devtools doesn't have type definitions
 const composeEnhancers = window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || compose;
-const store = createStore(rootReducer, composeEnhancers(applyMiddleware(thunk)));
+export const store = createStore(rootReducer, composeEnhancers(applyMiddleware(thunk)));
 
 render(
   <Provider store={store}>

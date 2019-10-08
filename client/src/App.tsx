@@ -2,7 +2,8 @@ import React, { FC } from "react";
 import "./App.scss";
 import RoutingContainer from './RoutingContainer';
 import * as ActionTypes from './login/actionTypes';
-import { loginStart, loginSuccess } from "./login/actions";
+import { loginStart, loginSuccess, login } from "./login/actions";
+import { store } from "./index";
 
 let socket = new WebSocket("ws://127.0.0.1:3010/ws");
 console.log("Attempting Connection...");
@@ -89,15 +90,10 @@ export const googleAPILoaded: Promise<void> = new Promise(resolve => {
         // Sign in the user if they are currently signed in.
         auth2 = gapi.auth2.getAuthInstance(); 
         if (auth2.isSignedIn.get() == true) {
-          console.log("someone is already signed in"); 
+          const googleUser = gapi.auth2.getAuthInstance().currentUser.get();
           const profile = googleUser.getBasicProfile();
-          
-          const login = () => async dispatch => {
-            dispatch(loginStart());
-          
-            dispatch(loginSuccess(profile.getName(), profile.getId(), profile.getEmail()));
-          }
-        } 
+          store.dispatch(loginSuccess(profile.getName(), profile.getName(), profile.getEmail())); 
+        }
       }
     );
 
