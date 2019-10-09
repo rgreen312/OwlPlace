@@ -96,45 +96,21 @@ func (api *ApiServer) GetImage(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func updateUserList(user_id string) {
-	key := "U" + user_id
-	val, err := consensus.Get([]byte(key))
-	if err != nil {
-		fmt.Println("Error in updateUserList")
-	}
-	if val == nil {
-		err := consensus.Put([]byte(key), []byte("0"))
-		if err != nil {
-			fmt.Println("Cannot update user list")
-		}
-		// //need to convert key to json format?
-		// m := consensus.BackendMessage{Type: consensus.ADD_USER, Data: key}
-		// api.sendc <- m
-		// user_ids := <- api.recvc
+func (api *ApiServer) updateUserList(w http.ResponseWriter, req *http.Request) {
+	user_id := req.URL.Query().Get("user_id")
+ 	key := "U" + user_id
 
-	} else {
-		fmt.Println("User already registered ")
 
-		
-	}
-}
+ 	lastMove := api.GetLastUserModification(key)
+ 	if lastMove == "" {
+  		fmt.Println("Error in updateUserList")
+ 	} else {
+  		err := api.SetLastUserModification(key, "0")
+  		if err == false {
+   			fmt.Println("Cannot update user list")
+  		}
+ 	}
 
-func makeMove(user_id string, x string, y string, color string) {
-	lastMove = consensus.Get(ro, )
-}
-
-func validateUser(user_id string) bool {
-	now := time.Now().Unix()
-	lastMove := consensus.Get([]byte('U' + user_id))
-	lastMoveInt, err := strconv.Atoi(lastMove)
-	if err != nil {
-		fmt.Println("SOME ERROR")
-	}
-	if (now - lastMoveInt > 300) {
-		return true		
-	} else {
-		return false
-	}
 }
 
 func (api *ApiServer) UpdatePixel(w http.ResponseWriter, req *http.Request) {
@@ -263,28 +239,19 @@ func reader(conn *websocket.Conn) {
 		switch msgType {
 		case 1:
 			fmt.Println("one")
-			isValidate := validateUser(dat["id"])
 			
-			if (isValidate) {
-				// TODO: call the updating function
+			// TODO: call the updating function
 
-				// send message back to the client saying it's been updated
-				byt := []byte(`Pixel 1 has been updated!`)
-				if err := conn.WriteMessage(websocket.TextMessage, byt); err != nil {
-					log.Println(err)
-					return
-				}
-			} else {
-				byt := []byte(`User can't make a move now!`)
-				if err := conn.WriteMessage(websocket.TextMessage, byt); err != nil {
-					log.Println(err)
-					return
-				}
+			// send message back to the client saying it's been updated
+			byt := []byte(`Pixel 1 has been updated!`)
+			if err := conn.WriteMessage(websocket.TextMessage, byt); err != nil {
+				log.Println(err)
+				return
 			}
+			
 			
 		case 2:
 			fmt.Println("two")
-			updateUserList(dat["userId"])
 		case 3:
 			fmt.Println("three")
 		}
