@@ -2,12 +2,10 @@ package consensus
 
 import (
 	"bytes"
-	"encoding/base64"
 	"flag"
 	"fmt"
 	"encoding/json"
 	"image"
-	"image/png"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -15,10 +13,7 @@ import (
 	"syscall"
 	"time"
 	"context"
-	"strings"
-
-	// "context"
-	// "time"
+	"encoding/gob"
 
 	"github.com/lni/dragonboat/v3"
 	"github.com/lni/dragonboat/v3/config"
@@ -50,55 +45,66 @@ const (
 
 type ConsensusMessage struct {
 	Type int
-	Data string
+	Data bytes.Buffer
+}
+
+type BackendMessage struct {
+	Type int
+	Data bytes.Buffer
+}
+
+type GetUserDataBackendMessage struct {
+	UserId string
+}
+
+type SetUserDataBackendMessage struct {
+	UserId, Timestamp string
+}
+
+type UpdatePixelBackendMessage struct {
+	X, Y, R, G, B, A string
 }
 
 func NewImageMessage(img image.RGBA) ConsensusMessage {
 	// In-memory buffer to store PNG image
 	// before we base 64 encode it
-	var buff bytes.Buffer
-
-	// The Buffer satisfies the Writer interface so we can use it with Encode
-	// In previous example we encoded to a file, this time to a temp buffer
-	png.Encode(&buff, &img)
-
-	// Encode the bytes in the buffer to a base64 string
-	encodedString := base64.StdEncoding.EncodeToString(buff.Bytes())
+	var encoded_msg bytes.Buffer
+	enc := gob.NewEncoder(&encoded_msg)
+	enc.Encode(img)
 
 	return ConsensusMessage{
 		Type: GET_IMAGE,
-		Data: encodedString,
+		Data: encoded_msg,
 	}
 }
 
-
 func GetTimestampMessage(timestamp string) ConsensusMessage {
+	var encoded_msg bytes.Buffer
+	enc := gob.NewEncoder(&encoded_msg)
+	enc.Encode(timestamp)
 
-	return ConsensusMessage{
+	return ConsensusMessage {
 		Type: GET_LAST_USER_UPDATE,
-		Data: timestamp,
+		Data: encoded_msg,
 	}
 }
 
 func SuccessMessage() ConsensusMessage {
-	return ConsensusMessage{
+	var empty_buffer bytes.Buffer
+	return ConsensusMessage {
 		Type: SUCCESS,
-		Data: "Success\n",
+		Data: empty_buffer,
 	}
 }
 
 func FailureMessage() ConsensusMessage {
-	return ConsensusMessage{
+	var empty_buffer bytes.Buffer
+	return ConsensusMessage {
 		Type: FAILURE,
-		Data: "Failure\n",
+		Data: empty_buffer,
 	}
 }
 
-
-type BackendMessage struct {
-	Type int
-	Data string
-}
 
 var (
 	// initial nodes count is fixed to three, their addresses are also fixed
@@ -114,24 +120,6 @@ func printUsage() {
 	fmt.Fprintf(os.Stdout, "put key value\n")
 	fmt.Fprintf(os.Stdout, "get key\n")
 }
-
-func parseCommand(msg string) (RequestType, string, string, bool) {
-	parts := strings.Split(strings.TrimSpace(msg), " ")
-	if len(parts) == 0 || (parts[0] != "put" && parts[0] != "get") {
-		return PUT, "", "", false
-	}
-	if parts[0] == "put" {
-		if len(parts) != 3 {
-			return PUT, "", "", false
-		}
-		return PUT, parts[1], parts[2], true
-	}
-	if len(parts) != 2 {
-		return GET, "", "", false
-	}
-	return GET, parts[1], "", true
-}
-
 
 func MainConsensus(recvc chan BackendMessage, sendc chan ConsensusMessage) {
 
@@ -206,45 +194,84 @@ func MainConsensus(recvc chan BackendMessage, sendc chan ConsensusMessage) {
 				if !ok {
 					return
 				}
+
+				// Start background context
+				ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+
+				// Message decoding depends on the type
 				switch backend_msg.Type {
 				case GET_IMAGE:
 					sendc <- NewImageMessage(imgGetter())
-				case UPDATE_PIXEL, SET_LAST_USER_UPDATE:
-					ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-					_, key, val, ok := parseCommand(backend_msg.Data)
-					if(!ok){
+				case UPDATE_PIXEL:
+					// Decode the message from the glob
+					dec := gob.NewDecoder(&backend_msg.Data)
+					var umsg UpdatePixelBackendMessage
+					err = dec.Decode(&umsg)
+					if(err != nil) {
 						sendc <- FailureMessage()
-					} else {
-						kv := &KVData{
-							Key: key,
-							Val: val,
-						}
-						data, err := json.Marshal(kv)
-						if err != nil {
-							panic(err)
-						}
-						_, err = nh.SyncPropose(ctx, cs, data)
-						if err != nil {
-							fmt.Fprintf(os.Stderr, "SyncPropose returned error %v\n", err)
-						}
-						sendc <- SuccessMessage()
 					}
-					cancel()
+
+					// Create the kv pair to send to dragonboat
+					kv := &KVData{
+						Key: fmt.Sprintf("pixel(%s,%s)", umsg.X, umsg.Y),
+						Val: fmt.Sprintf("(%s,%s,%s,%s)", umsg.R, umsg.G, umsg.B, umsg.A),
+					}
+					data, err := json.Marshal(kv)
+					if err != nil {
+						sendc <- FailureMessage()
+					}
+
+					// Sync with dragonboat
+					_, err = nh.SyncPropose(ctx, cs, data)
+					if err != nil {
+						fmt.Fprintf(os.Stderr, "SyncPropose returned error %v\n", err)
+					}
+					sendc <- SuccessMessage()
+				case SET_LAST_USER_UPDATE:
+					// Decode the message from the glob
+					dec := gob.NewDecoder(&backend_msg.Data)
+					var umsg SetUserDataBackendMessage
+					err = dec.Decode(&umsg)
+					if err != nil {
+						sendc <- FailureMessage()
+					}
+
+					// Create the kv pair to send to dragonboat
+					kv := &KVData{
+						Key: umsg.UserId,
+						Val: umsg.Timestamp,
+					}
+					data, err := json.Marshal(kv)
+					if err != nil {
+						sendc <- FailureMessage()
+					}
+
+					// Sync with dragonboat
+					_, err = nh.SyncPropose(ctx, cs, data)
+					if err != nil {
+						fmt.Fprintf(os.Stderr, "SyncPropose returned error %v\n", err)
+					}
+					sendc <- SuccessMessage()
 
 				case GET_LAST_USER_UPDATE:
-					ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-					_, key, _, ok := parseCommand(backend_msg.Data)
-					if(!ok){
+					// Decode the message from the glob
+					dec := gob.NewDecoder(&backend_msg.Data)
+					var umsg GetUserDataBackendMessage
+					err = dec.Decode(&umsg)
+					if err != nil {
 						sendc <- FailureMessage()
 					}
-					result, err := nh.SyncRead(ctx, exampleClusterID, []byte(key))
+
+					// Request a ready from dragonboat
+					result, err := nh.SyncRead(ctx, exampleClusterID, []byte(umsg.UserId))
 					if err != nil {
 						sendc <- FailureMessage()
 					} else {
 						sendc <- GetTimestampMessage(result.(string))
 					}
-					cancel()
+					
 				}
+				cancel()
 
 
 				
