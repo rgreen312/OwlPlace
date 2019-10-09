@@ -94,6 +94,22 @@ func (api *ApiServer) GetImage(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+func updateUserList(user_id string) {
+	key := "U" + user_id
+	val, err := db.Get(ro, []byte(key))
+	if err != nil {
+		fmt.Println("Error in updateUserList")
+	}
+	if val == nil {
+		db.Put(wo, []byte(key), []byte(""))
+		m := consensus.BackendMessage{Type: consensus.ADD_USER}
+		api.sendc <- m
+	} else {
+		fmt.Println("key already in DB, value: ")
+		fmt.Println(val)
+	}
+}
+
 func (api *ApiServer) UpdatePixel(w http.ResponseWriter, req *http.Request) {
 
 	var encoded_msg bytes.Buffer
@@ -231,6 +247,7 @@ func reader(conn *websocket.Conn) {
 			}
 		case 2:
 			fmt.Println("two")
+			updateUserList(dat["userId"])
 		case 3:
 			fmt.Println("three")
 		}
