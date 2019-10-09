@@ -135,7 +135,14 @@ func (api *ApiServer) reader(conn *websocket.Conn) {
 			byt = []byte("Hello from the server! We are connected.")
 		case 1:
 			fmt.Println("one")
-			byt = api.updateMethod(dat)
+			x := int(dat["x"].(float64))
+			y := int(dat["y"].(float64))
+			r := int(dat["r"].(float64))
+			g := int(dat["g"].(float64))
+			b := int(dat["b"].(float64))
+			userID := dat["userId"].(string)
+			fmt.Println(x, y, r, g, b, "THIS IS XYRGB")
+			byt = api.updateMethod(x, y, r, g, b, userID)
 		case 2:
 			fmt.Println("two")
 			byt = []byte("two")
@@ -150,17 +157,9 @@ func (api *ApiServer) reader(conn *websocket.Conn) {
 	}
 }
 
-func (api *ApiServer) updateMethod(dat map[string]interface{}) []byte {
+func (api *ApiServer) updateMethod(x int, y int, r int, g int, b int, userID string) []byte {
 
-	// TODO: later this will be unnecessary
-	userID := dat["id"].(float64)
-	x := dat["x"].(float64)
-	y := dat["y"].(float64)
-	r := dat["r"].(float64)
-	g := dat["g"].(float64)
-	b := dat["b"].(float64)
-
-	updateString := fmt.Sprintf("put pixel(%d,%d) (%d,%d,%d,%d)", x, y, r, g, b, 255)
+	updateString := fmt.Sprintf("put pixel(%d,%d) (%d,%d,%d,%d)", x, y, r, g, b, 255) // TODO THIS WILL BE MODIFIED BY AIDEN
 	// The update string must conform to: put pixel(x,y) (r,g,b,a)
 	fmt.Sprintf("DEBUGGING: SHOULD LOOK LIKE put pixel(x,y) (r,g,b,a): %s", updateString)
 
@@ -169,7 +168,7 @@ func (api *ApiServer) updateMethod(dat map[string]interface{}) []byte {
 	// imageMsg := ""
 	if !userVerification {
 		// User verification failed
-		log.Println(fmt.Sprintf("USER %s failed authentication", userID))
+		log.Println(fmt.Sprintf("USER %f failed authentication", userID))
 		// TODO return the appropriate failure message
 		imageMsg := "FAILURERESSES TODO make this properly formatted"
 

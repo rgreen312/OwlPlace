@@ -15,7 +15,9 @@ type DrawPixelMsg struct {
 	Msg
 	X      int    `json:"x"`
 	Y      int    `json:"y"`
-	Color  string `json:"color"`
+	R      int    `json:"r"`
+	G      int    `json:"g"`
+	B      int    `json:"b"`
 	UserID string `json:"userID"`
 }
 

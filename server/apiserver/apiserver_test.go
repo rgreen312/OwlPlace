@@ -46,16 +46,17 @@ func TestUpdate(t *testing.T) {
 	// backend_to_api_channel := make(chan consensus.ConsensusMessage)
 	// apiserver := apiserver.NewApiServer(api_to_backend_channel, backend_to_api_channel)
 
-	var dat map[string]interface{}
-	dat["x"] = 12
-	dat["y"] = 12
-	dat["r"] = 255
-	dat["g"] = 255
-	dat["b"] = 255
-	result := apiserver.updateMethod(dat)
+	// var dat map[string]interface{}
+	renameMe := apiserver.DrawPixelMsg{X: 12, Y: 12, R: 255, G: 255, B: 255, UserID: "testId"}
+	// dat["x"] = 12
+	// dat["y"] = 12
+	// dat["r"] = 255
+	// dat["g"] = 255
+	// dat["b"] = 255
+	result := apiserver.updateMethod(renameMe)
 	expected := "put pixel(12,12) (255,255,255,255)"
 	if result != expected {
-		t.Errorf("Sum was incorrect, got: %d, want: %d.", result, expected)
+		t.Errorf("Sum was incorrect, got: %f, want: %f.", result, expected)
 	}
 }
 
