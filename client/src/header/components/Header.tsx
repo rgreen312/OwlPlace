@@ -11,6 +11,11 @@ interface Props {
 // TODO(Ryan): Should add a isLoggedIn prop, if they are then display user's name
 const Header: FC<Props> = ({ onLogin, isLoggedIn, name }) => {
 
+  //@ts-ignore
+  window.onGoogleScriptLoad = () => {
+    console.log('The google script has really loaded, cool!');
+  }
+
   const loginButton = isLoggedIn
   ? (
     <>
