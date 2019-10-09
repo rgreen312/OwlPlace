@@ -78,10 +78,7 @@ interface Props {
 class App extends React.Component<Props> {
 
   componentDidMount() {
-    // @ts-ignore
-    // window.onGoogleScriptLoad = () => { 
-      this.props.checkLogin();
-    // }
+    this.props.checkLogin();
   }
   
   render() {
