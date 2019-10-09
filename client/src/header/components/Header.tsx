@@ -3,13 +3,14 @@ import { PageHeader, Button, Menu, Dropdown, Icon } from 'antd';
 import { Link } from 'react-router-dom';
 
 interface Props {
-  onLogin: () => void;
   isLoggedIn: boolean;
   name?: string;
+  onLogin: () => void;
+  onLogout: () => void;
 }
 
 // TODO(Ryan): Should add a isLoggedIn prop, if they are then display user's name
-const Header: FC<Props> = ({ onLogin, isLoggedIn, name }) => {
+const Header: FC<Props> = ({ onLogin, isLoggedIn, name, onLogout }) => {
 
   //@ts-ignore
   window.onGoogleScriptLoad = () => {
@@ -34,8 +35,8 @@ const Header: FC<Props> = ({ onLogin, isLoggedIn, name }) => {
         <Link to='/about'>About</Link>
       </Menu.Item>
       {isLoggedIn && (
-        <Menu.Item>
-          <button onClick={() => {}}>Sign out</button>
+        <Menu.Item onClick={onLogout}>
+          Sign Out
         </Menu.Item>
       )}
     </Menu>

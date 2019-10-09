@@ -93,3 +93,14 @@ export const checkLogin = () => async dispatch => {
    });
  });
 }
+
+const signOutAction = () => ({
+  type: ActionTypes.SignOut
+});
+export type SignOut = ReturnType<typeof signOutAction>;
+
+export const signOut = () => async dispatch => {
+  const auth2 = gapi.auth2.getAuthInstance();
+  await auth2.signOut();
+  dispatch(signOutAction());
+}
