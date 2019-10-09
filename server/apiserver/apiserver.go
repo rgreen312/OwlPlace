@@ -113,7 +113,8 @@ func (api *ApiServer) reader(conn *websocket.Conn) {
 		}
 
 		// holds a map of strings to arbitrary data types
-		var dat map[string]interface{}
+		//var dat map[string]interface{}
+		var dat Msg
 
 		if err := json.Unmarshal(p, &dat); err != nil {
 			log.Printf("error decoding client response: %v", err)
@@ -125,31 +126,37 @@ func (api *ApiServer) reader(conn *websocket.Conn) {
 		}
 		fmt.Println(dat)
 
-		// convert each attribute to appropriate type
-		msgType := dat["type"].(float64) // interface {} is float64, not int
-		fmt.Println(msgType)
-
-		byt := []byte("Default message")
-		switch msgType {
-		case 0:
-			byt = []byte("Hello from the server! We are connected.")
-		case 1:
-			fmt.Println("one")
-			x := int(dat["x"].(float64))
-			y := int(dat["y"].(float64))
-			r := int(dat["r"].(float64))
-			g := int(dat["g"].(float64))
-			b := int(dat["b"].(float64))
-			userID := dat["userId"].(string)
-			fmt.Println(x, y, r, g, b, "THIS IS XYRGB")
-			byt = api.updateMethod(x, y, r, g, b, userID)
-		case 2:
-			fmt.Println("two")
-			byt = []byte("two")
-		case 3:
-			fmt.Println("three")
-			byt = []byte("three")
+		switch dat.Type {
+			case DrawPixel {
+				
+			}
 		}
+
+		// convert each attribute to appropriate type
+		// msgType := dat["type"].(float64) // interface {} is float64, not int
+		// fmt.Println(msgType)
+
+		// byt := []byte("Default message")
+		// switch msgType {
+		// case 0:
+		// 	byt = []byte("Hello from the server! We are connected.")
+		// case 1:
+		// 	fmt.Println("one")
+		// 	x := int(dat["x"].(float64))
+		// 	y := int(dat["y"].(float64))
+		// 	r := int(dat["r"].(float64))
+		// 	g := int(dat["g"].(float64))
+		// 	b := int(dat["b"].(float64))
+		// 	userID := dat["userId"].(string)
+		// 	fmt.Println(x, y, r, g, b, "THIS IS XYRGB")
+		// 	byt = api.UpdateMethod(x, y, r, g, b, userID)
+		// case 2:
+		// 	fmt.Println("two")
+		// 	byt = []byte("two")
+		// case 3:
+		// 	fmt.Println("three")
+		// 	byt = []byte("three")
+		// }
 
 		if err := conn.WriteMessage(websocket.TextMessage, byt); err != nil {
 			log.Println(err)
@@ -157,7 +164,9 @@ func (api *ApiServer) reader(conn *websocket.Conn) {
 	}
 }
 
-func (api *ApiServer) updateMethod(x int, y int, r int, g int, b int, userID string) []byte {
+// Call this when telling consensus to updatea pixel.
+func (api *ApiServer) UpdateMethod(x int, y int, r int, g int, b int, userID string) []byte {
+	fmt.Println("Withing the UpdateMethod")
 
 	updateString := fmt.Sprintf("put pixel(%d,%d) (%d,%d,%d,%d)", x, y, r, g, b, 255) // TODO THIS WILL BE MODIFIED BY AIDEN
 	// The update string must conform to: put pixel(x,y) (r,g,b,a)
@@ -168,7 +177,7 @@ func (api *ApiServer) updateMethod(x int, y int, r int, g int, b int, userID str
 	// imageMsg := ""
 	if !userVerification {
 		// User verification failed
-		log.Println(fmt.Sprintf("USER %f failed authentication", userID))
+		log.Println(fmt.Sprintf("USER %s failed authentication", userID))
 		// TODO return the appropriate failure message
 		imageMsg := "FAILURERESSES TODO make this properly formatted"
 
