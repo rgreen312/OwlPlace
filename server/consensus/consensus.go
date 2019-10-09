@@ -2,24 +2,26 @@ package consensus
 
 import (
 	"bytes"
-	"flag"
-	"fmt"
+	"context"
+	"encoding/gob"
 	"encoding/json"
+	"fmt"
 	"image"
+	"log"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"runtime"
 	"syscall"
 	"time"
-	"context"
-	"encoding/gob"
 
 	"github.com/lni/dragonboat/v3"
 	"github.com/lni/dragonboat/v3/config"
 	"github.com/lni/dragonboat/v3/logger"
 	sm "github.com/lni/dragonboat/v3/statemachine"
 	"github.com/lni/goutils/syncutil"
+
+	"github.com/rgreen312/owlplace/server/common"
 )
 
 type RequestType uint64
@@ -38,7 +40,7 @@ const (
 	UPDATE_PIXEL         int = 1
 	ADD_USER             int = 2
 	GET_LAST_USER_UPDATE int = 3
-	SET_LAST_USER_UPDATE int = 4	
+	SET_LAST_USER_UPDATE int = 4
 	SUCCESS              int = 5
 	FAILURE              int = 6
 )
@@ -83,7 +85,7 @@ func GetTimestampMessage(timestamp string) ConsensusMessage {
 	enc := gob.NewEncoder(&encoded_msg)
 	enc.Encode(timestamp)
 
-	return ConsensusMessage {
+	return ConsensusMessage{
 		Type: GET_LAST_USER_UPDATE,
 		Data: encoded_msg,
 	}
@@ -91,7 +93,7 @@ func GetTimestampMessage(timestamp string) ConsensusMessage {
 
 func SuccessMessage() ConsensusMessage {
 	var empty_buffer bytes.Buffer
-	return ConsensusMessage {
+	return ConsensusMessage{
 		Type: SUCCESS,
 		Data: empty_buffer,
 	}
@@ -99,12 +101,11 @@ func SuccessMessage() ConsensusMessage {
 
 func FailureMessage() ConsensusMessage {
 	var empty_buffer bytes.Buffer
-	return ConsensusMessage {
+	return ConsensusMessage{
 		Type: FAILURE,
 		Data: empty_buffer,
 	}
 }
-
 
 var (
 	// initial nodes count is fixed to three, their addresses are also fixed
@@ -121,39 +122,39 @@ func printUsage() {
 	fmt.Fprintf(os.Stdout, "get key\n")
 }
 
-func MainConsensus(recvc chan BackendMessage, sendc chan ConsensusMessage) {
+func MainConsensus(recvc chan BackendMessage, sendc chan ConsensusMessage, servers map[int]*common.ServerConfig, nodeId int) {
 
-	nodeID := flag.Int("nodeid", 1, "NodeID to use")
-	addr := flag.String("addr", "", "Nodehost address")
-	join := flag.Bool("join", false, "Joining a new node")
-	flag.Parse()
-	if len(*addr) == 0 && *nodeID != 1 && *nodeID != 2 && *nodeID != 3 {
-		fmt.Fprintf(os.Stderr, "node id must be 1, 2 or 3 when address is not specified\n")
-		os.Exit(1)
-	}
+	conf := servers[nodeId]
+	// For more information on the join parameter, see:
+	// https://godoc.org/github.com/lni/dragonboat#NodeHost.StartCluster
+	join := false
+	nodeAddr := fmt.Sprintf("%s:%d", conf.Hostname, conf.ConsensusPort)
+
 	// https://github.com/golang/go/issues/17393
 	if runtime.GOOS == "darwin" {
 		signal.Ignore(syscall.Signal(0xd))
 	}
+
 	peers := make(map[uint64]string)
-	if !*join {
-		for idx, v := range addresses {
-			peers[uint64(idx+1)] = v
+	if len(servers) > 1 {
+		for id, srv := range servers {
+			peers[uint64(id)] = fmt.Sprintf("%s:%d", srv.Hostname, srv.ConsensusPort)
 		}
 	}
-	var nodeAddr string
-	if len(*addr) != 0 {
-		nodeAddr = *addr
-	} else {
-		nodeAddr = peers[uint64(*nodeID)]
-	}
+
+	// Log the node address for debugging purposes.
 	fmt.Fprintf(os.Stdout, "node address: %s\n", nodeAddr)
+	// Log the node ID
+	fmt.Fprintf(os.Stdout, "node id: %d\n", nodeId)
+	// Log the node address for debugging purposes.
+	fmt.Fprintf(os.Stdout, "peers: %+v\n", peers)
+
 	logger.GetLogger("raft").SetLevel(logger.ERROR)
 	logger.GetLogger("rsm").SetLevel(logger.WARNING)
 	logger.GetLogger("transport").SetLevel(logger.WARNING)
 	logger.GetLogger("grpc").SetLevel(logger.WARNING)
 	rc := config.Config{
-		NodeID:             uint64(*nodeID),
+		NodeID:             uint64(nodeId),
 		ClusterID:          exampleClusterID,
 		ElectionRTT:        10,
 		HeartbeatRTT:       1,
@@ -161,27 +162,38 @@ func MainConsensus(recvc chan BackendMessage, sendc chan ConsensusMessage) {
 		SnapshotEntries:    10,
 		CompactionOverhead: 5,
 	}
+	if err := rc.Validate(); err != nil {
+		log.Fatalf("Invalid Dragonboat Configuration: %s\n", err)
+	} else {
+		log.Printf("Node %d: Valid Dragonboat Configuration\n", nodeId)
+	}
 	datadir := filepath.Join(
 		"example-data",
 		"helloworld-data",
-		fmt.Sprintf("node%d", *nodeID))
+		fmt.Sprintf("node%d", nodeId))
 	nhc := config.NodeHostConfig{
+		DeploymentID:   1,
 		WALDir:         datadir,
 		NodeHostDir:    datadir,
 		RTTMillisecond: 200,
 		RaftAddress:    nodeAddr,
 	}
+	if err := nhc.Validate(); err != nil {
+		log.Fatalf("Invalid Dragonboat Nodehost Configuration: %s\n", err)
+	} else {
+		log.Printf("Node %d: Valid Nodehost Dragonboat Configuration\n", nodeId)
+	}
 	nh, err := dragonboat.NewNodeHost(nhc)
 	if err != nil {
-		panic(err)
+		log.Fatalf("Failed to create new nodehost: %s\n", err)
 	}
 	var imgGetter func() image.RGBA
 	stateMachineProvider := func(clusterID uint64, nodeID uint64) sm.IOnDiskStateMachine {
 		dkv := NewDiskKV(clusterID, nodeID).(*DiskKV)
-		imgGetter =  dkv.GetInMemoryImage
+		imgGetter = dkv.GetInMemoryImage
 		return dkv
 	}
-	if err := nh.StartOnDiskCluster(peers, *join, stateMachineProvider, rc); err != nil {
+	if err := nh.StartOnDiskCluster(peers, join, stateMachineProvider, rc); err != nil {
 		fmt.Fprintf(os.Stderr, "failed to add cluster, %v\n", err)
 		os.Exit(1)
 	}
@@ -207,7 +219,7 @@ func MainConsensus(recvc chan BackendMessage, sendc chan ConsensusMessage) {
 					dec := gob.NewDecoder(&backend_msg.Data)
 					var umsg UpdatePixelBackendMessage
 					err = dec.Decode(&umsg)
-					if(err != nil) {
+					if err != nil {
 						sendc <- FailureMessage()
 					}
 
@@ -269,12 +281,9 @@ func MainConsensus(recvc chan BackendMessage, sendc chan ConsensusMessage) {
 					} else {
 						sendc <- GetTimestampMessage(result.(string))
 					}
-					
+
 				}
 				cancel()
-
-
-				
 
 			case <-raftStopper.ShouldStop():
 				return

@@ -35,9 +35,9 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/lni/dragonboat-example/v3/ondisk/gorocksdb"
 	sm "github.com/lni/dragonboat/v3/statemachine"
 	"github.com/lni/goutils/fileutil"
+	"github.com/tecbot/gorocksdb"
 )
 
 const (
@@ -283,29 +283,28 @@ func (d *DiskKV) queryAppliedIndex(db *rocksdb) (uint64, error) {
 	return strconv.ParseUint(string(data), 10, 64)
 }
 
-func (d *DiskKV) loadImageFromDB(db *rocksdb){
-	fmt.Fprintf(os.Stdout,"Loading image from DB...\n")
-	for i := 0; i<IMAGE_WIDTH; i++{
-		for j := 0; j<IMAGE_HEIGHT; j++{
+func (d *DiskKV) loadImageFromDB(db *rocksdb) {
+	fmt.Fprintf(os.Stdout, "Loading image from DB...\n")
+	for i := 0; i < IMAGE_WIDTH; i++ {
+		for j := 0; j < IMAGE_HEIGHT; j++ {
 			key := fmt.Sprintf("pixel(%d,%d)", i, j)
 			val, err := db.db.Get(db.ro, []byte(key))
 
-			if(err == nil && string(val.Data()) != ""){
+			if err == nil && string(val.Data()) != "" {
 				dataKV := &KVData{
-					Key: key, 
+					Key: key,
 					Val: string(val.Data()),
 				}
 				d.UpdateInMemoryImage(dataKV)
 			}
 		}
 	}
-	fmt.Fprintf(os.Stdout,"Done loading image from DB\n")
+	fmt.Fprintf(os.Stdout, "Done loading image from DB\n")
 }
 
 // Open opens the state machine and return the index of the last Raft Log entry
 // already updated into the state machine.
 func (d *DiskKV) Open(stopc <-chan struct{}) (uint64, error) {
-
 
 	dir := getNodeDBDirName(d.clusterID, d.nodeID)
 	if err := createNodeDataDir(dir); err != nil {
@@ -524,7 +523,6 @@ func (d *DiskKV) RecoverFromSnapshot(r io.Reader,
 	done <-chan struct{}) error {
 
 	fmt.Fprintf(os.Stdout, "Recovering from snapshot\n")
-
 
 	if d.closed {
 		panic("recover from snapshot called after Close()")

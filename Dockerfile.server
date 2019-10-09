@@ -96,4 +96,6 @@ COPY --from=rocksbuilder /usr/lib/librocksdb.so* /usr/lib/
 COPY --from=rocksbuilder /usr/local/rocksdb/include/rocksdb /usr/include/rocksdb
 COPY --from=serverbuilder /app/server /bin/server
 
-ENTRYPOINT /bin/server
+ENV NODEID 0
+ENV CONFIG /usr/share/owlplace.json
+CMD "/bin/server" "-nodeid" "$NODEID" "-config" "$CONFIG"
