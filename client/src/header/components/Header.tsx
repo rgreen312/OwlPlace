@@ -19,11 +19,11 @@ const Header: FC<Props> = ({ onLogin, isLoggedIn, name, onLogout }) => {
 
   const loginButton = isLoggedIn
   ? (
-    <>
+    <div key='name' style={{ display: 'inline-block' }}>
       Hi, {name}
-    </>
+    </div>
   ) : (
-    <Button className='login-button' onClick={onLogin}>
+    <Button className='login-button' onClick={onLogin} key='signin'>
       Login
     </Button>
   );
