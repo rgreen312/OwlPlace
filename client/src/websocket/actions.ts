@@ -1,5 +1,6 @@
 import { HOSTNAME } from '../constants';
 import * as ActionTypes from './actionTypes';
+import { getWebSocket } from './selectors';
 
 const startConnect = () => ({
   type: ActionTypes.StartConnect
@@ -14,6 +15,11 @@ const connectError = (error: string) => ({
 });
 export type ConnectError =  ReturnType<typeof connectError>;
 
+const closeConnection = () => ({
+  type: ActionTypes.CloseConnection,
+});
+export type CloseConnection =  ReturnType<typeof closeConnection>;
+
 const connectSuccess = (socket: WebSocket) => ({
   type: ActionTypes.ConnectSuccess,
   payload: {
@@ -26,21 +32,20 @@ export const openWebSocket = () => dispatch => {
   dispatch(startConnect());
 
   const socket = new WebSocket(`ws://${HOSTNAME}/ws`);
-
     // open message is 0
-  socket.onopen = () => {
+    socket.onopen = () => {
+      socket.send(
+        JSON.stringify({
+          type: 0,
+          message: "Hi From the Client! The websocket just opened"
+        })
+      );
     dispatch(connectSuccess(socket));
   };
 
   // close message is 9
   socket.onclose = event => {
-    console.log("Socket Closed Connection: ", event);
-    socket.send(
-      JSON.stringify({
-        type: 9,
-        message: "Client Closed!"
-      })
-    );
+    dispatch(closeConnection());
   };
 
   socket.onerror = error => {
@@ -54,4 +59,17 @@ export const openWebSocket = () => dispatch => {
   };
 }
 
-// TODO (ryan): create actions to disconnect from web socket and send messages
+export const closeWebSocket = () => (dispatch, getState) => {
+  const socket = getWebSocket(getState());
+  if (socket) {
+    socket.send(
+      JSON.stringify({
+        type: 9,
+        message: "Client Closed!"
+      })
+    );
+  }
+  dispatch(closeConnection());
+}
+
+// TODO (ryan): create action send different message types
