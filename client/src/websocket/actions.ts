@@ -49,6 +49,7 @@ export const openWebSocket = () => dispatch => {
 
   socket.onmessage = event => {
     const { data } = event;
+    // TODO (Ryan): figure out the best way to handle this... probably need to write some middlewear
     console.log("Recieved a message from the server, message: " + data);
   };
 }
