@@ -1,6 +1,6 @@
-import React, { FC } from 'react';
-import { PageHeader, Button, Menu, Dropdown, Icon } from 'antd';
-import { Link } from 'react-router-dom';
+import React, { FC } from "react";
+import { PageHeader, Button, Menu, Dropdown, Icon, Tag } from "antd";
+import { Link } from "react-router-dom";
 
 interface Props {
   isLoggedIn: boolean;
@@ -11,19 +11,15 @@ interface Props {
 
 // TODO(Ryan): Should add a isLoggedIn prop, if they are then display user's name
 const Header: FC<Props> = ({ onLogin, isLoggedIn, name, onLogout }) => {
-
   //@ts-ignore
   window.onGoogleScriptLoad = () => {
-    console.log('The google script has really loaded, cool!');
-  }
+    console.log("The google script has really loaded, cool!");
+  };
 
-  const loginButton = isLoggedIn
-  ? (
-    <>
-      Hi, {name}
-    </>
+  const loginButton = isLoggedIn ? (
+    <>Hi, {name}</>
   ) : (
-    <Button className='login-button' onClick={onLogin}>
+    <Button className="login-button" onClick={onLogin}>
       Login
     </Button>
   );
@@ -32,13 +28,9 @@ const Header: FC<Props> = ({ onLogin, isLoggedIn, name, onLogout }) => {
   const menu = (
     <Menu>
       <Menu.Item>
-        <Link to='/about'>About</Link>
+        <Link to="/about">About</Link>
       </Menu.Item>
-      {isLoggedIn && (
-        <Menu.Item onClick={onLogout}>
-          Sign Out
-        </Menu.Item>
-      )}
+      {isLoggedIn && <Menu.Item onClick={onLogout}>Sign Out</Menu.Item>}
     </Menu>
   );
 
@@ -46,15 +38,15 @@ const Header: FC<Props> = ({ onLogin, isLoggedIn, name, onLogout }) => {
     <Dropdown key="more" overlay={menu}>
       <Button
         style={{
-          border: 'none',
-          padding: 0,
+          border: "none",
+          padding: 0
         }}
       >
         <Icon
           type="ellipsis"
           style={{
             fontSize: 20,
-            verticalAlign: 'top',
+            verticalAlign: "top"
           }}
         />
       </Button>
@@ -63,10 +55,12 @@ const Header: FC<Props> = ({ onLogin, isLoggedIn, name, onLogout }) => {
 
   return (
     <PageHeader
-      title='OwlPlace'
+      title="OwlPlace"
+      subTitle="change the canvas one pixel at a time"
+      tags={<Tag color="green">COMP 413</Tag>}
       extra={[loginButton, dropdownMenu]}
     />
-  )
-}
+  );
+};
 
 export default Header;
