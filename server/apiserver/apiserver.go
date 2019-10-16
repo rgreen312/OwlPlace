@@ -6,6 +6,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
+	"strconv"
 
 	"html/template"
 
@@ -57,17 +59,37 @@ func (api *ApiServer) GetImage(w http.ResponseWriter, req *http.Request) {
 
 func updateUserList(user_id string) {
 	key := "U" + user_id
-	val, err := db.Get(ro, []byte(key))
+	val, err := consensus.Get([]byte(key))
 	if err != nil {
 		fmt.Println("Error in updateUserList")
 	}
 	if val == nil {
-		db.Put(wo, []byte(key), []byte(""))
-		m := consensus.BackendMessage{Type: consensus.ADD_USER}
-		api.sendc <- m
+		consensus.Put([]byte(key), []byte("0"))
+		// //need to convert key to json format?
+		// m := consensus.BackendMessage{Type: consensus.ADD_USER, Data: key}
+		// api.sendc <- m
+		// user_ids := <- api.recvc
+
 	} else {
-		fmt.Println("key already in DB, value: ")
-		fmt.Println(val)
+		fmt.Println("User already registered ")
+
+		
+	}
+}
+
+func makeMove(user_id string, x string, y string, color string) {
+	lastMove = consensus.Get(ro, )
+}
+
+func validateUser(user_id string) {
+	now := time.Now().Unix()
+	lastMove := consensus.Get([]byte('U' + user_id))
+	lastMoveInt, err := strconv.Atoi(lastMove)
+	if err != nil {
+		fmt.Println("SOME ERROR")
+	}
+	if (now - lastMoveInt > 300) {
+		
 	}
 }
 
@@ -129,15 +151,25 @@ func reader(conn *websocket.Conn) {
 		switch msgType {
 		case 1:
 			fmt.Println("one")
+			isValidate := validateUser(dat["id"])
+			
+			if (isValidate) {
+				// TODO: call the updating function
 
-			// TODO: call the updating function
-
-			// send message back to the client saying it's been updated
-			byt := []byte(`Pixel 1 has been updated!`)
-			if err := conn.WriteMessage(websocket.TextMessage, byt); err != nil {
-				log.Println(err)
-				return
+				// send message back to the client saying it's been updated
+				byt := []byte(`Pixel 1 has been updated!`)
+				if err := conn.WriteMessage(websocket.TextMessage, byt); err != nil {
+					log.Println(err)
+					return
+				}
+			} else {
+				byt := []byte(`User can't make a move now!`)
+				if err := conn.WriteMessage(websocket.TextMessage, byt); err != nil {
+					log.Println(err)
+					return
+				}
 			}
+			
 		case 2:
 			fmt.Println("two")
 			updateUserList(dat["userId"])

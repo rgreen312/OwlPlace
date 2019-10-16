@@ -62,7 +62,7 @@ const createUserMessage = (
   id: string
 ) => {
   return JSON.stringify({
-    type: 2
+    type: 2,
     userId: id
   })
 }
