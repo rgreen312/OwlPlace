@@ -41,6 +41,7 @@ import { openWebSocket } from './websocket/actions';
 interface Props {
   checkLogin: () => void;
   openConnection: () => void;
+
 }
 
 class App extends React.Component<Props> {
