@@ -37,34 +37,6 @@ RUN cd /tmp && \
     cp -r include/* /usr/include/ && \
     rm -R /tmp/rocksdb/
 
-FROM golang:1.13.1-alpine3.10 AS serverbuilder
-
-COPY --from=rocksbuilder /usr/lib/libgflags* /usr/lib/
-COPY --from=rocksbuilder /usr/include/gflags /usr/include/gflags
-COPY --from=rocksbuilder /usr/include/google /usr/include/google
-COPY --from=rocksbuilder /usr/local/rocksdb /usr/local/rocksdb
-COPY --from=rocksbuilder /usr/lib/librocksdb.so* /usr/lib/
-COPY --from=rocksbuilder /usr/local/rocksdb/include/rocksdb /usr/include/rocksdb
-
-RUN echo "@testing http://nl.alpinelinux.org/alpine/edge/testing" >>/etc/apk/repositories
-RUN apk add --update --no-cache \
-        ca-certificates \
-        build-base \
-        linux-headers
-RUN apk add --update --no-cache \
-        zlib \
-        zlib-dev \
-        bzip2 \
-        bzip2-dev \
-        snappy \
-        snappy-dev \
-        lz4 \
-        lz4-dev \
-        zstd@testing \
-        zstd-dev@testing \
-        libtbb-dev@testing \
-        libtbb@testing
-
 COPY server /app
 
 RUN cd /app && go build 
@@ -94,7 +66,7 @@ COPY --from=rocksbuilder /usr/include/google /usr/include/google
 COPY --from=rocksbuilder /usr/local/rocksdb /usr/local/rocksdb
 COPY --from=rocksbuilder /usr/lib/librocksdb.so* /usr/lib/
 COPY --from=rocksbuilder /usr/local/rocksdb/include/rocksdb /usr/include/rocksdb
-COPY --from=serverbuilder /app/server /bin/server
+COPY --from=rocksbuilder /app/server /bin/server
 
 ENV NODEID 0
 ENV CONFIG /usr/share/owlplace.json
