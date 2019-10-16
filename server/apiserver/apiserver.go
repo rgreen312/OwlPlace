@@ -127,8 +127,21 @@ func (api *ApiServer) reader(conn *websocket.Conn) {
 		fmt.Println(dat)
 
 		switch dat.Type {
-			case DrawPixel {
-				
+		case DrawPixel:
+			fmt.Println("DrawPixel message received.")
+			var dp_msg DrawPixelMsg
+			if err := json.Unmarshal(p, &dp_msg); err == nil {
+				fmt.Printf("%+v", dp_msg)
+			} else {
+				fmt.Println("JSON decoding error.")
+			}
+		case CreateUser:
+			fmt.Println("CreateUser message received.")
+			var cu_msg CreateUserMsg
+			if err := json.Unmarshal(p, &cu_msg); err == nil {
+				fmt.Printf("%+v", cu_msg)
+			} else {
+				fmt.Println("JSON decoding error.")
 			}
 		}
 
@@ -136,7 +149,7 @@ func (api *ApiServer) reader(conn *websocket.Conn) {
 		// msgType := dat["type"].(float64) // interface {} is float64, not int
 		// fmt.Println(msgType)
 
-		// byt := []byte("Default message")
+		byt := []byte("Default message")
 		// switch msgType {
 		// case 0:
 		// 	byt = []byte("Hello from the server! We are connected.")
