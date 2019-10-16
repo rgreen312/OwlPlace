@@ -57,9 +57,8 @@ export const checkLogin = () => async dispatch => {
   * The Sign-In client object.
   */
  let auth2: any;
- let googleUser: any;
 
-  const googleAPILoaded: Promise<void> = new Promise(resolve => {
+  return new Promise(resolve => {
     const timeout = setTimeout(() => Promise.resolve(), 3000);
     const loadApi = () => new Promise(resolve => {
       while (!window.gapi) {} 
