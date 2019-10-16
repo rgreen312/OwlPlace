@@ -52,7 +52,7 @@ func (api *ApiServer) ListenAndServe() {
 	// Although there is nothing wrong with this line, it prevents us from running multiple nodes on a single machine.
 	// Therefore, I am making failure non-fatal until we have some way of running locally from the same port (i.e. docker)
 	// log.Fatal(http.ListenAndServe(":3010", nil))
-	http.ListenAndServe(":3010", nil)
+	http.ListenAndServe(fmt.Sprintf(":%d", api.port), nil)
 }
 
 func (api *ApiServer) GetImage(w http.ResponseWriter, req *http.Request) {
@@ -98,16 +98,17 @@ func (api *ApiServer) UpdatePixel(w http.ResponseWriter, req *http.Request) {
 
 	var encoded_msg bytes.Buffer
 	enc := gob.NewEncoder(&encoded_msg)
-	err := enc.Encode(consensus.UpdatePixelBackendMessage{
+	msg := consensus.UpdatePixelBackendMessage{
 		X: req.URL.Query().Get("X"),
 		Y: req.URL.Query().Get("Y"),
 		R: req.URL.Query().Get("R"),
 		G: req.URL.Query().Get("G"),
 		B: req.URL.Query().Get("B"),
 		A: "255",
-	})
-	if err != nil {
-		panic(err)
+	}
+	log.Printf("UpdatePixelBackendMessage: %+v\n", msg)
+	if err := enc.Encode(msg); err != nil {
+		log.Fatalf("Error encoding struct: %s", err)
 	}
 
 	// Send the encoded message to the backend
