@@ -111,6 +111,7 @@ func (api *ApiServer) updateUserList(w http.ResponseWriter, req *http.Request) {
   		}
  	}
 
+
 }
 
 func (api *ApiServer) UpdatePixel(w http.ResponseWriter, req *http.Request) {
@@ -239,6 +240,7 @@ func reader(conn *websocket.Conn) {
 		switch msgType {
 		case 1:
 			fmt.Println("one")
+<<<<<<< HEAD
 			
 			// TODO: call the updating function
 
@@ -250,6 +252,27 @@ func reader(conn *websocket.Conn) {
 			}
 			
 			
+=======
+			isValidate := validateUser(dat["id"])
+			
+			if (isValidate) {
+				// TODO: call the updating function
+
+				// send message back to the client saying it's been updated
+				byt := []byte(`Pixel 1 has been updated!`)
+				if err := conn.WriteMessage(websocket.TextMessage, byt); err != nil {
+					log.Println(err)
+					return
+				}
+			} else {
+				byt := []byte(`User can't make a move now!`)
+				if err := conn.WriteMessage(websocket.TextMessage, byt); err != nil {
+					log.Println(err)
+					return
+				}
+			}
+			
+>>>>>>> Wrote validate
 		case 2:
 			fmt.Println("two")
 		case 3:
