@@ -50,7 +50,7 @@ export const openWebSocket = () => dispatch => {
   };
 
   socket.onerror = error => {
-    console.log("testing")
+    console.log("dispatching received error"); 
     dispatch(connectError(error.type));
   };
 

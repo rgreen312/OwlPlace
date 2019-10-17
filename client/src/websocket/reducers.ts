@@ -32,5 +32,6 @@ const receivedError = createReducer<State['receivedError']>(false, {
 
 export default combineReducers({
   socket,
-  isConnected
+  isConnected,
+  receivedError
 })

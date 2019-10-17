@@ -1,16 +1,17 @@
 import React, { FC } from "react";
 import { PageHeader, Button, Menu, Dropdown, Icon, Tag } from "antd";
-import { Link } from "react-router-dom";
+import { Link, Redirect } from "react-router-dom";
 
 interface Props {
   isLoggedIn: boolean;
   name?: string;
+  encounteredError: boolean;
   onLogin: () => void;
   onLogout: () => void;
 }
 
 // TODO(Ryan): Should add a isLoggedIn prop, if they are then display user's name
-const Header: FC<Props> = ({ onLogin, isLoggedIn, name, onLogout }) => {
+const Header: FC<Props> = ({ onLogin, isLoggedIn, encounteredError, name, onLogout }) => {
   //@ts-ignore
   window.onGoogleScriptLoad = () => {
     console.log("The google script has really loaded, cool!");
@@ -54,6 +55,7 @@ const Header: FC<Props> = ({ onLogin, isLoggedIn, name, onLogout }) => {
   );
 
   return (
+    encounteredError ? <Redirect to='/error'/> :
     <PageHeader
       title="OwlPlace"
       subTitle="change the canvas one pixel at a time"
