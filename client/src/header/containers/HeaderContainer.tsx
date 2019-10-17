@@ -17,7 +17,7 @@ interface StateProps {
 
 const mapDispatchToProps: DispatchProps = {
   onLogin: login,
-  onLogout: signOut,
+  onLogout: signOut
 }
 
 const mapStateToProps  = (state): StateProps => ({
