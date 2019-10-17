@@ -5,13 +5,13 @@ import { Link, Redirect } from "react-router-dom";
 interface Props {
   isLoggedIn: boolean;
   name?: string;
-  encounteredError: boolean;
+  receivedError: boolean;
   onLogin: () => void;
   onLogout: () => void;
 }
 
 // TODO(Ryan): Should add a isLoggedIn prop, if they are then display user's name
-const Header: FC<Props> = ({ onLogin, isLoggedIn, encounteredError, name, onLogout }) => {
+const Header: FC<Props> = ({ onLogin, isLoggedIn, receivedError, name, onLogout }) => {
   //@ts-ignore
   window.onGoogleScriptLoad = () => {
     console.log("The google script has really loaded, cool!");
@@ -55,7 +55,7 @@ const Header: FC<Props> = ({ onLogin, isLoggedIn, encounteredError, name, onLogo
   );
 
   return (
-    encounteredError ? <Redirect to='/error'/> :
+    receivedError ? <Redirect to='/error'/> :
     <PageHeader
       title="OwlPlace"
       subTitle="change the canvas one pixel at a time"
