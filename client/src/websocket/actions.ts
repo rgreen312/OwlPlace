@@ -31,6 +31,7 @@ export type ConnectSuccess = ReturnType<typeof connectSuccess>;
 export const openWebSocket = () => dispatch => {
   dispatch(startConnect());
 
+  console.log("starting connection")
   const socket = new WebSocket(`ws://${HOSTNAME}/ws`);
     // open message is 0
     socket.onopen = () => {
@@ -49,6 +50,7 @@ export const openWebSocket = () => dispatch => {
   };
 
   socket.onerror = error => {
+    console.log("testing")
     dispatch(connectError(error.type));
   };
 
