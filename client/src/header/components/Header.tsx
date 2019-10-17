@@ -30,6 +30,9 @@ const Header: FC<Props> = ({ onLogin, isLoggedIn, name, onLogout }) => {
       <Menu.Item>
         <Link to="/about">About</Link>
       </Menu.Item>
+      <Menu.Item>
+        <Link to="/pickColor">PickColor</Link>
+      </Menu.Item>
       {isLoggedIn && <Menu.Item onClick={onLogout}>Sign Out</Menu.Item>}
     </Menu>
   );
