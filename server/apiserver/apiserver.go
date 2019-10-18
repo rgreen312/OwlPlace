@@ -125,17 +125,21 @@ func updateUserList(user_id string) {
 }
 
 func makeMove(user_id string, x string, y string, color string) {
-	lastMove = consensus.Get(ro, )
+ // lastMove = consensus.Get([]byte())
+
+ key := "M" + strconv.Atoi(rand.Int())
+ consensus.Put([]byte(key), []byte(user_id + " " + x + " " + y + " " + color))
 }
 
 func validateUser(user_id string) bool {
 	now := time.Now().Unix()
-	lastMove := consensus.Get([]byte('U' + user_id))
+	lastMove := GetLastUserModification(string)
 	lastMoveInt, err := strconv.Atoi(lastMove)
 	if err != nil {
 		fmt.Println("SOME ERROR")
 	}
 	if (now - lastMoveInt > 300) {
+		SetLastUserModification(user_id, strconv.Itoa(now))
 		return true		
 	} else {
 		return false
