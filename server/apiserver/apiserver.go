@@ -103,7 +103,10 @@ func updateUserList(user_id string) {
 		fmt.Println("Error in updateUserList")
 	}
 	if val == nil {
-		consensus.Put([]byte(key), []byte("0"))
+		err := consensus.Put([]byte(key), []byte("0"))
+		if err != nil {
+			fmt.Println("Cannot update user list")
+		}
 		// //need to convert key to json format?
 		// m := consensus.BackendMessage{Type: consensus.ADD_USER, Data: key}
 		// api.sendc <- m
