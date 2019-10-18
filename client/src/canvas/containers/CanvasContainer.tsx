@@ -1,16 +1,22 @@
 import { connect } from 'react-redux';
 import Canvas from '../components/Canvas';
-import { testAction } from '../actions';
+import { receivedError } from '../../websocket/selectors';
 
 interface DispatchProps {
-  onClick: () => void;
+
 }
 
 const mapDispatchToProps: DispatchProps = {
-  onClick: testAction
 };
 
+interface StateProps {
+  receivedError: boolean; 
+}
+const mapStateToProps  = (state): StateProps => ({
+  receivedError: receivedError(state)
+});
+
 export default connect(
-  null,
+  mapStateToProps,
   mapDispatchToProps
 )(Canvas);

@@ -1,11 +1,13 @@
 import React, { FC } from 'react';
+import { Redirect } from 'react-router-dom'; 
 
 interface Props {
-  onClick: () => void;
+  receivedError: boolean; 
 }
 
-const Canvas: FC<Props> = ({ onClick }) => {
+const Canvas: FC<Props> = ({receivedError}) => {
   return (
+    receivedError ? <Redirect to='/error'/> :
     <div>
       <div>
         <canvas></canvas>

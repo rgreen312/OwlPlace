@@ -1,20 +1,49 @@
 package main
 
 import (
+	"encoding/json"
+	"flag"
+	"io/ioutil"
+	"log"
+
 	"github.com/rgreen312/owlplace/server/apiserver"
-	"github.com/rgreen312/owlplace/server/consensus"
+	"github.com/rgreen312/owlplace/server/common"
 )
 
+func mapKeys(m map[int]*common.ServerConfig) []int {
+	keys := make([]int, len(m))
+	ptr := 0
+	for key, _ := range m {
+		keys[ptr] = key
+		ptr++
+	}
+	return keys
+}
+
 func main() {
-	// Make the backend channel that the api server and consensus module communicate with
-	api_to_backend_channel := make(chan consensus.BackendMessage)
-	backend_to_api_channel := make(chan consensus.ConsensusMessage)
-	// Start API listening asynchronously (TODO: pass in channel)
-	server := apiserver.NewApiServer(api_to_backend_channel, backend_to_api_channel)
+	configFile := flag.String("config", "owlplace-docker.json", "Configuration file that contains a list of servers.")
+	nodeId := flag.Int("nodeid", 1, "Index in the configuration file that represents this node.")
 
-	go server.ListenAndServe()
+	flag.Parse()
 
-	// Start consensus service
-	consensus.MainConsensus(api_to_backend_channel, backend_to_api_channel)
+	file, err := ioutil.ReadFile(*configFile)
+	if err != nil {
+		log.Fatalf("Error reading configuration file: %s", *configFile)
+	}
 
+	var servers map[int]*common.ServerConfig
+
+	err = json.Unmarshal([]byte(file), &servers)
+	if err != nil {
+		log.Fatalf("Error parsing configuration file: %s\n%s", *configFile, err)
+	}
+
+	if _, ok := servers[*nodeId]; !ok {
+		log.Fatalf("Requested nodeId is not found in the configuration file.  Valid nodeIds: %+v", mapKeys(servers))
+	}
+
+	log.Printf("Joining Dragonboat cluster with configuration:\n%+v", servers)
+
+	server := apiserver.NewApiServer(servers, *nodeId)
+	server.ListenAndServe()
 }

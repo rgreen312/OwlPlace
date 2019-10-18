@@ -1,0 +1,38 @@
+version: "3"
+services:
+  backend1:
+    image: owlplace
+    ports:
+      - "3001:3000"
+    volumes:
+      - "./docker-owlplace.json:/tmp/owlplace.json"
+    environment:
+      - "NODEID=1"
+      - "CONFIG=/tmp/owlplace.json"
+    networks:
+      - owlplace-network
+  backend2:
+    image: owlplace
+    ports:
+      - "3002:3000"
+    volumes:
+      - "./docker-owlplace.json:/tmp/owlplace.json"
+    environment:
+      - "NODEID=2"
+      - "CONFIG=/tmp/owlplace.json"
+    networks:
+      - owlplace-network
+  backend3:
+    image: owlplace
+    ports:
+      - "3003:3000"
+    volumes:
+      - "./docker-owlplace.json:/tmp/owlplace.json"
+    environment:
+      - "NODEID=3"
+      - "CONFIG=/tmp/owlplace.json"
+    networks:
+      - owlplace-network
+networks:
+  owlplace-network:
+    driver: bridge

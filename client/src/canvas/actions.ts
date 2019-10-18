@@ -15,18 +15,6 @@ export const fetchImageData = () => (dispatch) => {
 }
 
 
-export const updatePixel = (newColor: Color, x: number, y: number) => {
+export const updatePixel = (newColor: Color, x: number, y: number) => (dispatch) => {
 
-}
-
-
-const testActionType = (data: string) => ({
-  type: ActionTypes.FetchImageStart,
-  payload:{ data }
-});
-export type TestActionType = ReturnType<typeof testActionType>;
-
-export const testAction = () => (dispatch, getState) => {
-  console.log('dispatching action');
-  dispatch(testActionType('testing'));
 }
