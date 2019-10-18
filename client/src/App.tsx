@@ -42,7 +42,6 @@ interface Props {
   checkLogin: () => void;
   openConnection: () => void;
 
-}
 
 class App extends React.Component<Props> {
   componentDidMount() {
