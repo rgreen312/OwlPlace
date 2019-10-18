@@ -96,6 +96,7 @@ func (api *ApiServer) GetImage(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+
 func (api *ApiServer) updateUserList(w http.ResponseWriter, req *http.Request) {
 	user_id := req.URL.Query().Get("user_id")
  	key := "U" + user_id
