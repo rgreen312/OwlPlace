@@ -8,22 +8,20 @@ interface Props {
 // http://casesandberg.github.io/react-color/
 
 const ColorPicker: FC<Props> = ({}) => {
-  const [chosenColor, setChosenColor] = useState(
-    ""
-  ); 
+  let chosenColor = null; 
   const [hasChosenColor, setHasChosenColor] = useState(
     false
   ); 
 
   // Used for when a new color is selected on the color picker.
   const handleColorChange = (color) => {
-    setChosenColor(color); 
-    console.log(chosenColor); 
+    chosenColor = color;  
   };
 
   // Okay pressed.
   const colorChosen = () => {
-    if (chosenColor != "") {
+    if (chosenColor != null) {
+      console.log(chosenColor); 
       setHasChosenColor(true); 
     } else {
       // TODO: display message somewhere saying that you have to pick a color first
@@ -33,7 +31,6 @@ const ColorPicker: FC<Props> = ({}) => {
 
   // Cancel pressed.
   const cancel = () => {
-    console.log("cancelling"); 
     setHasChosenColor(true); 
   }
 
@@ -41,7 +38,7 @@ const ColorPicker: FC<Props> = ({}) => {
     hasChosenColor ? <Redirect to='/'/> : 
     <div>
       <SketchPicker 
-        onChange={handleColorChange}      
+        onChangeComplete={handleColorChange}      
       />
       <Button onClick={colorChosen}>
         Okay
