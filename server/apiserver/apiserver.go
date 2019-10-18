@@ -81,7 +81,7 @@ func makeMove(user_id string, x string, y string, color string) {
 	lastMove = consensus.Get(ro, )
 }
 
-func validateUser(user_id string) {
+func validateUser(user_id string) bool {
 	now := time.Now().Unix()
 	lastMove := consensus.Get([]byte('U' + user_id))
 	lastMoveInt, err := strconv.Atoi(lastMove)
@@ -89,7 +89,9 @@ func validateUser(user_id string) {
 		fmt.Println("SOME ERROR")
 	}
 	if (now - lastMoveInt > 300) {
-		
+		return true		
+	} else {
+		return false
 	}
 }
 
