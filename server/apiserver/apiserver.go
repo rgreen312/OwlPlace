@@ -126,12 +126,16 @@ func (api *ApiServer) reader(conn *websocket.Conn) {
 		}
 		fmt.Println(dat)
 
+		byt := []byte("Default message")
+
 		switch dat.Type {
 		case DrawPixel:
 			fmt.Println("DrawPixel message received.")
 			var dp_msg DrawPixelMsg
 			if err := json.Unmarshal(p, &dp_msg); err == nil {
 				fmt.Printf("%+v", dp_msg)
+
+				byt = api.CallUpdatePixel(dp_msg.X, dp_msg.Y, dp_msg.R, dp_msg.G, dp_msg.B, dp_msg.UserID)
 			} else {
 				fmt.Println("JSON decoding error.")
 			}
@@ -143,13 +147,14 @@ func (api *ApiServer) reader(conn *websocket.Conn) {
 			} else {
 				fmt.Println("JSON decoding error.")
 			}
+		default:
+			fmt.Printf("Message of type: %d received.", dat.Type)
 		}
 
 		// convert each attribute to appropriate type
 		// msgType := dat["type"].(float64) // interface {} is float64, not int
 		// fmt.Println(msgType)
 
-		byt := []byte("Default message")
 		// switch msgType {
 		// case 0:
 		// 	byt = []byte("Hello from the server! We are connected.")
@@ -178,32 +183,33 @@ func (api *ApiServer) reader(conn *websocket.Conn) {
 }
 
 // Call this when telling consensus to updatea pixel.
-func (api *ApiServer) UpdateMethod(x int, y int, r int, g int, b int, userID string) []byte {
-	fmt.Println("Withing the UpdateMethod")
+func (api *ApiServer) CallUpdatePixel(x int, y int, r int, g int, b int, userID string) []byte {
+	fmt.Println("\nWithin CallUpdatePixel")
 
 	updateString := fmt.Sprintf("put pixel(%d,%d) (%d,%d,%d,%d)", x, y, r, g, b, 255) // TODO THIS WILL BE MODIFIED BY AIDEN
-	// The update string must conform to: put pixel(x,y) (r,g,b,a)
-	fmt.Sprintf("DEBUGGING: SHOULD LOOK LIKE put pixel(x,y) (r,g,b,a): %s", updateString)
+	fmt.Println("DEBUGGING: SHOULD LOOK LIKE put pixel(x,y) (r,g,b,a)")
+	fmt.Println(updateString)
 
 	// TODO verify that the user is able to update a pizel with the User Data Team
 	userVerification := true
-	// imageMsg := ""
 	if !userVerification {
 		// User verification failed
+
 		log.Println(fmt.Sprintf("USER %s failed authentication", userID))
 		// TODO return the appropriate failure message
-		imageMsg := "FAILURERESSES TODO make this properly formatted"
+		imageMsg := "FAILURE. TODO make this properly formatted"
 
 		// send message back to the client saying it's been updated or if it failed
 		byt := []byte(imageMsg)
 		return byt
 	}
+	// User has now been verified
 
-	// User has been verified
-	m := consensus.BackendMessage{Type: consensus.UPDATE_PIXEL, Data: updateString}
-	api.sendc <- m
-	imageMsg := <-api.recvc
-	// send message back to the client saying it's been updated or if it failed
+	m := consensus.ConsensusMessage{Type: consensus.UPDATE_PIXEL, Data: updateString}
+	api.recvc <- m
+	imageMsg := <-api.sendc
+
+	// format message back to the client saying it's been updated or if it failed.
 	byt := []byte(imageMsg.Data)
 	return byt
 }

@@ -12,6 +12,17 @@ socket.onopen = () => {
       message: "Hi From the Client! The websocket just opened"
     })
   );
+  socket.send(
+    JSON.stringify({
+      type: 1,
+      userId: "AAAAAA",
+      x: 6,
+      y: 9,
+      r: 4,
+      g: 2,
+      b: 0
+    })
+  );
 };
 
 // close message is 9

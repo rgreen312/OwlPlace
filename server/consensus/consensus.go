@@ -2,20 +2,20 @@ package consensus
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
+	"encoding/json"
 	"flag"
 	"fmt"
-	"encoding/json"
 	"image"
 	"image/png"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"syscall"
 	"time"
-	"context"
-	"strings"
 
 	// "context"
 	// "time"
@@ -43,7 +43,7 @@ const (
 	UPDATE_PIXEL         int = 1
 	ADD_USER             int = 2
 	GET_LAST_USER_UPDATE int = 3
-	SET_LAST_USER_UPDATE int = 4	
+	SET_LAST_USER_UPDATE int = 4
 	SUCCESS              int = 5
 	FAILURE              int = 6
 )
@@ -71,7 +71,6 @@ func NewImageMessage(img image.RGBA) ConsensusMessage {
 	}
 }
 
-
 func GetTimestampMessage(timestamp string) ConsensusMessage {
 
 	return ConsensusMessage{
@@ -93,7 +92,6 @@ func FailureMessage() ConsensusMessage {
 		Data: "Failure\n",
 	}
 }
-
 
 type BackendMessage struct {
 	Type int
@@ -131,7 +129,6 @@ func parseCommand(msg string) (RequestType, string, string, bool) {
 	}
 	return GET, parts[1], "", true
 }
-
 
 func MainConsensus(recvc chan BackendMessage, sendc chan ConsensusMessage) {
 
@@ -190,7 +187,7 @@ func MainConsensus(recvc chan BackendMessage, sendc chan ConsensusMessage) {
 	var imgGetter func() image.RGBA
 	stateMachineProvider := func(clusterID uint64, nodeID uint64) sm.IOnDiskStateMachine {
 		dkv := NewDiskKV(clusterID, nodeID).(*DiskKV)
-		imgGetter =  dkv.GetInMemoryImage
+		imgGetter = dkv.GetInMemoryImage
 		return dkv
 	}
 	if err := nh.StartOnDiskCluster(peers, *join, stateMachineProvider, rc); err != nil {
@@ -203,6 +200,7 @@ func MainConsensus(recvc chan BackendMessage, sendc chan ConsensusMessage) {
 		for {
 			select {
 			case backend_msg, ok := <-recvc:
+				fmt.Println("\n Consensus received the backend_msg")
 				if !ok {
 					return
 				}
@@ -212,7 +210,7 @@ func MainConsensus(recvc chan BackendMessage, sendc chan ConsensusMessage) {
 				case UPDATE_PIXEL, SET_LAST_USER_UPDATE:
 					ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 					_, key, val, ok := parseCommand(backend_msg.Data)
-					if(!ok){
+					if !ok {
 						sendc <- FailureMessage()
 					} else {
 						kv := &KVData{
@@ -234,7 +232,7 @@ func MainConsensus(recvc chan BackendMessage, sendc chan ConsensusMessage) {
 				case GET_LAST_USER_UPDATE:
 					ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 					_, key, _, ok := parseCommand(backend_msg.Data)
-					if(!ok){
+					if !ok {
 						sendc <- FailureMessage()
 					}
 					result, err := nh.SyncRead(ctx, exampleClusterID, []byte(key))
@@ -245,9 +243,6 @@ func MainConsensus(recvc chan BackendMessage, sendc chan ConsensusMessage) {
 					}
 					cancel()
 				}
-
-
-				
 
 			case <-raftStopper.ShouldStop():
 				return

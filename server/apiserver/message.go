@@ -3,8 +3,10 @@ package apiserver
 type MsgType uint8
 
 const (
-	DrawPixel  MsgType = 0
-	CreateUser MsgType = 1
+	Open       MsgType = 0
+	DrawPixel  MsgType = 1
+	CreateUser MsgType = 2
+	Close      MsgType = 9
 )
 
 type Msg struct {
