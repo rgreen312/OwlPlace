@@ -6,7 +6,6 @@ import { getIsLoggedIn, getUserName } from '../../login/selectors';
 interface DispatchProps {
   onLogin: () => void;
   onLogout: () => void;
-  // onPickColor: () => void; 
 }
 
 interface StateProps {
@@ -17,7 +16,6 @@ interface StateProps {
 const mapDispatchToProps: DispatchProps = {
   onLogin: login,
   onLogout: signOut,
-  // onPickColor: 
 }
 
 const mapStateToProps  = (state): StateProps => ({
