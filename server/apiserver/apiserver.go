@@ -102,6 +102,7 @@ func (api *ApiServer) updateUserList(w http.ResponseWriter, req *http.Request) {
  	key := "U" + user_id
 
 
+<<<<<<< HEAD
  	lastMove := api.GetLastUserModification(key)
  	if lastMove == "" {
   		fmt.Println("Error in updateUserList")
