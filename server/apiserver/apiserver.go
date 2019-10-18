@@ -111,7 +111,6 @@ func (api *ApiServer) updateUserList(w http.ResponseWriter, req *http.Request) {
   		}
  	}
 
-
 }
 
 func (api *ApiServer) UpdatePixel(w http.ResponseWriter, req *http.Request) {
