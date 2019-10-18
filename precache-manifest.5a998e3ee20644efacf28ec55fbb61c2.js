@@ -1,23 +1,23 @@
 self.__precacheManifest = (self.__precacheManifest || []).concat([
   {
-    "revision": "dd1d0081c80b5bbf59ee581dee254559",
+    "revision": "f53199ed512232e42266efc7a2d00c0d",
     "url": "/OwlPlace/index.html"
   },
   {
-    "revision": "218a5886d6697f29c225",
+    "revision": "1d00e7b125af24a5faa4",
     "url": "/OwlPlace/static/css/2.ca0e2e9d.chunk.css"
   },
   {
-    "revision": "5eb2d63c36faa8e844cc",
+    "revision": "3b7b9770799debcefcfb",
     "url": "/OwlPlace/static/css/main.2c35fd80.chunk.css"
   },
   {
-    "revision": "218a5886d6697f29c225",
-    "url": "/OwlPlace/static/js/2.ee45447b.chunk.js"
+    "revision": "1d00e7b125af24a5faa4",
+    "url": "/OwlPlace/static/js/2.5ee271b4.chunk.js"
   },
   {
-    "revision": "5eb2d63c36faa8e844cc",
-    "url": "/OwlPlace/static/js/main.a5ecf904.chunk.js"
+    "revision": "3b7b9770799debcefcfb",
+    "url": "/OwlPlace/static/js/main.384c409f.chunk.js"
   },
   {
     "revision": "3ea7f19c38ed191bfe19",
