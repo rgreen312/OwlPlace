@@ -6,6 +6,7 @@ import { combineReducers } from 'redux';
 export interface State {
   socket: WebSocket | null;
   isConnected: boolean;
+  receivedError: boolean; 
 }
 
 const socket = createReducer<State['socket']>(null, {
@@ -22,7 +23,15 @@ const isConnected = createReducer<State['isConnected']>(false, {
   [ActionTypes.ConnectSuccess]: () => true,
 });
 
+const receivedError = createReducer<State['receivedError']>(false, {
+  [ActionTypes.StartConnect]: () => false,
+  [ActionTypes.ConnectError]: () => true,
+  [ActionTypes.CloseConnection]: () => false,
+  [ActionTypes.ConnectSuccess]: () => false,
+}); 
+
 export default combineReducers({
   socket,
-  isConnected
+  isConnected,
+  receivedError
 })
