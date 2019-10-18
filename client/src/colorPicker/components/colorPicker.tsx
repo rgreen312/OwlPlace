@@ -3,47 +3,32 @@ import { SketchPicker } from "react-color";
 import { Button } from "antd";
 import { Redirect } from "react-router-dom";
 
+interface RGBColor {
+  r: number;
+  g: number;
+  b: number;
+}
+
 interface Props {
+  onComplete: (color: RGBColor) => void;
+  onCancel: () => void;
 }
 // http://casesandberg.github.io/react-color/
 
-const ColorPicker: FC<Props> = ({}) => {
-  let chosenColor = null; 
-  const [hasChosenColor, setHasChosenColor] = useState(
-    false
-  ); 
-
-  // Used for when a new color is selected on the color picker.
-  const handleColorChange = (color) => {
-    chosenColor = color;  
-  };
-
-  // Okay pressed.
-  const colorChosen = () => {
-    if (chosenColor != null) {
-      console.log(chosenColor); 
-      setHasChosenColor(true); 
-    } else {
-      // TODO: display message somewhere saying that you have to pick a color first
-      // (which is not ideal. I'm not sure why this component works like that.)
-    }
-  }
-
-  // Cancel pressed.
-  const cancel = () => {
-    setHasChosenColor(true); 
-  }
+const ColorPicker: FC<Props> = ({ onComplete, onCancel }) => {
+  const [color, setColor] = useState({ r: 0, g: 0, b: 0 })
+  const complete = () => onComplete(color);
 
   return ( 
-    hasChosenColor ? <Redirect to='/'/> : 
     <div>
       <SketchPicker 
-        onChangeComplete={handleColorChange}      
+        color={color}
+        onChange={(c) => setColor({ r: c.rgb.r, b: c.rgb.b, g: c.rgb.g })}     
       />
-      <Button onClick={colorChosen}>
+      <Button onClick={complete}>
         Okay
       </Button>
-      <Button onClick={cancel}>
+      <Button onClick={onCancel}>
         Cancel
       </Button>
     </div>
