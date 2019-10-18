@@ -5,7 +5,7 @@ import CanvasPageContainer from './canvas/containers/CanvasPageContainer';
 import AboutPage from './about/components/About';
 import Header from './header/containers/HeaderContainer';
 import Footer from './footer/components/Footer';
-import ColorPicker from './colorPicker/components/colorPicker';
+import ErrorPage from './error/components/Error';
 
 const RoutingContainer: FC = () => (
   <Router>
@@ -13,6 +13,7 @@ const RoutingContainer: FC = () => (
       <Header />
       <Route exact path='/' component={CanvasPageContainer} />
       <Route path='/about' component={AboutPage} />
+      <Route path='/error' component={ErrorPage} />
       <Footer />
     </ScrollToTop>
   </Router>

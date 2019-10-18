@@ -1,31 +1,45 @@
 package apiserver
 
 import (
+	"bytes"
+	"encoding/base64"
+	"encoding/gob"
 	"encoding/json"
 	"fmt"
+	"html/template"
+	"image"
+	"image/png"
 	"log"
 	"net/http"
 	"os"
-	"encoding/gob"
-	"html/template"
-	"encoding/base64"
-	"bytes"
-	"image"
-	"image/png"
 
 	"github.com/gorilla/websocket"
+
+	"github.com/rgreen312/owlplace/server/common"
 	"github.com/rgreen312/owlplace/server/consensus"
 )
 
 type ApiServer struct {
 	sendc chan consensus.BackendMessage
 	recvc chan consensus.ConsensusMessage
+	port  int
 }
 
-func NewApiServer(send_channel chan consensus.BackendMessage, recv_channel chan consensus.ConsensusMessage) *ApiServer {
+func NewApiServer(servers map[int]*common.ServerConfig, nodeId int) *ApiServer {
+
+	apiPort := servers[nodeId].ApiPort
+
+	// Make the channels that for api server and consensus module communication
+	sendc := make(chan consensus.BackendMessage)
+	recvc := make(chan consensus.ConsensusMessage)
+
+	// Start the consensus service in the background
+	go consensus.MainConsensus(sendc, recvc, servers, nodeId)
+
 	return &ApiServer{
-		sendc: send_channel,
-		recvc: recv_channel,
+		sendc: sendc,
+		recvc: recvc,
+		port:  apiPort,
 	}
 }
 
@@ -38,7 +52,7 @@ func (api *ApiServer) ListenAndServe() {
 	// Although there is nothing wrong with this line, it prevents us from running multiple nodes on a single machine.
 	// Therefore, I am making failure non-fatal until we have some way of running locally from the same port (i.e. docker)
 	// log.Fatal(http.ListenAndServe(":3010", nil))
-	http.ListenAndServe(":3010", nil)
+	http.ListenAndServe(fmt.Sprintf(":%d", api.port), nil)
 }
 
 func (api *ApiServer) GetImage(w http.ResponseWriter, req *http.Request) {
@@ -61,7 +75,6 @@ func (api *ApiServer) GetImage(w http.ResponseWriter, req *http.Request) {
 		dec := gob.NewDecoder(&image_msg.Data)
 		var img image.RGBA
 		dec.Decode(&img)
-		
 
 		// In-memory buffer to store PNG image
 		// before we base 64 encode it
@@ -74,7 +87,6 @@ func (api *ApiServer) GetImage(w http.ResponseWriter, req *http.Request) {
 		// Encode the bytes in the buffer to a base64 string
 		encodedString := base64.StdEncoding.EncodeToString(buff.Bytes())
 
-
 		data := map[string]interface{}{"Image": encodedString}
 		if err = tmpl.Execute(w, data); err != nil {
 			fmt.Fprintf(os.Stdout, "Unable to execute template.\n")
@@ -86,34 +98,34 @@ func (api *ApiServer) UpdatePixel(w http.ResponseWriter, req *http.Request) {
 
 	var encoded_msg bytes.Buffer
 	enc := gob.NewEncoder(&encoded_msg)
-	err := enc.Encode(consensus.UpdatePixelBackendMessage{
+	msg := consensus.UpdatePixelBackendMessage{
 		X: req.URL.Query().Get("X"),
 		Y: req.URL.Query().Get("Y"),
 		R: req.URL.Query().Get("R"),
 		G: req.URL.Query().Get("G"),
 		B: req.URL.Query().Get("B"),
 		A: "255",
-	})
-	if(err != nil){
-		panic(err)
+	}
+	log.Printf("UpdatePixelBackendMessage: %+v\n", msg)
+	if err := enc.Encode(msg); err != nil {
+		log.Fatalf("Error encoding struct: %s", err)
 	}
 
 	// Send the encoded message to the backend
 	m := consensus.BackendMessage{Type: consensus.UPDATE_PIXEL, Data: encoded_msg}
 	api.sendc <- m
 	consensus_response := <-api.recvc
-	if(consensus_response.Type == consensus.SUCCESS){
+	if consensus_response.Type == consensus.SUCCESS {
 		fmt.Fprintf(os.Stdout, "Update Success")
 	}
-	
-}
 
+}
 
 /*
  * This function takes in a user id and returns a string timestamp for the last time that user updated a pixel
  * If there is an error, this function will return an empty string.
  */
-func (api *ApiServer) GetLastUserModification(user_id string) string{
+func (api *ApiServer) GetLastUserModification(user_id string) string {
 
 	// Encode the GetUserDataBackendMessage struct so we can send it in a BackendMessage
 	var encoded_msg bytes.Buffer
@@ -122,15 +134,14 @@ func (api *ApiServer) GetLastUserModification(user_id string) string{
 		UserId: user_id,
 	})
 
-	if(err != nil){
+	if err != nil {
 		return ""
 	}
 
 	// Testing with some dummy data
-	m := consensus.BackendMessage{ Type: consensus.GET_LAST_USER_UPDATE, Data: encoded_msg}
+	m := consensus.BackendMessage{Type: consensus.GET_LAST_USER_UPDATE, Data: encoded_msg}
 	api.sendc <- m
-	image_msg := <- api.recvc
-
+	image_msg := <-api.recvc
 
 	dec := gob.NewDecoder(&image_msg.Data)
 	var timestamp string
@@ -139,30 +150,29 @@ func (api *ApiServer) GetLastUserModification(user_id string) string{
 	return timestamp
 }
 
-
 /*
  * This function takes in a user id and a string timestamp and replaces the user's current last update timestamp with the given timestamp
  * If there is an error, this function will return false. Otherwise the function will return true.
  */
-func (api *ApiServer) SetLastUserModification(user_id string, last_modification string) bool{
+func (api *ApiServer) SetLastUserModification(user_id string, last_modification string) bool {
 
 	// Encode the SetUserDataBackendMessage struct so we can send it in a BackendMessage
 	var encoded_msg bytes.Buffer
 	enc := gob.NewEncoder(&encoded_msg)
 	err := enc.Encode(consensus.SetUserDataBackendMessage{
-		UserId: user_id,
+		UserId:    user_id,
 		Timestamp: last_modification,
 	})
 
-	if(err != nil){
+	if err != nil {
 		return false
 	}
 	// Create the BackendMessage with the encoded data
-	m := consensus.BackendMessage{ Type: consensus.SET_LAST_USER_UPDATE, Data: encoded_msg}
+	m := consensus.BackendMessage{Type: consensus.SET_LAST_USER_UPDATE, Data: encoded_msg}
 
 	// Send BackendMessage
 	api.sendc <- m
-	image_msg := <- api.recvc
+	image_msg := <-api.recvc
 	return image_msg.Type == consensus.SUCCESS
 }
 
