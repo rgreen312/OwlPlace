@@ -2,7 +2,6 @@ import { connect } from 'react-redux';
 import Header from '../components/Header';
 import { login, signOut } from '../../login/actions';
 import { getIsLoggedIn, getUserName } from '../../login/selectors';
-import { receivedError } from '../../websocket/selectors';
 
 interface DispatchProps {
   onLogin: () => void;
@@ -12,7 +11,6 @@ interface DispatchProps {
 interface StateProps {
   isLoggedIn: boolean;
   name?: string;
-  receivedError: boolean; 
 }
 
 const mapDispatchToProps: DispatchProps = {
@@ -23,7 +21,6 @@ const mapDispatchToProps: DispatchProps = {
 const mapStateToProps  = (state): StateProps => ({
   isLoggedIn: getIsLoggedIn(state),
   name: getUserName(state),
-  receivedError: receivedError(state)
 });
 
 export default connect(
