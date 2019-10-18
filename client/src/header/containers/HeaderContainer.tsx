@@ -20,7 +20,7 @@ const mapDispatchToProps: DispatchProps = {
 
 const mapStateToProps  = (state): StateProps => ({
   isLoggedIn: getIsLoggedIn(state),
-  name: getUserName(state),
+  name: getUserName(state)
 });
 
 export default connect(

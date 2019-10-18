@@ -3,6 +3,7 @@ import Canvas from '../components/Canvas';
 import { receivedError } from '../../websocket/selectors';
 
 interface DispatchProps {
+  
 }
 
 const mapDispatchToProps: DispatchProps = {
