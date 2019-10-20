@@ -24,8 +24,29 @@ export type RegisterContext = ReturnType<typeof registerContext>;
 
 export const registerCanvasContext = (ctx: CanvasRenderingContext2D) => dispatch => {
   dispatch(registerContext(ctx));
-  ctx.fillStyle = '#000000';
-  ctx.fillRect(0, 0, 100, 100);
+}
+
+const updatePosition = (x: number, y: number) => ({
+  type: ActionTypes.UpdatePosition,
+  payload: {
+    x,
+    y
+  }
+})
+export type UpdatePosition = ReturnType<typeof updatePosition>;
+
+export const updateCursorPosition = (x: number, y: number) => dispatch => {
+  // TODO: verify that numbers are actually within canvas
+  dispatch(updatePosition(x, y));
+}
+
+const clearPosition = () => ({
+  type: ActionTypes.ClearPosition
+})
+export type ClearPosition = ReturnType<typeof clearPosition>;
+
+export const clearCursorPosition = () => dispatch => {
+  dispatch(clearPosition());
 }
 
 
