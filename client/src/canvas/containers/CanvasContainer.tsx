@@ -3,17 +3,21 @@ import Canvas from '../components/Canvas';
 import { receivedError } from '../../websocket/selectors';
 
 interface DispatchProps {
+  registerContext: (context: CanvasRenderingContext2D) => void;
+}
 
+interface StateProps {
+  receivedError: boolean;
+  initialImage: string;
 }
 
 const mapDispatchToProps: DispatchProps = {
+  registerContext: 
 };
 
-interface StateProps {
-  receivedError: boolean; 
-}
 const mapStateToProps  = (state): StateProps => ({
-  receivedError: receivedError(state)
+  receivedError: receivedError(state),
+  initialImage: 
 });
 
 export default connect(
