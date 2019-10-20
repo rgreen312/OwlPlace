@@ -5,7 +5,6 @@ import { Redirect } from 'react-router-dom';
 interface Props {
   receivedError: boolean;
   registerContext: (context: CanvasRenderingContext2D) => void;
-  initialImage: string;
 }
 
 class Canvas extends Component<Props> {
@@ -17,6 +16,9 @@ class Canvas extends Component<Props> {
   }
 
   componentDidMount() {
+    this.canvasRef.current!.width = 1000;
+    this.canvasRef.current!.height = 1000;
+
     const context = this.canvasRef.current!.getContext('2d');
     const image = new Image();
 
@@ -25,7 +27,7 @@ class Canvas extends Component<Props> {
         context.drawImage(image, 0, 0);
       }
     };
-    image.src = this.props.initialImage;
+    // image.src = this.props.initialImage;
 
     if (context) {
       this.props.registerContext(context);
@@ -38,10 +40,10 @@ class Canvas extends Component<Props> {
       // receivedError ? <Redirect to='/error'/> :
       <div>
         <div>
-          <ColorPicker
+          {/* <ColorPicker
             onCancel={() => console.log('canceled')}
             onComplete={(c) => console.log('color selected: ', c)}
-          />
+          /> */}
           <canvas ref={this.canvasRef} />
         </div>
       </div>

@@ -14,6 +14,20 @@ export const fetchImageData = () => (dispatch) => {
   
 }
 
+const registerContext = (ctx: CanvasRenderingContext2D) => ({
+  type: ActionTypes.RegisterContext,
+  payload: {
+    context: ctx
+  }
+});
+export type RegisterContext = ReturnType<typeof registerContext>;
+
+export const registerCanvasContext = (ctx: CanvasRenderingContext2D) => dispatch => {
+  dispatch(registerContext(ctx));
+  ctx.fillStyle = '#000000';
+  ctx.fillRect(0, 0, 100, 100);
+}
+
 
 export const updatePixel = (newColor: Color, x: number, y: number) => (dispatch) => {
 
