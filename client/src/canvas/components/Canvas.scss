@@ -1,0 +1,13 @@
+.canvas-container {
+
+  .zoom-canvas {
+    image-rendering: pixelated;
+    width: 100%;
+
+    canvas {
+      height: 600px;
+      width: 600px;
+      transform-origin: 0 0;
+    }
+  }
+}

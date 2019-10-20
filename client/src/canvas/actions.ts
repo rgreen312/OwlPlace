@@ -2,6 +2,7 @@
 // import { HOSTNAME } from '../constants';
 import { Color } from './types';
 import * as ActionTypes from './actionTypes';
+import { getZoomFactor, getCanvasContext } from './selectors'; 
 
 const fetchImageDataStart = () => ({
   type: ActionTypes.FetchImageStart
@@ -35,9 +36,10 @@ const updatePosition = (x: number, y: number) => ({
 })
 export type UpdatePosition = ReturnType<typeof updatePosition>;
 
-export const updateCursorPosition = (x: number, y: number) => dispatch => {
-  // TODO: verify that numbers are actually within canvas
-  dispatch(updatePosition(x, y));
+export const updateCursorPosition = (x: number, y: number) => (dispatch, getState) => {
+  const state = getState();
+  const zoom = getZoomFactor(state);
+  dispatch(updatePosition(Math.ceil(x / zoom), Math.ceil(y / zoom)));
 }
 
 const clearPosition = () => ({
@@ -47,6 +49,25 @@ export type ClearPosition = ReturnType<typeof clearPosition>;
 
 export const clearCursorPosition = () => dispatch => {
   dispatch(clearPosition());
+}
+
+const setZoom = (f: number) => ({
+  type: ActionTypes.SetZoom,
+  payload: {
+    zoom: f
+  }
+});
+export type SetZoom = ReturnType<typeof setZoom>;
+
+export const setZoomFactor = (f: number) => (dispatch, getState) => {
+  const state = getState();
+  const ctx = getCanvasContext(state);
+  if (ctx) {
+    console.log('scaling');
+    ctx.scale(f, f);
+  }
+  
+  dispatch(setZoom(f));
 }
 
 
