@@ -97,23 +97,45 @@ func (api *ApiServer) GetImage(w http.ResponseWriter, req *http.Request) {
 }
 
 
-func (api *ApiServer) updateUserList(w http.ResponseWriter, req *http.Request) {
-	user_id := req.URL.Query().Get("user_id")
- 	key := "U" + user_id
+/*
+ * Insert the new user id to the userlist
+ */
+func updateUserList(user_id string) {
+	key := "U" + user_id
+	// val, err := consensus.Get([]byte(key)
+
+	// if err != nil {
+	// 	fmt.Println("Error in updateUserList")
+	// }
+
+	lastMove := GetLastUserModification(user_id)
+	if lastMove == "" {
+		fmt.Println("Error in updateUserList")
+	} else {
+		err := SetLastUserModification(user_id, "0")
+		if err == false {
+			fmt.Println("Cannot update user list")
+		}
+	}
 
 
-<<<<<<< HEAD
- 	lastMove := api.GetLastUserModification(key)
- 	if lastMove == "" {
-  		fmt.Println("Error in updateUserList")
- 	} else {
-  		err := api.SetLastUserModification(key, "0")
-  		if err == false {
-   			fmt.Println("Cannot update user list")
-  		}
- 	}
+	// if val == nil {
+	// 	err := consensus.Put([]byte(key), []byte("0"))
+	// 	if err != nil {
+	// 		fmt.Println("Cannot update user list")
+	// 	}
+	// 	// //need to convert key to json format?
+	// 	// m := consensus.BackendMessage{Type: consensus.ADD_USER, Data: key}
+	// 	// api.sendc <- m
+	// 	// user_ids := <- api.recvc
 
+	// } else {
+	// 	fmt.Println("User already registered ")
+
+		
+	// }
 }
+
 
 func (api *ApiServer) UpdatePixel(w http.ResponseWriter, req *http.Request) {
 
