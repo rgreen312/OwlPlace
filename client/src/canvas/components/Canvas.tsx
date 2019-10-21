@@ -91,12 +91,6 @@ class Canvas extends Component<Props> {
         </div>
       </div>
     );
-
-    // return (
-    //     <div className='zoom-canvas' style={{ transform: `scale(${zoomFactor}, ${zoomFactor})` }}>
-    //       <canvas ref={this.canvasRef} />
-    //     </div>
-    // );
   }
 }
 
