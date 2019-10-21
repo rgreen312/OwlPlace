@@ -35,6 +35,7 @@ class Canvas extends Component<Props> {
     // };
     // image.src = this.props.initialImage;
 
+
     if (context) {
       this.props.registerContext(context);
     }
@@ -45,6 +46,8 @@ class Canvas extends Component<Props> {
     context!.fillRect(0, 0, 1000, 500);
     context!.fillStyle = '#ff0000';
     context!.fillRect(0, 500, 1000, 500);
+
+    context!.scale(100, 100);
 
     this.canvasRef.current!.addEventListener('mousemove', (ev) => {
       const { x, y } = this.getMousePos(this.canvasRef.current, ev);
@@ -62,7 +65,7 @@ class Canvas extends Component<Props> {
       x: evt.clientX - rect.left,
       y: evt.clientY - rect.top
     };
-}
+  }
 
   render() {
     const { receivedError, zoomFactor, setZoomFactor } = this.props;
@@ -83,11 +86,17 @@ class Canvas extends Component<Props> {
           />
           <Icon
             type='minus-circle'
-            onClick={() => setZoomFactor(zoomFactor + 10)}
+            onClick={() => setZoomFactor(zoomFactor - 10)}
           />
         </div>
       </div>
     );
+
+    // return (
+    //     <div className='zoom-canvas' style={{ transform: `scale(${zoomFactor}, ${zoomFactor})` }}>
+    //       <canvas ref={this.canvasRef} />
+    //     </div>
+    // );
   }
 }
 

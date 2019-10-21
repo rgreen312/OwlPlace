@@ -2,12 +2,15 @@
 
   .zoom-canvas {
     image-rendering: pixelated;
-    width: 100%;
 
-    canvas {
-      height: 600px;
-      width: 600px;
-      transform-origin: 0 0;
+  canvas {
+      z-index: -1;
     }
+  }
+
+  .zoom-controls {
+    position: fixed;
+    bottom: 70px;
+    right: 10px;
   }
 }
