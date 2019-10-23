@@ -15,8 +15,6 @@ import (
 	"time"
 	"strconv"
 
-	"html/template"
-
 	"github.com/gorilla/websocket"
 
 	"github.com/rgreen312/owlplace/server/common"
@@ -52,6 +50,8 @@ func (api *ApiServer) ListenAndServe() {
 	http.HandleFunc("/get_image", api.GetImage)
 	http.HandleFunc("/update_pixel", api.UpdatePixel)
 	http.HandleFunc("/ws", api.wsEndpoint)
+	http.HandleFunc("/update_user", api.updateUserList)
+	http.HandleFunc("/validate_user", api.validateUser)
 
 	// Although there is nothing wrong with this line, it prevents us from running multiple nodes on a single machine.
 	// Therefore, I am making failure non-fatal until we have some way of running locally from the same port (i.e. docker)
@@ -102,7 +102,8 @@ func (api *ApiServer) GetImage(w http.ResponseWriter, req *http.Request) {
 /*
  * Insert the new user id to the userlist
  */
-func updateUserList(user_id string) {
+func (api *ApiServer) updateUserList(w http.ResponseWriter, req *http.Request) {
+	user_id := req.URL.Query().Get("user_id")
 	key := "U" + user_id
 	// val, err := consensus.Get([]byte(key)
 
@@ -110,11 +111,11 @@ func updateUserList(user_id string) {
 	// 	fmt.Println("Error in updateUserList")
 	// }
 
-	lastMove := GetLastUserModification(user_id)
+	lastMove := api.GetLastUserModification(key)
 	if lastMove == "" {
 		fmt.Println("Error in updateUserList")
 	} else {
-		err := SetLastUserModification(user_id, "0")
+		err := api.SetLastUserModification(key, "0")
 		if err == false {
 			fmt.Println("Cannot update user list")
 		}
@@ -140,23 +141,24 @@ func updateUserList(user_id string) {
 
 
 
-func makeMove(user_id string, x string, y string, color string) {
- // lastMove = consensus.Get([]byte())
+// func makeMove(user_id string, x string, y string, color string) {
+//  // lastMove = consensus.Get([]byte())
 
- key := "M" + strconv.Atoi(rand.Int())
- consensus.Put([]byte(key), []byte(user_id + " " + x + " " + y + " " + color))
-}
+//  key := "M" + strconv.Atoi(rand.Int())
+//  consensus.Put([]byte(key), []byte(user_id + " " + x + " " + y + " " + color))
+// }
 
-func validateUser(user_id string) bool {
+func (api *ApiServer) validateUser(w http.ResponseWriter, req *http.Request) {
+	user_id := req.URL.Query().Get("user_id")
 	now := time.Now().Unix()
-	lastMove := GetLastUserModification(user_id)
+	lastMove := api.GetLastUserModification(user_id)
 	lastMoveInt, err := strconv.Atoi(lastMove)
 	if err != nil {
 		fmt.Println("SOME ERROR")
 	}
-	if (now - lastMoveInt > 300) {
-		SetLastUserModification(user_id, strconv.Itoa(now))
-		return true		
+	if (int(now) - lastMoveInt > 300) {
+		api.SetLastUserModification(user_id, strconv.Itoa(int(now)))
+		//image team update pixel		
 	} else {
 		return false
 	}
@@ -288,28 +290,19 @@ func reader(conn *websocket.Conn) {
 		switch msgType {
 		case 1:
 			fmt.Println("one")
-			isValidate := validateUser(dat["id"])
 			
-			if (isValidate) {
-				// TODO: call the updating function
+			// TODO: call the updating function
 
-				// send message back to the client saying it's been updated
-				byt := []byte(`Pixel 1 has been updated!`)
-				if err := conn.WriteMessage(websocket.TextMessage, byt); err != nil {
-					log.Println(err)
-					return
-				}
-			} else {
-				byt := []byte(`User can't make a move now!`)
-				if err := conn.WriteMessage(websocket.TextMessage, byt); err != nil {
-					log.Println(err)
-					return
-				}
+			// send message back to the client saying it's been updated
+			byt := []byte(`Pixel 1 has been updated!`)
+			if err := conn.WriteMessage(websocket.TextMessage, byt); err != nil {
+				log.Println(err)
+				return
 			}
+
 			
 		case 2:
 			fmt.Println("two")
-			updateUserList(dat["userId"])
 		case 3:
 			fmt.Println("three")
 		}
