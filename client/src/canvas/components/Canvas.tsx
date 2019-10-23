@@ -3,6 +3,7 @@ import ColorPicker from '../../colorPicker/components/colorPicker';
 import { Redirect } from 'react-router-dom';
 import './Canvas.scss';
 import { Icon } from 'antd';
+import { ZOOM_CHANGE_FACTOR } from '../constants';
 
 interface Props {
   receivedError: boolean;
@@ -42,6 +43,7 @@ class Canvas extends Component<Props> {
 
     context!.imageSmoothingEnabled = false;
 
+    // TODO: remove this code
     context!.fillStyle ='#000000';
     context!.fillRect(0, 0, 1000, 500);
     context!.fillStyle = '#ff0000';
@@ -82,11 +84,11 @@ class Canvas extends Component<Props> {
         <div className='zoom-controls'>
           <Icon
             type='plus-circle'
-            onClick={() => setZoomFactor(zoomFactor + 10)}
+            onClick={() => setZoomFactor(zoomFactor + ZOOM_CHANGE_FACTOR)}
           />
           <Icon
             type='minus-circle'
-            onClick={() => setZoomFactor(zoomFactor - 10)}
+            onClick={() => setZoomFactor(zoomFactor - ZOOM_CHANGE_FACTOR)}
           />
         </div>
       </div>
