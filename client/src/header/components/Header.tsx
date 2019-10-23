@@ -1,6 +1,7 @@
 import React, { FC } from "react";
 import { PageHeader, Button, Menu, Dropdown, Icon, Tag } from "antd";
 import { Link } from "react-router-dom";
+import './Header.scss';
 
 interface Props {
   isLoggedIn: boolean;
@@ -29,9 +30,6 @@ const Header: FC<Props> = ({ onLogin, isLoggedIn, name, onLogout }) => {
     <Menu>
       <Menu.Item>
         <Link to="/about">About</Link>
-      </Menu.Item>
-      <Menu.Item>
-        <Link to="/pickColor">PickColor</Link>
       </Menu.Item>
       {isLoggedIn && <Menu.Item onClick={onLogout}>Sign Out</Menu.Item>}
     </Menu>

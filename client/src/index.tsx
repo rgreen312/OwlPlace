@@ -3,14 +3,14 @@ import { render } from 'react-dom'
 import './index.scss';
 import App from './App';
 import { combineReducers, createStore, applyMiddleware, compose } from 'redux';
-// import canvasReducers from './canvas/reducers';
+import canvasReducers from './canvas/reducers';
 import loginReducers from './login/reducers';
 import webSocketReducers from './websocket/reducers';
 import { Provider } from 'react-redux';
 import thunk from 'redux-thunk';
 
 const rootReducer = combineReducers({
-  // canvas: canvasReducers,
+  canvas: canvasReducers,
   login: loginReducers,
   websocket: webSocketReducers,
 });
