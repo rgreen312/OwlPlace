@@ -4,6 +4,7 @@ services:
     image: owlplace
     ports:
       - "3001:3000"
+      - "3009:3000"
     volumes:
       - "./docker-owlplace.json:/tmp/owlplace.json"
     environment:
@@ -15,6 +16,7 @@ services:
     image: owlplace
     ports:
       - "3002:3000"
+      - "3006:3000"
     volumes:
       - "./docker-owlplace.json:/tmp/owlplace.json"
     environment:
@@ -26,6 +28,7 @@ services:
     image: owlplace
     ports:
       - "3003:3000"
+      - "3008:3000"
     volumes:
       - "./docker-owlplace.json:/tmp/owlplace.json"
     environment:

@@ -46,7 +46,7 @@ func NewApiServer(servers map[int]*common.ServerConfig, nodeId int) *ApiServer {
 func (api *ApiServer) ListenAndServe() {
 	http.HandleFunc("/headers", api.Headers)
 	http.HandleFunc("/get_image", api.GetImage)
-	// http.HandleFunc("/update_pixel", api.UpdatePixel)
+	http.HandleFunc("/update_pixel", api.UpdatePixel)
 	http.HandleFunc("/ws", api.wsEndpoint)
 
 	// Although there is nothing wrong with this line, it prevents us from running multiple nodes on a single machine.

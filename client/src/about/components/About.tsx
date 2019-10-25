@@ -1,6 +1,6 @@
 import React, { FC } from 'react';
 
-let socket = new WebSocket("ws://127.0.0.1:3010/ws");
+let socket = new WebSocket("ws://127.0.0.1:3009/ws");
 console.log("Attempting Connection...");
 
 // open message is 0

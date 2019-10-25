@@ -39,6 +39,7 @@ To start a cluster member, first define a cluster configuration file:
 ]
 ```
 where the keys of the JSON object are the node IDs of the cluster members.
+This is the `docker-owlplace.json` file.
 
 ## building
 

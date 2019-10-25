@@ -2,6 +2,7 @@ package apiserver
 
 type MsgType uint8
 
+// Well defined Message types
 const (
 	Open       MsgType = 0
 	DrawPixel  MsgType = 1
