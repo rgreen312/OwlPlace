@@ -1,6 +1,7 @@
 import React, { FC } from "react";
 import { PageHeader, Button, Menu, Dropdown, Icon, Tag } from "antd";
 import { Link } from "react-router-dom";
+import './Header.scss';
 
 interface Props {
   isLoggedIn: boolean;

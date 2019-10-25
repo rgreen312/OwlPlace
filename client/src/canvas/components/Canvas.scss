@@ -1,0 +1,16 @@
+.canvas-container {
+
+  .zoom-canvas {
+    image-rendering: pixelated;
+
+  canvas {
+      z-index: -1;
+    }
+  }
+
+  .zoom-controls {
+    position: fixed;
+    bottom: 70px;
+    right: 10px;
+  }
+}
