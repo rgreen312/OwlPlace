@@ -51,6 +51,8 @@ func (api *ApiServer) ListenAndServe() {
 	http.HandleFunc("/update_pixel", api.UpdatePixel)
 	http.HandleFunc("/update_user", )
 	http.HandleFunc("/ws", api.wsEndpoint)
+	http.HandleFunc("/update_user", api.updateUserList)
+	http.HandleFunc("/validate_user", api.validateUser)
 
 	// Although there is nothing wrong with this line, it prevents us from running multiple nodes on a single machine.
 	// Therefore, I am making failure non-fatal until we have some way of running locally from the same port (i.e. docker)
@@ -103,20 +105,49 @@ func (api *ApiServer) GetImage(w http.ResponseWriter, req *http.Request) {
  */
 func (api *ApiServer) updateUserList(w http.ResponseWriter, req *http.Request) {
 	user_id := req.URL.Query().Get("user_id")
- 	key := "U" + user_id
- 
- 	lastMove := api.GetLastUserModification(key)
- 	if lastMove == "" {
-  		fmt.Println("Error in updateUserList")
- 	} else {
-  		err := api.SetLastUserModification(key, "0")
-  		if err == false {
-   			fmt.Println("Cannot update user list")
-  		}
- 	}
+	key := "U" + user_id
+	// val, err := consensus.Get([]byte(key)
+
+	// if err != nil {
+	// 	fmt.Println("Error in updateUserList")
+	// }
+
+	lastMove := api.GetLastUserModification(key)
+	if lastMove == "" {
+		fmt.Println("Error in updateUserList")
+	} else {
+		err := api.SetLastUserModification(key, "0")
+		if err == false {
+			fmt.Println("Cannot update user list")
+		}
+	}
 
 }
 
+
+
+// func makeMove(user_id string, x string, y string, color string) {
+//  // lastMove = consensus.Get([]byte())
+
+//  key := "M" + strconv.Atoi(rand.Int())
+//  consensus.Put([]byte(key), []byte(user_id + " " + x + " " + y + " " + color))
+// }
+
+func (api *ApiServer) validateUser(w http.ResponseWriter, req *http.Request) {
+	user_id := req.URL.Query().Get("user_id")
+	now := time.Now().Unix()
+	lastMove := api.GetLastUserModification(user_id)
+	lastMoveInt, err := strconv.Atoi(lastMove)
+	if err != nil {
+		fmt.Println("SOME ERROR")
+	}
+	if (int(now) - lastMoveInt > 300) {
+		api.SetLastUserModification(user_id, strconv.Itoa(int(now)))
+		//image team update pixel		
+	} else {
+		return false
+	}
+}
 
 func (api *ApiServer) UpdatePixel(w http.ResponseWriter, req *http.Request) {
 
@@ -252,8 +283,7 @@ func reader(conn *websocket.Conn) {
 			if err := conn.WriteMessage(websocket.TextMessage, byt); err != nil {
 				log.Println(err)
 				return
-			}			
-		
+			}
 		case 2:
 			fmt.Println("two")
 		case 3:
