@@ -45,6 +45,11 @@ const (
 	FAILURE              int = 6
 )
 
+const (
+	DRAGONBOAT_ERROR     int = 0
+	MESSAGE_ERROR        int = 1
+)
+
 type ConsensusMessage struct {
 	Type int
 	Data bytes.Buffer
@@ -99,11 +104,14 @@ func SuccessMessage() ConsensusMessage {
 	}
 }
 
-func FailureMessage() ConsensusMessage {
-	var empty_buffer bytes.Buffer
+func FailureMessage(error_type int) ConsensusMessage {
+	var encoded_msg bytes.Buffer
+	enc := gob.NewEncoder(&encoded_msg)
+	enc.Encode(error_type)
+
 	return ConsensusMessage{
 		Type: FAILURE,
-		Data: empty_buffer,
+		Data: encoded_msg,
 	}
 }
 
@@ -220,7 +228,7 @@ func MainConsensus(recvc chan BackendMessage, sendc chan ConsensusMessage, serve
 					var umsg UpdatePixelBackendMessage
 					err = dec.Decode(&umsg)
 					if err != nil {
-						sendc <- FailureMessage()
+						sendc <- FailureMessage(1)
 					}
 
 					// Create the kv pair to send to dragonboat
@@ -230,7 +238,7 @@ func MainConsensus(recvc chan BackendMessage, sendc chan ConsensusMessage, serve
 					}
 					data, err := json.Marshal(kv)
 					if err != nil {
-						sendc <- FailureMessage()
+						sendc <- FailureMessage(1)
 					}
 
 					// Sync with dragonboat
@@ -245,7 +253,7 @@ func MainConsensus(recvc chan BackendMessage, sendc chan ConsensusMessage, serve
 					var umsg SetUserDataBackendMessage
 					err = dec.Decode(&umsg)
 					if err != nil {
-						sendc <- FailureMessage()
+						sendc <- FailureMessage(1)
 					}
 
 					// Create the kv pair to send to dragonboat
@@ -255,7 +263,7 @@ func MainConsensus(recvc chan BackendMessage, sendc chan ConsensusMessage, serve
 					}
 					data, err := json.Marshal(kv)
 					if err != nil {
-						sendc <- FailureMessage()
+						sendc <- FailureMessage(1)
 					}
 
 					// Sync with dragonboat
@@ -271,13 +279,13 @@ func MainConsensus(recvc chan BackendMessage, sendc chan ConsensusMessage, serve
 					var umsg GetUserDataBackendMessage
 					err = dec.Decode(&umsg)
 					if err != nil {
-						sendc <- FailureMessage()
+						sendc <- FailureMessage(1)
 					}
 
 					// Request a ready from dragonboat
 					result, err := nh.SyncRead(ctx, exampleClusterID, []byte(umsg.UserId))
 					if err != nil {
-						sendc <- FailureMessage()
+						sendc <- FailureMessage(0)
 					} else {
 						sendc <- GetTimestampMessage(result.(string))
 					}
