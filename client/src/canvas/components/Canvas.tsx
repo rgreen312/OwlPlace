@@ -12,6 +12,7 @@ interface Props {
   updatePosition: (x: number, y: number) => void;
   position: {x: number, y: number}; 
   onMouseOut: () => void;
+  onUpdatePixel: (newColor: Color, x: number, y: number) => void;
   zoomFactor: number;
   setZoomFactor: (newZoom: number) => void;
 }
@@ -59,15 +60,15 @@ class Canvas extends Component<Props, State> {
     context!.fillStyle = '#ff0000';
     context!.fillRect(0, 500, 1000, 500);
 
-    context!.scale(100, 100);
-
     this.canvasRef.current!.addEventListener('mousemove', (ev) => {
+      if (this.state.showColorPicker) return;
       const { x, y } = this.getMousePos(this.canvasRef.current, ev); 
-      this.drawBorder(context, x, y); 
+      this.props.updatePosition(x, y);
     })
 
     this.canvasRef.current!.addEventListener('mouseout', () => {
-      // this.props.onMouseOut();
+      if (this.state.showColorPicker) return;
+      this.props.onMouseOut();
     })
 
     this.canvasRef.current!.addEventListener('click', (ev) => {
@@ -75,10 +76,6 @@ class Canvas extends Component<Props, State> {
       this.props.updatePosition(x, y);
       this.showColorPicker(); 
     }, false);
-  }
-
-  drawBorder(c, x, y) {
-    // TODO: draw the border when the mouse moves!
   }
 
   getMousePos(canvas, evt) {
@@ -94,19 +91,17 @@ class Canvas extends Component<Props, State> {
   }
 
   onComplete(c: RGBColor) {
+    this.hideColorPicker(); 
+
     const context = this.canvasRef.current!.getContext('2d');
 
-    const zoom = this.props.zoomFactor; 
     const x = this.props.position.x; 
     const y = this.props.position.y;
-    console.log("this is zoom: " + zoom);   
-    console.log("this is x: " + x);
-    console.log("this is y: " + y); 
 
     context!.fillStyle = 'rgb(' + c.r + ',' + c.g + ',' + c.b + ')'
-    context!.fillRect(0, 0, 3, 3);
+    context!.fillRect(x, y, 1, 1);
 
-    this.hideColorPicker(); 
+    this.props.onUpdatePixel({ r: c.r, g: c.g, b: c.b}, x, y);
   }
 
   showColorPicker() {

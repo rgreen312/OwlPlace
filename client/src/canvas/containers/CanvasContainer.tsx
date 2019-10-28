@@ -1,14 +1,16 @@
 import { connect } from 'react-redux';
 import Canvas from '../components/Canvas';
 import { receivedError } from '../../websocket/selectors';
-import { registerCanvasContext, updateCursorPosition, clearCursorPosition, setZoomFactor } from '../actions';
+import { registerCanvasContext, updateCursorPosition, clearCursorPosition, setZoomFactor, updatePixel } from '../actions';
 import { getZoomFactor, getCurrentPosition } from '../selectors';
+import { Color } from '../types';
 
 interface DispatchProps {
   registerContext: (context: CanvasRenderingContext2D) => void;
   updatePosition: (x: number, y: number) => void;
   onMouseOut: () => void;
   setZoomFactor: (newZoom: number) => void;
+  onUpdatePixel: (newColor: Color, x: number, y: number) => void;
 }
 
 interface StateProps {
@@ -21,7 +23,8 @@ const mapDispatchToProps: DispatchProps = {
   registerContext: registerCanvasContext,
   updatePosition: updateCursorPosition,
   onMouseOut: clearCursorPosition,
-  setZoomFactor: setZoomFactor
+  setZoomFactor: setZoomFactor,
+  onUpdatePixel: updatePixel,
 };
 
 const mapStateToProps  = (state): StateProps => ({
