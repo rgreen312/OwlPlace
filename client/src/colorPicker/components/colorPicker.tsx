@@ -4,7 +4,6 @@ import { Button } from "antd";
 import { Redirect } from "react-router-dom";
 import './colorPicker.scss';
 
-
 interface RGBColor {
   r: number;
   g: number;
@@ -27,7 +26,7 @@ const ColorPicker: FC<Props> = ({ onComplete, onCancel }) => {
         color={color}
         onChange={(c) => setColor({ r: c.rgb.r, b: c.rgb.b, g: c.rgb.g })}
       />
-      <div className='selector-thingy'>
+      <div className='button-bar'>
         <Button onClick={complete} className='okay-button'>
           Okay
         </Button>
