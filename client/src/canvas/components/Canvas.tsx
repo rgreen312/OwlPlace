@@ -1,25 +1,36 @@
-import React, { Component, createRef, RefObject } from 'react';
+import React, { Component, createRef, RefObject, useState } from 'react';
 import ColorPicker from '../../colorPicker/components/colorPicker';
 import { Redirect } from 'react-router-dom';
 import './Canvas.scss';
 import { Icon } from 'antd';
 import { ZOOM_CHANGE_FACTOR } from '../constants';
+import Modal from 'react-modal'; 
+
+interface Position {
+  x: number;
+  y: number;
+}
 
 interface Props {
   receivedError: boolean;
   registerContext: (context: CanvasRenderingContext2D) => void;
-  updatePosition: (x: number, y: number) => void;
+  updatePosition: (Position) => void;
   onMouseOut: () => void;
   zoomFactor: number;
   setZoomFactor: (newZoom: number) => void;
 }
 
-class Canvas extends Component<Props> {
+interface State {
+  showColorPicker: boolean; 
+}
+
+class Canvas extends Component<Props, State> {
   canvasRef: RefObject<HTMLCanvasElement>;
 
   constructor(props) {
     super(props);
     this.canvasRef = createRef();
+    this.state = {showColorPicker: false}
   }
 
   componentDidMount() {
@@ -27,6 +38,7 @@ class Canvas extends Component<Props> {
     this.canvasRef.current!.height = 1000;
 
     const context = this.canvasRef.current!.getContext('2d');
+
     // const image = new Image();
 
     // image.onload = function() {
@@ -53,12 +65,17 @@ class Canvas extends Component<Props> {
 
     this.canvasRef.current!.addEventListener('mousemove', (ev) => {
       const { x, y } = this.getMousePos(this.canvasRef.current, ev);
-      this.props.updatePosition(x, y);
+      this.props.updatePosition({x, y});
     }, false);
 
     this.canvasRef.current!.addEventListener('mouseout', () => {
       this.props.onMouseOut();
     })
+
+    this.canvasRef.current!.addEventListener('click', (ev) => {
+      console.log("setting to true");
+      this.showColorPicker(); 
+    });
   }
 
   getMousePos(canvas, evt) {
@@ -69,15 +86,23 @@ class Canvas extends Component<Props> {
     };
   }
 
+  showColorPicker() {
+    this.setState({
+      showColorPicker: true
+    });
+  }
+
   render() {
     const { receivedError, zoomFactor, setZoomFactor } = this.props;
     return (
       // receivedError ? <Redirect to='/error'/> :
       <div className='canvas-container'>
-        {/* <ColorPicker
-          onCancel={() => console.log('canceled')}
-          onComplete={(c) => console.log('color selected: ', c)}
-        /> */}
+        {this.state.showColorPicker ? (<div className='color-picker'>
+          <ColorPicker
+            onCancel={() => console.log('canceled')}
+            onComplete={(c) => console.log('color selected: ', c)}
+          />
+        </div>) : null}
         <div className='zoom-canvas' style={{ transform: `scale(${zoomFactor}, ${zoomFactor})` }}>
           <canvas ref={this.canvasRef} />
         </div>

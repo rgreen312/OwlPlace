@@ -6,11 +6,19 @@
   canvas {
       z-index: -1;
     }
+
   }
 
   .zoom-controls {
     position: fixed;
     bottom: 70px;
     right: 10px;
+  }
+
+  .color-picker {
+    position: fixed; 
+    z-index: 10; 
+    bottom: 100px;
+    right: 100px; 
   }
 }
