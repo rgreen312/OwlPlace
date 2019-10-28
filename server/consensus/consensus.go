@@ -228,7 +228,7 @@ func MainConsensus(recvc chan BackendMessage, sendc chan ConsensusMessage, serve
 					var umsg UpdatePixelBackendMessage
 					err = dec.Decode(&umsg)
 					if err != nil {
-						sendc <- FailureMessage(1)
+						sendc <- FailureMessage(MESSAGE_ERROR)
 					}
 
 					// Create the kv pair to send to dragonboat
@@ -238,7 +238,7 @@ func MainConsensus(recvc chan BackendMessage, sendc chan ConsensusMessage, serve
 					}
 					data, err := json.Marshal(kv)
 					if err != nil {
-						sendc <- FailureMessage(1)
+						sendc <- FailureMessage(MESSAGE_ERROR)
 					}
 
 					// Sync with dragonboat
@@ -253,7 +253,7 @@ func MainConsensus(recvc chan BackendMessage, sendc chan ConsensusMessage, serve
 					var umsg SetUserDataBackendMessage
 					err = dec.Decode(&umsg)
 					if err != nil {
-						sendc <- FailureMessage(1)
+						sendc <- FailureMessage(MESSAGE_ERROR)
 					}
 
 					// Create the kv pair to send to dragonboat
@@ -263,7 +263,7 @@ func MainConsensus(recvc chan BackendMessage, sendc chan ConsensusMessage, serve
 					}
 					data, err := json.Marshal(kv)
 					if err != nil {
-						sendc <- FailureMessage(1)
+						sendc <- FailureMessage(MESSAGE_ERROR)
 					}
 
 					// Sync with dragonboat
@@ -279,13 +279,13 @@ func MainConsensus(recvc chan BackendMessage, sendc chan ConsensusMessage, serve
 					var umsg GetUserDataBackendMessage
 					err = dec.Decode(&umsg)
 					if err != nil {
-						sendc <- FailureMessage(1)
+						sendc <- FailureMessage(MESSAGE_ERROR)
 					}
 
 					// Request a ready from dragonboat
 					result, err := nh.SyncRead(ctx, exampleClusterID, []byte(umsg.UserId))
 					if err != nil {
-						sendc <- FailureMessage(0)
+						sendc <- FailureMessage(DRAGONBOAT_ERROR)
 					} else {
 						sendc <- GetTimestampMessage(result.(string))
 					}
