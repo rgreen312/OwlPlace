@@ -5,17 +5,13 @@ import './Canvas.scss';
 import { Icon } from 'antd';
 import { ZOOM_CHANGE_FACTOR } from '../constants';
 import Modal from 'react-modal'; 
-
-interface Position {
-  x: number;
-  y: number;
-}
+import { Color, RGBColor } from 'react-color';
 
 interface Props {
   receivedError: boolean;
   registerContext: (context: CanvasRenderingContext2D) => void;
-  updatePosition: (Position) => void;
-  position: Position; 
+  updatePosition: (x: number, y: number) => void;
+  position: {x: number, y: number}; 
   onMouseOut: () => void;
   zoomFactor: number;
   setZoomFactor: (newZoom: number) => void;
@@ -73,9 +69,9 @@ class Canvas extends Component<Props, State> {
     this.canvasRef.current!.addEventListener('click', (ev) => {
       const { x, y } = this.getMousePos(this.canvasRef.current, ev);
       console.log("here is x back here: " + x); 
-      this.props.updatePosition({x, y});
+      this.props.updatePosition(x, y);
       this.showColorPicker(); 
-    });
+    }, false);
   }
 
   getMousePos(canvas, evt) {
@@ -90,8 +86,13 @@ class Canvas extends Component<Props, State> {
     this.hideColorPicker(); 
   }
 
-  onComplete(c) {
-    console.log(this.props.position.x); 
+  onComplete(c: RGBColor) {
+    const zoom = this.props.zoomFactor; 
+    const context = this.canvasRef.current!.getContext('2d');
+    console.log("doing to string: " + c.r); 
+    context!.fillStyle = 'rgb(' + c.r + ',' + c.g + ',' + c.b + ')'
+    context!.fillRect(0, 0, 1000, 500);
+
     this.hideColorPicker(); 
   }
 
@@ -115,7 +116,7 @@ class Canvas extends Component<Props, State> {
         {this.state.showColorPicker && (<div className='color-picker'>
           <ColorPicker
             onCancel={this.onCancel}
-            onComplete={this.onComplete}
+            onComplete={(c) => this.onComplete(c)}
           />
         </div>)}
         <div className='zoom-canvas' style={{ transform: `scale(${zoomFactor}, ${zoomFactor})` }}>
