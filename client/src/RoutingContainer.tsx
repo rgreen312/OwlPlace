@@ -2,7 +2,7 @@ import React, { FC } from 'react';
 import { BrowserRouter as Router, Route } from 'react-router-dom';
 import ScrollToTop from './components/ScrollToTop';
 import CanvasPageContainer from './canvas/containers/CanvasPageContainer';
-import AboutPage from './about/components/About';
+import AboutPage from './about/containers/AboutContainer';
 import Header from './header/containers/HeaderContainer';
 import Footer from './footer/components/Footer';
 import ErrorPage from './error/components/Error';

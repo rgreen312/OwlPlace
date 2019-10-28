@@ -65,14 +65,14 @@ func (api *ApiServer) GetImage(w http.ResponseWriter, req *http.Request) {
 	var ImageTemplate string = `<!DOCTYPE html>
 								<html lang="en"><head></head>
 								<body><img src="data:image/jpg;base64,{{.Image}}"></body>`
-	image_msg := <-api.recvc
+	imageMsg := <-api.recvc
 
 	if tmpl, err := template.New("image").Parse(ImageTemplate); err != nil {
 		fmt.Fprintf(os.Stdout, "Unable to parse image template.\n")
 	} else {
 
 		// Decode the message from the glob
-		dec := gob.NewDecoder(&image_msg.Data)
+		dec := gob.NewDecoder(&imageMsg.Data)
 		var img image.RGBA
 		dec.Decode(&img)
 
@@ -189,7 +189,7 @@ func (api *ApiServer) Headers(w http.ResponseWriter, req *http.Request) {
 var upgrader = websocket.Upgrader{} // use default options
 
 // define a reader which will listen for new messages being sent to our WebSocket endpoint
-func reader(conn *websocket.Conn) {
+func (api *ApiServer) reader(conn *websocket.Conn) {
 	for {
 		// read in a message
 		// _ (message type) is an int with value websocket.BinaryMessage or websocket.TextMessage
@@ -200,8 +200,7 @@ func reader(conn *websocket.Conn) {
 			return
 		}
 
-		// holds a map of strings to arbitrary data types
-		var dat map[string]interface{}
+		var dat Msg
 
 		if err := json.Unmarshal(p, &dat); err != nil {
 			log.Printf("error decoding client response: %v", err)
@@ -213,28 +212,84 @@ func reader(conn *websocket.Conn) {
 		}
 		fmt.Println(dat)
 
-		// convert each attribute to appropriate type
-		msgType := dat["type"].(float64) // interface {} is float64, not int
-		fmt.Println(msgType)
+		byt := []byte("Default message")
 
-		switch msgType {
-		case 1:
-			fmt.Println("one")
+		switch dat.Type {
+		case DrawPixel:
+			fmt.Println("DrawPixel message received.")
+			var dp_msg DrawPixelMsg
+			if err := json.Unmarshal(p, &dp_msg); err == nil {
+				fmt.Printf("%+v", dp_msg)
 
-			// TODO: call the updating function
-
-			// send message back to the client saying it's been updated
-			byt := []byte(`Pixel 1 has been updated!`)
-			if err := conn.WriteMessage(websocket.TextMessage, byt); err != nil {
-				log.Println(err)
-				return
+				byt = api.CallUpdatePixel(dp_msg.X, dp_msg.Y, dp_msg.R, dp_msg.G, dp_msg.B, dp_msg.UserID)
+			} else {
+				fmt.Println("JSON decoding error.")
 			}
-		case 2:
-			fmt.Println("two")
-		case 3:
-			fmt.Println("three")
+		case CreateUser:
+			fmt.Println("CreateUser message received.")
+			var cu_msg CreateUserMsg
+			if err := json.Unmarshal(p, &cu_msg); err == nil {
+				fmt.Printf("%+v", cu_msg)
+			} else {
+				fmt.Println("JSON decoding error.")
+			}
+		default:
+			fmt.Printf("Message of type: %d received.", dat.Type)
+		}
+
+		if err := conn.WriteMessage(websocket.TextMessage, byt); err != nil {
+			log.Println(err)
 		}
 	}
+}
+
+// Call this when telling consensus to updatea pixel.
+func (api *ApiServer) CallUpdatePixel(x int, y int, r int, g int, b int, userID string) []byte {
+	fmt.Println("\nWithin CallUpdatePixel")
+
+	// TODO verify that the user is able to update a pizel with the User Data Team
+	userVerification := true
+	if !userVerification {
+		// User verification failed
+
+		log.Println(fmt.Sprintf("USER %s failed authentication", userID))
+		// TODO return the appropriate failure message
+		imageMsg := "FAILURE. TODO make this properly formatted"
+
+		// send message back to the client saying it's been updated or if it failed
+		byt := []byte(imageMsg)
+		return byt
+	}
+	// User has now been verified
+
+	var encoded_msg bytes.Buffer
+	enc := gob.NewEncoder(&encoded_msg)
+	msg := consensus.UpdatePixelBackendMessage{
+		X: string(x),
+		Y: string(y),
+		R: string(r),
+		G: string(g),
+		B: string(b),
+		A: "255",
+	}
+	log.Printf("UpdatePixelBackendMessage: %+v\n", msg)
+	if err := enc.Encode(msg); err != nil {
+		log.Fatalf("Error encoding struct: %s", err)
+	}
+
+	// Send the encoded message to the backend
+	m := consensus.BackendMessage{Type: consensus.UPDATE_PIXEL, Data: encoded_msg}
+
+	// Send BackendMessage
+	api.sendc <- m
+	consensus_response := <-api.recvc
+	if consensus_response.Type == consensus.SUCCESS {
+		fmt.Fprintf(os.Stdout, "Update Success")
+	}
+	// format message back to the client saying it's been updated or if it failed.
+	// byt := []byte(consensus_response.Data)
+	byt := []byte("test success")
+	return byt
 }
 
 func (api *ApiServer) wsEndpoint(w http.ResponseWriter, r *http.Request) {
@@ -251,6 +306,6 @@ func (api *ApiServer) wsEndpoint(w http.ResponseWriter, r *http.Request) {
 	log.Println("Client Connected")
 	err = ws.WriteMessage(1, []byte("Hi Client! We just connected :)")) // sent upon connection to any clients
 
-	reader(ws)
+	api.reader(ws)
 
 }
