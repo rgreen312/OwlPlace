@@ -40,6 +40,19 @@ export const openWebSocket = () => dispatch => {
           message: "Hi From the Client! The websocket just opened"
         })
       );
+
+      socket.send(
+        JSON.stringify({
+          type: 1,
+          userId: "AAAAAA",
+          x: 6,
+          y: 9,
+          r: 4,
+          g: 2,
+          b: 0
+        })
+      );
+      
     dispatch(connectSuccess(socket));
   };
 
@@ -57,6 +70,32 @@ export const openWebSocket = () => dispatch => {
     // TODO (Ryan): figure out the best way to handle this... probably need to write some middlewear
     console.log("Recieved a message from the server, message: " + data);
   };
+}
+
+const makeUpdateMessage = (
+  id: string,
+  x: number,
+  y: number,
+  r: number,
+  g: number,
+  b: number
+) => {
+  return JSON.stringify({
+    type: 1,
+    userId: id,
+    x: x,
+    y: y,
+    r: r,
+    g: g,
+    b: b
+  });
+};
+
+export const sendUpdateMessage = (id, x, y, r, g, b) => (dispatch, getState) => {
+  const socket = getWebSocket(getState());
+  if (socket) {
+    socket.send(makeUpdateMessage(id, x, y, r, g, b));
+  }
 }
 
 export const closeWebSocket = () => (dispatch, getState) => {

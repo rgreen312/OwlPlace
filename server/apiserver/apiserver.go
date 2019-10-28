@@ -200,8 +200,6 @@ func (api *ApiServer) reader(conn *websocket.Conn) {
 			return
 		}
 
-		// holds a map of strings to arbitrary data types
-		//var dat map[string]interface{}
 		var dat Msg
 
 		if err := json.Unmarshal(p, &dat); err != nil {
@@ -238,31 +236,6 @@ func (api *ApiServer) reader(conn *websocket.Conn) {
 		default:
 			fmt.Printf("Message of type: %d received.", dat.Type)
 		}
-
-		// convert each attribute to appropriate type
-		// msgType := dat["type"].(float64) // interface {} is float64, not int
-		// fmt.Println(msgType)
-
-		// switch msgType {
-		// case 0:
-		// 	byt = []byte("Hello from the server! We are connected.")
-		// case 1:
-		// 	fmt.Println("one")
-		// 	x := int(dat["x"].(float64))
-		// 	y := int(dat["y"].(float64))
-		// 	r := int(dat["r"].(float64))
-		// 	g := int(dat["g"].(float64))
-		// 	b := int(dat["b"].(float64))
-		// 	userID := dat["userId"].(string)
-		// 	fmt.Println(x, y, r, g, b, "THIS IS XYRGB")
-		// 	byt = api.UpdateMethod(x, y, r, g, b, userID)
-		// case 2:
-		// 	fmt.Println("two")
-		// 	byt = []byte("two")
-		// case 3:
-		// 	fmt.Println("three")
-		// 	byt = []byte("three")
-		// }
 
 		if err := conn.WriteMessage(websocket.TextMessage, byt); err != nil {
 			log.Println(err)
