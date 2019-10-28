@@ -61,6 +61,11 @@ class Canvas extends Component<Props, State> {
 
     context!.scale(100, 100);
 
+    this.canvasRef.current!.addEventListener('mousemove', (ev) => {
+      const { x, y } = this.getMousePos(this.canvasRef.current, ev); 
+      this.drawBorder(context, x, y); 
+    })
+
     this.canvasRef.current!.addEventListener('mouseout', () => {
       // this.props.onMouseOut();
     })
@@ -70,6 +75,10 @@ class Canvas extends Component<Props, State> {
       this.props.updatePosition(x, y);
       this.showColorPicker(); 
     }, false);
+  }
+
+  drawBorder(c, x, y) {
+    // TODO: draw the border when the mouse moves!
   }
 
   getMousePos(canvas, evt) {
