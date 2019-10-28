@@ -31,6 +31,10 @@ class Canvas extends Component<Props, State> {
     super(props);
     this.canvasRef = createRef();
     this.state = {showColorPicker: false}
+    this.onCancel = this.onCancel.bind(this); 
+    this.onComplete = this.onComplete.bind(this); 
+    // this.showColorPicker = this.showColorPicker.bind(this); 
+    // this.hideColorPicker = this.hideColorPicker.bind(this); 
   }
 
   componentDidMount() {
@@ -86,10 +90,25 @@ class Canvas extends Component<Props, State> {
     };
   }
 
+  onCancel() {
+    this.hideColorPicker(); 
+  }
+
+  onComplete(c) {
+    console.log("complete"); 
+    this.hideColorPicker(); 
+  }
+
   showColorPicker() {
     this.setState({
       showColorPicker: true
     });
+  }
+
+  hideColorPicker() {
+    this.setState({
+      showColorPicker: false
+    })
   }
 
   render() {
@@ -97,12 +116,12 @@ class Canvas extends Component<Props, State> {
     return (
       // receivedError ? <Redirect to='/error'/> :
       <div className='canvas-container'>
-        {this.state.showColorPicker ? (<div className='color-picker'>
+        {this.state.showColorPicker && (<div className='color-picker'>
           <ColorPicker
-            onCancel={() => console.log('canceled')}
-            onComplete={(c) => console.log('color selected: ', c)}
+            onCancel={this.onCancel}
+            onComplete={this.onComplete}
           />
-        </div>) : null}
+        </div>)}
         <div className='zoom-canvas' style={{ transform: `scale(${zoomFactor}, ${zoomFactor})` }}>
           <canvas ref={this.canvasRef} />
         </div>
