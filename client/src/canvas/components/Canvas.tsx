@@ -1,25 +1,35 @@
-import React, { Component, createRef, RefObject } from 'react';
+import React, { Component, createRef, RefObject, useState } from 'react';
 import ColorPicker from '../../colorPicker/components/colorPicker';
 import { Redirect } from 'react-router-dom';
 import './Canvas.scss';
 import { Icon } from 'antd';
 import { ZOOM_CHANGE_FACTOR } from '../constants';
+import { Color, RGBColor } from 'react-color';
 
 interface Props {
   receivedError: boolean;
   registerContext: (context: CanvasRenderingContext2D) => void;
   updatePosition: (x: number, y: number) => void;
+  position: {x: number, y: number}; 
   onMouseOut: () => void;
+  onUpdatePixel: (newColor: Color, x: number, y: number) => void;
   zoomFactor: number;
   setZoomFactor: (newZoom: number) => void;
 }
 
-class Canvas extends Component<Props> {
+interface State {
+  showColorPicker: boolean; 
+}
+
+class Canvas extends Component<Props, State> {
   canvasRef: RefObject<HTMLCanvasElement>;
 
   constructor(props) {
     super(props);
     this.canvasRef = createRef();
+    this.state = {showColorPicker: false}
+    this.onCancel = this.onCancel.bind(this); 
+    this.onComplete = this.onComplete.bind(this); 
   }
 
   componentDidMount() {
@@ -27,6 +37,7 @@ class Canvas extends Component<Props> {
     this.canvasRef.current!.height = 1000;
 
     const context = this.canvasRef.current!.getContext('2d');
+
     // const image = new Image();
 
     // image.onload = function() {
@@ -49,16 +60,22 @@ class Canvas extends Component<Props> {
     context!.fillStyle = '#ff0000';
     context!.fillRect(0, 500, 1000, 500);
 
-    context!.scale(100, 100);
-
     this.canvasRef.current!.addEventListener('mousemove', (ev) => {
-      const { x, y } = this.getMousePos(this.canvasRef.current, ev);
+      if (this.state.showColorPicker) return;
+      const { x, y } = this.getMousePos(this.canvasRef.current, ev); 
       this.props.updatePosition(x, y);
-    }, false);
+    })
 
     this.canvasRef.current!.addEventListener('mouseout', () => {
+      if (this.state.showColorPicker) return;
       this.props.onMouseOut();
     })
+
+    this.canvasRef.current!.addEventListener('click', (ev) => {
+      const { x, y } = this.getMousePos(this.canvasRef.current, ev);
+      this.props.updatePosition(x, y);
+      this.showColorPicker(); 
+    }, false);
   }
 
   getMousePos(canvas, evt) {
@@ -69,15 +86,47 @@ class Canvas extends Component<Props> {
     };
   }
 
+  onCancel() {
+    this.hideColorPicker(); 
+  }
+
+  onComplete(c: RGBColor) {
+    this.hideColorPicker(); 
+
+    const context = this.canvasRef.current!.getContext('2d');
+
+    const x = this.props.position.x; 
+    const y = this.props.position.y;
+
+    context!.fillStyle = 'rgb(' + c.r + ',' + c.g + ',' + c.b + ')'
+    context!.fillRect(x, y, 1, 1);
+
+    this.props.onUpdatePixel({ r: c.r, g: c.g, b: c.b}, x, y);
+  }
+
+  showColorPicker() {
+    this.setState({
+      showColorPicker: true
+    });
+  }
+
+  hideColorPicker() {
+    this.setState({
+      showColorPicker: false
+    })
+  }
+
   render() {
     const { receivedError, zoomFactor, setZoomFactor } = this.props;
     return (
       // receivedError ? <Redirect to='/error'/> :
       <div className='canvas-container'>
-        {/* <ColorPicker
-          onCancel={() => console.log('canceled')}
-          onComplete={(c) => console.log('color selected: ', c)}
-        /> */}
+        {this.state.showColorPicker && (<div className='color-picker'>
+          <ColorPicker
+            onCancel={this.onCancel}
+            onComplete={(c) => this.onComplete(c)}
+          />
+        </div>)}
         <div className='zoom-canvas' style={{ transform: `scale(${zoomFactor}, ${zoomFactor})` }}>
           <canvas ref={this.canvasRef} />
         </div>

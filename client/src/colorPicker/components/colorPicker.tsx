@@ -23,7 +23,7 @@ const ColorPicker: FC<Props> = ({ onComplete, onCancel }) => {
     <div>
       <SketchPicker 
         color={color}
-        onChange={(c) => setColor({ r: c.rgb.r, b: c.rgb.b, g: c.rgb.g })}     
+        onChange={(c) => setColor({ r: c.rgb.r, b: c.rgb.b, g: c.rgb.g })}
       />
       <Button onClick={complete}>
         Okay
