@@ -2,7 +2,7 @@ import { connect } from 'react-redux';
 import Canvas from '../components/Canvas';
 import { receivedError } from '../../websocket/selectors';
 import { registerCanvasContext, updateCursorPosition, clearCursorPosition, setZoomFactor } from '../actions';
-import { getZoomFactor } from '../selectors';
+import { getZoomFactor, getCurrentPosition } from '../selectors';
 
 interface DispatchProps {
   registerContext: (context: CanvasRenderingContext2D) => void;
@@ -14,6 +14,7 @@ interface DispatchProps {
 interface StateProps {
   receivedError: boolean;
   zoomFactor: number;
+  position: {x: number, y: number} | undefined; 
 }
 
 const mapDispatchToProps: DispatchProps = {
@@ -26,6 +27,7 @@ const mapDispatchToProps: DispatchProps = {
 const mapStateToProps  = (state): StateProps => ({
   receivedError: receivedError(state),
   zoomFactor: getZoomFactor(state),
+  position: getCurrentPosition(state), 
 });
 
 export default connect(

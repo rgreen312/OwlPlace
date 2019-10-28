@@ -3,6 +3,7 @@
 import { Color } from './types';
 import * as ActionTypes from './actionTypes';
 import { getZoomFactor, getCanvasContext } from './selectors'; 
+import { isNumber } from 'util';
 
 const fetchImageDataStart = () => ({
   type: ActionTypes.FetchImageStart
@@ -39,6 +40,10 @@ export type UpdatePosition = ReturnType<typeof updatePosition>;
 export const updateCursorPosition = (x: number, y: number) => (dispatch, getState) => {
   const state = getState();
   const zoom = getZoomFactor(state);
+  const testing = Math.ceil(x / zoom); 
+  console.log("Here's x: " + isNumber(x));
+  console.log("Here's zoom: " + zoom); 
+  console.log("Here's testing: " + testing); 
   dispatch(updatePosition(Math.ceil(x / zoom), Math.ceil(y / zoom)));
 }
 
@@ -60,6 +65,7 @@ const setZoom = (f: number) => ({
 export type SetZoom = ReturnType<typeof setZoom>;
 
 export const setZoomFactor = (newFactor: number) => (dispatch, getState) => {
+  
   if (newFactor < 0) {
     return;
   }

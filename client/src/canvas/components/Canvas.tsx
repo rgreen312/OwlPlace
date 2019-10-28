@@ -15,6 +15,7 @@ interface Props {
   receivedError: boolean;
   registerContext: (context: CanvasRenderingContext2D) => void;
   updatePosition: (Position) => void;
+  position: Position; 
   onMouseOut: () => void;
   zoomFactor: number;
   setZoomFactor: (newZoom: number) => void;
@@ -33,8 +34,6 @@ class Canvas extends Component<Props, State> {
     this.state = {showColorPicker: false}
     this.onCancel = this.onCancel.bind(this); 
     this.onComplete = this.onComplete.bind(this); 
-    // this.showColorPicker = this.showColorPicker.bind(this); 
-    // this.hideColorPicker = this.hideColorPicker.bind(this); 
   }
 
   componentDidMount() {
@@ -67,17 +66,14 @@ class Canvas extends Component<Props, State> {
 
     context!.scale(100, 100);
 
-    this.canvasRef.current!.addEventListener('mousemove', (ev) => {
-      const { x, y } = this.getMousePos(this.canvasRef.current, ev);
-      this.props.updatePosition({x, y});
-    }, false);
-
     this.canvasRef.current!.addEventListener('mouseout', () => {
-      this.props.onMouseOut();
+      // this.props.onMouseOut();
     })
 
     this.canvasRef.current!.addEventListener('click', (ev) => {
-      console.log("setting to true");
+      const { x, y } = this.getMousePos(this.canvasRef.current, ev);
+      console.log("here is x back here: " + x); 
+      this.props.updatePosition({x, y});
       this.showColorPicker(); 
     });
   }
@@ -95,7 +91,7 @@ class Canvas extends Component<Props, State> {
   }
 
   onComplete(c) {
-    console.log("complete"); 
+    console.log(this.props.position.x); 
     this.hideColorPicker(); 
   }
 
