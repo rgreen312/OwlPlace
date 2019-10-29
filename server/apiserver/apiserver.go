@@ -12,7 +12,7 @@ import (
 	"log"
 	"net/http"
 	"os"
-
+	"time"
 	"github.com/gorilla/websocket"
 
 	"github.com/rgreen312/owlplace/server/common"
@@ -125,7 +125,7 @@ func (api *ApiServer) UpdatePixel(w http.ResponseWriter, req *http.Request) {
  * This function takes in a user id and returns a string timestamp for the last time that user updated a pixel
  * If there is an error, this function will return an empty string.
  */
-func (api *ApiServer) GetLastUserModification(user_id string) string {
+func (api *ApiServer) GetLastUserModification(user_id string) (string, bool) {
 
 	// Encode the GetUserDataBackendMessage struct so we can send it in a BackendMessage
 	var encoded_msg bytes.Buffer
@@ -135,24 +135,26 @@ func (api *ApiServer) GetLastUserModification(user_id string) string {
 	})
 
 	if err != nil {
-		return ""
+		return "", true
 	}
 
 	// Testing with some dummy data
 	m := consensus.BackendMessage{Type: consensus.GET_LAST_USER_UPDATE, Data: encoded_msg}
 	api.sendc <- m
 	image_msg := <-api.recvc
-
-	dec := gob.NewDecoder(&image_msg.Data)
-	var timestamp string
-	dec.Decode(&timestamp)
-
-	return timestamp
+	if(image_msg.Type == consensus.FAILURE){
+		return "", true
+	} else {
+		dec := gob.NewDecoder(&image_msg.Data)
+		var timestamp string
+		dec.Decode(&timestamp)
+		return timestamp, false
+	}	
 }
 
 /*
  * This function takes in a user id and a string timestamp and replaces the user's current last update timestamp with the given timestamp
- * If there is an error, this function will return false. Otherwise the function will return true.
+ * If there is an error, this function will return true. Otherwise the function will return false.
  */
 func (api *ApiServer) SetLastUserModification(user_id string, last_modification string) bool {
 
@@ -165,15 +167,14 @@ func (api *ApiServer) SetLastUserModification(user_id string, last_modification 
 	})
 
 	if err != nil {
-		return false
+		return true
 	}
 	// Create the BackendMessage with the encoded data
 	m := consensus.BackendMessage{Type: consensus.SET_LAST_USER_UPDATE, Data: encoded_msg}
-
 	// Send BackendMessage
 	api.sendc <- m
 	image_msg := <-api.recvc
-	return image_msg.Type == consensus.SUCCESS
+	return image_msg.Type != consensus.SUCCESS
 }
 
 func (api *ApiServer) Headers(w http.ResponseWriter, req *http.Request) {
