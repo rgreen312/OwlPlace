@@ -13,6 +13,16 @@
     position: fixed;
     bottom: 70px;
     right: 10px;
+    background-color: white;
+    padding-left: 5px; 
+    padding-right: 5px;
+    border-radius: 10px;
+    font-size: 20px; 
+
+    .zoom-icon {
+      padding-left: 1px;
+      padding-right: 1px; 
+    }
   }
 
   .color-picker {

@@ -134,10 +134,12 @@ class Canvas extends Component<Props, State> {
           <Icon
             type='plus-circle'
             onClick={() => setZoomFactor(zoomFactor + ZOOM_CHANGE_FACTOR)}
+            className='zoom-icon'
           />
           <Icon
             type='minus-circle'
             onClick={() => setZoomFactor(zoomFactor - ZOOM_CHANGE_FACTOR)}
+            className='zoom-icon'
           />
         </div>
       </div>
