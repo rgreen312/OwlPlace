@@ -245,8 +245,10 @@ func MainConsensus(recvc chan BackendMessage, sendc chan ConsensusMessage, serve
 					_, err = nh.SyncPropose(ctx, cs, data)
 					if err != nil {
 						fmt.Fprintf(os.Stderr, "SyncPropose returned error %v\n", err)
+						sendc <- FailureMessage(MESSAGE_ERROR)
+					} else {
+						sendc <- SuccessMessage()
 					}
-					sendc <- SuccessMessage()
 				case SET_LAST_USER_UPDATE:
 					// Decode the message from the glob
 					dec := gob.NewDecoder(&backend_msg.Data)
@@ -270,8 +272,10 @@ func MainConsensus(recvc chan BackendMessage, sendc chan ConsensusMessage, serve
 					_, err = nh.SyncPropose(ctx, cs, data)
 					if err != nil {
 						fmt.Fprintf(os.Stderr, "SyncPropose returned error %v\n", err)
+						sendc <- FailureMessage(DRAGONBOAT_ERROR)
+					} else {
+						sendc <- SuccessMessage()
 					}
-					sendc <- SuccessMessage()
 
 				case GET_LAST_USER_UPDATE:
 					// Decode the message from the glob
@@ -279,15 +283,21 @@ func MainConsensus(recvc chan BackendMessage, sendc chan ConsensusMessage, serve
 					var umsg GetUserDataBackendMessage
 					err = dec.Decode(&umsg)
 					if err != nil {
+						fmt.Fprintf(os.Stdout, "Decoding Error \n")
 						sendc <- FailureMessage(MESSAGE_ERROR)
 					}
 
 					// Request a ready from dragonboat
 					result, err := nh.SyncRead(ctx, exampleClusterID, []byte(umsg.UserId))
 					if err != nil {
+						fmt.Fprintf(os.Stdout, "Failed to read\n", umsg.UserId)
 						sendc <- FailureMessage(DRAGONBOAT_ERROR)
 					} else {
-						sendc <- GetTimestampMessage(result.(string))
+						if(string(result.([]byte)) == ""){
+							sendc <- FailureMessage(DRAGONBOAT_ERROR)
+						} else {
+							sendc <- GetTimestampMessage(string(result.([]byte)))
+						}
 					}
 
 				}
