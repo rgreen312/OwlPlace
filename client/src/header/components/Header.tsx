@@ -1,6 +1,6 @@
-import React, { FC } from "react";
+import React, { FC, useState } from "react";
 import { PageHeader, Button, Menu, Dropdown, Icon, Tag } from "antd";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import './Header.scss';
 
 interface Props {
@@ -18,18 +18,24 @@ const Header: FC<Props> = ({ onLogin, isLoggedIn, name, onLogout }) => {
   };
 
   const loginButton = isLoggedIn ? (
-    <>Hi, {name}</>
+    <div className='name-label'>
+      Hi, {name}
+    </div>
   ) : (
     <Button className="login-button" onClick={onLogin}>
       Login
     </Button>
   );
 
+  let location = useLocation().pathname; 
+
   // TODO(ryan): add sign out functionality
   const menu = (
     <Menu>
       <Menu.Item>
-        <Link to="/about">About</Link>
+        { location.substring(location.length - 5, location.length) != "about" ? 
+        <Link to="/about">About</Link> : 
+        <Link to="/">Home</Link>}
       </Menu.Item>
       {isLoggedIn && <Menu.Item onClick={onLogout}>Sign Out</Menu.Item>}
     </Menu>
