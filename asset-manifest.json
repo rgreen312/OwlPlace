@@ -1,15 +1,15 @@
 {
   "files": {
     "main.css": "/OwlPlace/static/css/main.eef641d6.chunk.css",
-    "main.js": "/OwlPlace/static/js/main.955f5b38.chunk.js",
-    "main.js.map": "/OwlPlace/static/js/main.955f5b38.chunk.js.map",
+    "main.js": "/OwlPlace/static/js/main.0316aac6.chunk.js",
+    "main.js.map": "/OwlPlace/static/js/main.0316aac6.chunk.js.map",
     "runtime-main.js": "/OwlPlace/static/js/runtime-main.99db3b79.js",
     "runtime-main.js.map": "/OwlPlace/static/js/runtime-main.99db3b79.js.map",
     "static/css/2.ca0e2e9d.chunk.css": "/OwlPlace/static/css/2.ca0e2e9d.chunk.css",
     "static/js/2.9cea611c.chunk.js": "/OwlPlace/static/js/2.9cea611c.chunk.js",
     "static/js/2.9cea611c.chunk.js.map": "/OwlPlace/static/js/2.9cea611c.chunk.js.map",
     "index.html": "/OwlPlace/index.html",
-    "precache-manifest.432d910842f987fcb8c159609a370995.js": "/OwlPlace/precache-manifest.432d910842f987fcb8c159609a370995.js",
+    "precache-manifest.1bbb1ef340b84c334588edec99889cff.js": "/OwlPlace/precache-manifest.1bbb1ef340b84c334588edec99889cff.js",
     "service-worker.js": "/OwlPlace/service-worker.js",
     "static/css/2.ca0e2e9d.chunk.css.map": "/OwlPlace/static/css/2.ca0e2e9d.chunk.css.map",
     "static/css/main.eef641d6.chunk.css.map": "/OwlPlace/static/css/main.eef641d6.chunk.css.map"
