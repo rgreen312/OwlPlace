@@ -1,6 +1,6 @@
 self.__precacheManifest = (self.__precacheManifest || []).concat([
   {
-    "revision": "e6563e45298eb4c27ac2430edb05703f",
+    "revision": "b04ca9b0a4bc1d363655d0d43a97c26e",
     "url": "/OwlPlace/index.html"
   },
   {
@@ -8,7 +8,7 @@ self.__precacheManifest = (self.__precacheManifest || []).concat([
     "url": "/OwlPlace/static/css/2.ca0e2e9d.chunk.css"
   },
   {
-    "revision": "ec19d8b9c5b2332bfdc2",
+    "revision": "bbff9b4f537a9ade217d",
     "url": "/OwlPlace/static/css/main.eef641d6.chunk.css"
   },
   {
@@ -16,8 +16,8 @@ self.__precacheManifest = (self.__precacheManifest || []).concat([
     "url": "/OwlPlace/static/js/2.9cea611c.chunk.js"
   },
   {
-    "revision": "ec19d8b9c5b2332bfdc2",
-    "url": "/OwlPlace/static/js/main.0316aac6.chunk.js"
+    "revision": "bbff9b4f537a9ade217d",
+    "url": "/OwlPlace/static/js/main.955f5b38.chunk.js"
   },
   {
     "revision": "3ea7f19c38ed191bfe19",
