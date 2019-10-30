@@ -46,8 +46,8 @@ const (
 )
 
 const (
-	DRAGONBOAT_ERROR     int = 0
-	MESSAGE_ERROR        int = 1
+	DRAGONBOAT_ERROR int = 0
+	MESSAGE_ERROR    int = 1
 )
 
 type ConsensusMessage struct {
@@ -69,7 +69,12 @@ type SetUserDataBackendMessage struct {
 }
 
 type UpdatePixelBackendMessage struct {
-	X, Y, R, G, B, A string
+	X string
+	Y string
+	R string
+	G string
+	B string
+	A string
 }
 
 func NewImageMessage(img image.RGBA) ConsensusMessage {
@@ -215,6 +220,8 @@ func MainConsensus(recvc chan BackendMessage, sendc chan ConsensusMessage, serve
 					return
 				}
 
+				fmt.Println("REMOVE ME - in consensus.go. Received a new message!!!!!!")
+
 				// Start background context
 				ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 
@@ -293,7 +300,7 @@ func MainConsensus(recvc chan BackendMessage, sendc chan ConsensusMessage, serve
 						fmt.Fprintf(os.Stdout, "Failed to read\n", umsg.UserId)
 						sendc <- FailureMessage(DRAGONBOAT_ERROR)
 					} else {
-						if(string(result.([]byte)) == ""){
+						if string(result.([]byte)) == "" {
 							sendc <- FailureMessage(DRAGONBOAT_ERROR)
 						} else {
 							sendc <- GetTimestampMessage(string(result.([]byte)))

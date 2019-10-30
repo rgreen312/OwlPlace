@@ -12,7 +12,8 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"time"
+	"strconv"
+
 	"github.com/gorilla/websocket"
 
 	"github.com/rgreen312/owlplace/server/common"
@@ -118,7 +119,65 @@ func (api *ApiServer) UpdatePixel(w http.ResponseWriter, req *http.Request) {
 	if consensus_response.Type == consensus.SUCCESS {
 		fmt.Fprintf(os.Stdout, "Update Success")
 	}
+}
 
+// Call this when telling consensus to updatea pixel.
+func (api *ApiServer) CallUpdatePixel(x int, y int, r int, g int, b int, userID string) []byte {
+	fmt.Println("\nWithin CallUpdatePixel")
+	fmt.Println(x)
+	fmt.Println(y)
+	fmt.Println(r)
+
+	// TODO verify that the user is able to update a pizel with the User Data Team
+	userVerification := true
+	if !userVerification {
+		// User verification failed
+
+		log.Println(fmt.Sprintf("USER %s failed authentication", userID))
+		// TODO return the appropriate failure message
+		imageMsg := "FAILURE. TODO make this properly formatted"
+
+		// send message back to the client saying it's been updated or if it failed
+		byt := []byte(imageMsg)
+		return byt
+	}
+	// User has now been verified
+
+	var encoded_msg bytes.Buffer
+	enc := gob.NewEncoder(&encoded_msg)
+	msg := consensus.UpdatePixelBackendMessage{
+		X: strconv.Itoa(x),
+		Y: strconv.Itoa(y),
+		R: strconv.Itoa(r),
+		G: strconv.Itoa(g),
+		B: strconv.Itoa(b),
+		A: "255",
+	}
+	log.Printf("UpdatePixelBackendMessage: %+v\n", msg)
+	if err := enc.Encode(msg); err != nil {
+		log.Fatalf("Error encoding struct: %s", err)
+	}
+
+	fmt.Println("REMOVE ME About to send message to consensus")
+	// Send the encoded message to the backend
+	m := consensus.BackendMessage{Type: consensus.UPDATE_PIXEL, Data: encoded_msg}
+
+	// Send BackendMessage
+	api.sendc <- m
+	consensus_response := <-api.recvc
+
+	fmt.Println("REMOVE ME Received consensus response")
+
+	// format message back to the client saying it's been updated or if it failed.
+	if consensus_response.Type == consensus.SUCCESS {
+		fmt.Fprintf(os.Stdout, "Update Success")
+		byt := []byte("test success")
+		return byt
+	} else {
+		fmt.Fprintf(os.Stdout, "Update Failure")
+		byt := []byte("test failed")
+		return byt
+	}
 }
 
 /*
@@ -142,14 +201,14 @@ func (api *ApiServer) GetLastUserModification(user_id string) (string, bool) {
 	m := consensus.BackendMessage{Type: consensus.GET_LAST_USER_UPDATE, Data: encoded_msg}
 	api.sendc <- m
 	image_msg := <-api.recvc
-	if(image_msg.Type == consensus.FAILURE){
+	if image_msg.Type == consensus.FAILURE {
 		return "", true
 	} else {
 		dec := gob.NewDecoder(&image_msg.Data)
 		var timestamp string
 		dec.Decode(&timestamp)
 		return timestamp, false
-	}	
+	}
 }
 
 /*
@@ -211,7 +270,7 @@ func (api *ApiServer) reader(conn *websocket.Conn) {
 			log.Printf("client response: %q", p)
 			panic(err)
 		}
-		fmt.Println(dat)
+		// fmt.Println(dat)
 
 		byt := []byte("Default message")
 
@@ -242,55 +301,6 @@ func (api *ApiServer) reader(conn *websocket.Conn) {
 			log.Println(err)
 		}
 	}
-}
-
-// Call this when telling consensus to updatea pixel.
-func (api *ApiServer) CallUpdatePixel(x int, y int, r int, g int, b int, userID string) []byte {
-	fmt.Println("\nWithin CallUpdatePixel")
-
-	// TODO verify that the user is able to update a pizel with the User Data Team
-	userVerification := true
-	if !userVerification {
-		// User verification failed
-
-		log.Println(fmt.Sprintf("USER %s failed authentication", userID))
-		// TODO return the appropriate failure message
-		imageMsg := "FAILURE. TODO make this properly formatted"
-
-		// send message back to the client saying it's been updated or if it failed
-		byt := []byte(imageMsg)
-		return byt
-	}
-	// User has now been verified
-
-	var encoded_msg bytes.Buffer
-	enc := gob.NewEncoder(&encoded_msg)
-	msg := consensus.UpdatePixelBackendMessage{
-		X: string(x),
-		Y: string(y),
-		R: string(r),
-		G: string(g),
-		B: string(b),
-		A: "255",
-	}
-	log.Printf("UpdatePixelBackendMessage: %+v\n", msg)
-	if err := enc.Encode(msg); err != nil {
-		log.Fatalf("Error encoding struct: %s", err)
-	}
-
-	// Send the encoded message to the backend
-	m := consensus.BackendMessage{Type: consensus.UPDATE_PIXEL, Data: encoded_msg}
-
-	// Send BackendMessage
-	api.sendc <- m
-	consensus_response := <-api.recvc
-	if consensus_response.Type == consensus.SUCCESS {
-		fmt.Fprintf(os.Stdout, "Update Success")
-	}
-	// format message back to the client saying it's been updated or if it failed.
-	// byt := []byte(consensus_response.Data)
-	byt := []byte("test success")
-	return byt
 }
 
 func (api *ApiServer) wsEndpoint(w http.ResponseWriter, r *http.Request) {

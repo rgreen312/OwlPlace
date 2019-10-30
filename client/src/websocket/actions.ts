@@ -41,17 +41,7 @@ export const openWebSocket = () => dispatch => {
         })
       );
 
-      socket.send(
-        JSON.stringify({
-          type: 1,
-          userId: "AAAAAA",
-          x: 6,
-          y: 9,
-          r: 4,
-          g: 2,
-          b: 0
-        })
-      );
+      socket.send(makeUpdateMessage("AAAAAA", 6, 9, 4, 2, 0));
       
     dispatch(connectSuccess(socket));
   };
