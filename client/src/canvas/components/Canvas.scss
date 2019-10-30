@@ -1,9 +1,8 @@
 .canvas-container {
-
   .zoom-canvas {
     image-rendering: pixelated;
 
-  canvas {
+    canvas {
       z-index: -1;
     }
   }
@@ -12,5 +11,6 @@
     position: fixed;
     bottom: 70px;
     right: 10px;
+    z-index: 20;
   }
 }

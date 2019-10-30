@@ -42,6 +42,11 @@ class Canvas extends Component<Props> {
     this.heightView = this.heightViewOriginal;
     this.lastX = 0;
     this.lastY = 0;
+    this.handleMouseMove = this.handleMouseMove.bind(this);
+    this.handleMouseWheel = this.handleMouseWheel.bind(this);
+    this.handleDblClick = this.handleDblClick.bind(this);
+    this.handleMouseUp = this.handleMouseUp.bind(this);
+    this.handleMouseDown = this.handleMouseDown.bind(this);
   }
 
   componentDidMount() {
@@ -107,17 +112,6 @@ class Canvas extends Component<Props> {
     ctx.fillRect(0.1, 0.5, 0.1, 0.1);
     ctx.fillStyle = "red";
     ctx.fillRect(0.3, 0.2, 0.4, 0.2);
-    ctx.fillStyle = "green";
-    ctx.beginPath();
-    ctx.arc(
-      this.widthView / 2 + this.xleftView,
-      this.heightView / 2 + this.ytopView,
-      0.05,
-      0,
-      360,
-      false
-    );
-    ctx.fill();
   }
 
   handleDblClick(event) {
@@ -186,7 +180,6 @@ class Canvas extends Component<Props> {
     this.lastY = Y;
 
     const context = this.canvasRef.current!.getContext("2d");
-
     this.draw(context);
   }
 
