@@ -1,11 +1,9 @@
 .button-bar {
     width: 100%;
 
-    .okay-button {
-        width: 50%
-    }
-    
-    .cancel-button {
+    .okay-button, .cancel-button {
+        border: none;
+        border-radius: 0;
         width: 50%
     }
 }

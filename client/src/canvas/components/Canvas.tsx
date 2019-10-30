@@ -117,16 +117,18 @@ class Canvas extends Component<Props, State> {
   }
 
   render() {
-    const { receivedError, zoomFactor, setZoomFactor } = this.props;
+    const { receivedError, zoomFactor, setZoomFactor, position } = this.props;
     return (
       // receivedError ? <Redirect to='/error'/> :
       <div className='canvas-container'>
-        {this.state.showColorPicker && (<div className='color-picker'>
+        {this.state.showColorPicker && (
           <ColorPicker
             onCancel={this.onCancel}
             onComplete={(c) => this.onComplete(c)}
+            x={position.x + zoomFactor}
+            y={position.y + zoomFactor}
           />
-        </div>)}
+        )}
         <div className='zoom-canvas' style={{ transform: `scale(${zoomFactor}, ${zoomFactor})` }}>
           <canvas ref={this.canvasRef} />
         </div>

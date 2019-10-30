@@ -13,25 +13,27 @@ interface RGBColor {
 interface Props {
   onComplete: (color: RGBColor) => void;
   onCancel: () => void;
+  x?: number;
+  y?: number;
 }
 // http://casesandberg.github.io/react-color/
 
-const ColorPicker: FC<Props> = ({ onComplete, onCancel }) => {
+const ColorPicker: FC<Props> = ({ onComplete, onCancel, x, y }) => {
   const [color, setColor] = useState({ r: 0, g: 0, b: 0 })
   const complete = () => onComplete(color);
 
   return ( 
-    <div>
+    <div className='color-picker' style={{ top: x, left: y }}>
       <SketchPicker 
         color={color}
         onChange={(c) => setColor({ r: c.rgb.r, b: c.rgb.b, g: c.rgb.g })}
       />
       <div className='button-bar'>
-        <Button onClick={complete} className='okay-button'>
-          Okay
-        </Button>
         <Button onClick={onCancel} className='cancel-button'>
           Cancel
+        </Button>
+        <Button onClick={complete} className='okay-button' type='primary'>
+          Okay
         </Button>
       </div>
     </div>

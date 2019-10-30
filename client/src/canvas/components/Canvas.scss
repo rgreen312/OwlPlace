@@ -26,9 +26,7 @@
   }
 
   .color-picker {
-    position: fixed; 
+    position: absolute; 
     z-index: 10; 
-    bottom: 100px;
-    right: 100px; 
   }
 }
