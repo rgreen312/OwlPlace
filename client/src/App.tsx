@@ -44,6 +44,7 @@ interface Props {
 }
 
 class App extends React.Component<Props> {
+
   componentDidMount() {
     this.props.checkLogin();
     this.props.openConnection();
@@ -74,7 +75,6 @@ class App extends React.Component<Props> {
 const mapDispatchToProps: Props = {
   checkLogin: checkLogin,
   openConnection: openWebSocket
-
 }
 
 export default connect(

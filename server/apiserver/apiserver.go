@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"os"
 	"time"
+	"strconv"
 	"github.com/gorilla/websocket"
 
 	"github.com/rgreen312/owlplace/server/common"
@@ -48,6 +49,7 @@ func (api *ApiServer) ListenAndServe() {
 	http.HandleFunc("/get_image", api.GetImage)
 	http.HandleFunc("/update_pixel", api.UpdatePixel)
 	http.HandleFunc("/ws", api.wsEndpoint)
+	http.HandleFunc("/update_user", api.UpdateUserList)
 
 	// Although there is nothing wrong with this line, it prevents us from running multiple nodes on a single machine.
 	// Therefore, I am making failure non-fatal until we have some way of running locally from the same port (i.e. docker)
@@ -91,6 +93,87 @@ func (api *ApiServer) GetImage(w http.ResponseWriter, req *http.Request) {
 		if err = tmpl.Execute(w, data); err != nil {
 			fmt.Fprintf(os.Stdout, "Unable to execute template.\n")
 		}
+	}
+}
+
+
+/*
+ * Insert the new user id to the userlist (MIGHT DELETE LATER)
+ */
+func (api *ApiServer) UpdateUserList(w http.ResponseWriter, req *http.Request) {
+	// byt := []byte("")
+	user_id := req.URL.Query().Get("user_id")
+	lastMove, ifErr := api.GetLastUserModification(user_id)
+	if (ifErr) {
+		err := api.SetLastUserModification(user_id, "0")
+		if (err) {
+			fmt.Println("Cannot update user list")
+			// byt := []byte("Test failure")
+		} else {
+			fmt.Println("Successfully created user")
+			// byt := []byte("Successfully created user")
+
+		}
+		
+	} else {
+		fmt.Println("User already exists")
+		// byt := []byte("User already exists")
+	}
+	// return byt
+	
+
+}
+
+/*
+ * Insert the new user id to the userlist
+ */
+func (api *ApiServer) CallUpdateUserList(user_id string) byte[] {
+	byt := []byte("")
+	user_id := req.URL.Query().Get("user_id")
+	lastMove, ifErr := api.GetLastUserModification(user_id)
+	if (ifErr) {
+		err := api.SetLastUserModification(user_id, "0")
+		if (err) {
+			fmt.Println("Cannot update user list")
+			byt := []byte("Test failure")
+		} else {
+			fmt.Println("Successfully created user")
+			byt := []byte("Successfully created user")
+
+		}
+		
+	} else {
+		fmt.Println("User already exists")
+		byt := []byte("User already exists")
+	}
+	return byt
+}
+
+
+
+// func makeMove(user_id string, x string, y string, color string) {
+//  // lastMove = consensus.Get([]byte())
+
+//  key := "M" + strconv.Atoi(rand.Int())
+//  consensus.Put([]byte(key), []byte(user_id + " " + x + " " + y + " " + color))
+// }
+
+func (api *ApiServer) validateUser(user_id string) bool {
+	now := time.Now().Unix()
+	lastMove, ifErr := api.GetLastUserModification(user_id)
+	if (ifErr) {
+		return false
+	}
+	lastMoveInt, err := strconv.Atoi(lastMove)
+	if err != nil {
+		fmt.Println("SOME ERROR")
+	}
+	if (int(now) - lastMoveInt > 300) {
+		api.SetLastUserModification(user_id, strconv.Itoa(int(now)))
+		return true
+		//image team update pixel		
+	} else {
+		return false
 	}
 }
 
@@ -214,7 +297,6 @@ func (api *ApiServer) reader(conn *websocket.Conn) {
 		fmt.Println(dat)
 
 		byt := []byte("Default message")
-
 		switch dat.Type {
 		case DrawPixel:
 			fmt.Println("DrawPixel message received.")
@@ -231,6 +313,8 @@ func (api *ApiServer) reader(conn *websocket.Conn) {
 			var cu_msg CreateUserMsg
 			if err := json.Unmarshal(p, &cu_msg); err == nil {
 				fmt.Printf("%+v", cu_msg)
+				//CHECK NEXT TIME
+				byt = api.UpdateUserList(cu_msg.UserID)
 			} else {
 				fmt.Println("JSON decoding error.")
 			}
@@ -247,9 +331,9 @@ func (api *ApiServer) reader(conn *websocket.Conn) {
 // Call this when telling consensus to updatea pixel.
 func (api *ApiServer) CallUpdatePixel(x int, y int, r int, g int, b int, userID string) []byte {
 	fmt.Println("\nWithin CallUpdatePixel")
-
+	isValidated := api.validateUser(userID);
 	// TODO verify that the user is able to update a pizel with the User Data Team
-	userVerification := true
+	userVerification := isValidated
 	if !userVerification {
 		// User verification failed
 
