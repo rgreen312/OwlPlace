@@ -1,4 +1,4 @@
-import React, { FC, useState } from "react";
+import React, { FC } from "react";
 import { PageHeader, Button, Menu, Dropdown, Icon, Tag } from "antd";
 import { Link, useLocation } from "react-router-dom";
 import './Header.scss';
