@@ -10,7 +10,6 @@ interface Props {
   onLogout: () => void;
 }
 
-// TODO(Ryan): Should add a isLoggedIn prop, if they are then display user's name
 const Header: FC<Props> = ({ onLogin, isLoggedIn, name, onLogout }) => {
   //@ts-ignore
   window.onGoogleScriptLoad = () => {
@@ -29,7 +28,6 @@ const Header: FC<Props> = ({ onLogin, isLoggedIn, name, onLogout }) => {
 
   let location = useLocation().pathname; 
 
-  // TODO(ryan): add sign out functionality
   const menu = (
     <Menu>
       <Menu.Item>
