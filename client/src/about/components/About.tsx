@@ -7,7 +7,7 @@ interface Props {
 }
 
 const About: FC<Props> = ({ sendUpdateMessage }) => (
-  <div className="about-page">
+  <div className='about-page'>
     <h1>OwlPlace</h1>
     <p>
       OwlPlace is a collaborative canvas editing application that allows users
@@ -41,7 +41,7 @@ const About: FC<Props> = ({ sendUpdateMessage }) => (
     </p>
     <p>
       For more information, visit the{" "}
-      <a href="https://docs.google.com/document/d/13_bi5Vf5WNiZuDCWOdyBopANCUBl-Cyt7jK-sCeUW2s/edit?usp=sharing">
+      <a href='https://docs.google.com/document/d/13_bi5Vf5WNiZuDCWOdyBopANCUBl-Cyt7jK-sCeUW2s/edit?usp=sharing'>
         functional specification
       </a>
       .

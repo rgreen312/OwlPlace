@@ -17,9 +17,9 @@ const Header: FC<Props> = ({ onLogin, isLoggedIn, name, onLogout }) => {
   };
 
   const loginButton = isLoggedIn ? (
-    <div className="name-label">Hi, {name}</div>
+    <div className='name-label'>Hi, {name}</div>
   ) : (
-    <Button className="login-button" onClick={onLogin}>
+    <Button className='login-button' onClick={onLogin}>
       Login
     </Button>
   );
@@ -31,9 +31,9 @@ const Header: FC<Props> = ({ onLogin, isLoggedIn, name, onLogout }) => {
       <Menu.Item>
         // Check the last 5 characters in a string.
         {location.substring(location.length - 5, location.length) != "about" ? (
-          <Link to="/about">About</Link>
+          <Link to='/about'>About</Link>
         ) : (
-          <Link to="/">Home</Link>
+          <Link to='/'>Home</Link>
         )}
       </Menu.Item>
       {isLoggedIn && <Menu.Item onClick={onLogout}>Sign Out</Menu.Item>}
@@ -41,7 +41,7 @@ const Header: FC<Props> = ({ onLogin, isLoggedIn, name, onLogout }) => {
   );
 
   const dropdownMenu = (
-    <Dropdown key="more" overlay={menu}>
+    <Dropdown key='more' overlay={menu}>
       <Button
         style={{
           border: "none",
@@ -49,7 +49,7 @@ const Header: FC<Props> = ({ onLogin, isLoggedIn, name, onLogout }) => {
         }}
       >
         <Icon
-          type="ellipsis"
+          type='ellipsis'
           style={{
             fontSize: 20,
             verticalAlign: "top"
@@ -61,8 +61,8 @@ const Header: FC<Props> = ({ onLogin, isLoggedIn, name, onLogout }) => {
 
   return (
     <PageHeader
-      title="OwlPlace"
-      subTitle="change the canvas one pixel at a time"
+      title='OwlPlace'
+      subTitle='change the canvas one pixel at a time'
       extra={[loginButton, dropdownMenu]}
     />
   );
