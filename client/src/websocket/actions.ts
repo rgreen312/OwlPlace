@@ -2,6 +2,8 @@ import { HOSTNAME } from '../constants';
 import * as ActionTypes from './actionTypes';
 import { getWebSocket } from './selectors';
 
+const image = 4;
+
 const startConnect = () => ({
   type: ActionTypes.StartConnect
 });
@@ -81,10 +83,27 @@ const makeUpdateMessage = (
   });
 };
 
+const makeLoginMessage = (
+  email: string
+) => {
+  return JSON.stringify({
+    type: 2, 
+    email: email
+  })
+}
+
 export const sendUpdateMessage = (id, x, y, r, g, b) => (dispatch, getState) => {
   const socket = getWebSocket(getState());
   if (socket) {
     socket.send(makeUpdateMessage(id, x, y, r, g, b));
+  }
+}
+
+export const sendLoginMessage = (email) => (dispatch, getState) => {
+  console.log("sending login message for email: " + email)
+  const socket = getWebSocket(getState());
+  if (socket) {
+    socket.send(makeLoginMessage(email));
   }
 }
 
