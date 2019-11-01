@@ -5,6 +5,7 @@ import './Canvas.scss';
 import { Icon } from 'antd';
 import { ZOOM_CHANGE_FACTOR } from '../constants';
 import { Color, RGBColor } from 'react-color';
+import classNames from 'classnames';
 
 interface Props {
   receivedError: boolean;
@@ -89,7 +90,6 @@ class Canvas extends Component<Props, State> {
       const startPositionY = e.clientY - translateY;
 
       this.setState({
-        isDrag: false,
         dragStartX: startPositionX,
         dragStartY: startPositionY
       });
@@ -105,11 +105,16 @@ class Canvas extends Component<Props, State> {
         'mousemove',
         this.updateTranslate
       );
+
       if (!this.state.isDrag) {
         const { x, y } = this.getMousePos(this.canvasRef.current, ev);
         this.props.updatePosition(x, y);
         this.showColorPicker();
       }
+
+      this.setState({
+        isDrag: false
+      })
     });
   }
 
@@ -164,7 +169,7 @@ class Canvas extends Component<Props, State> {
 
   render() {
     const { receivedError, zoomFactor, setZoomFactor } = this.props;
-    const { translateX, translateY } = this.state;
+    const { translateX, translateY, isDrag } = this.state;
     return (
       // receivedError ? <Redirect to='/error'/> :
       <div className='canvas-container'>
@@ -177,7 +182,7 @@ class Canvas extends Component<Props, State> {
           </div>
         )}
         <div
-          className='pan-canvas'
+          className={classNames({ 'pan-canvas': true, 'drag-canvas': isDrag })}
           style={{ transform: `translate(${translateX}px, ${translateY}px)` }}
         >
           <div

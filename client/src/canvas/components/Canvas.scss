@@ -1,12 +1,16 @@
 .canvas-container {
 
+  .drag-canvas {
+    cursor: grabbing;
+  }
+
   .zoom-canvas {
     image-rendering: pixelated;
+    
 
-  canvas {
+    canvas {
       z-index: -1;
     }
-
   }
 
   .zoom-controls {
