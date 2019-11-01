@@ -44,6 +44,7 @@ class Canvas extends Component<Props, State> {
     this.onCancel = this.onCancel.bind(this);
     this.onComplete = this.onComplete.bind(this);
     this.updateTranslate = this.updateTranslate.bind(this);
+    this.onColorChange = this.onColorChange.bind(this); 
   }
 
   componentDidMount() {
@@ -150,9 +151,11 @@ class Canvas extends Component<Props, State> {
     this.hideColorPicker();
   }
 
-  onComplete(c: RGBColor) {
-    this.hideColorPicker();
+  onComplete() {
+    this.hideColorPicker(); 
+  }
 
+  onColorChange(c: RGBColor) {
     const context = this.canvasRef.current!.getContext('2d');
 
     const x = this.props.position.x - 1;
@@ -182,11 +185,12 @@ class Canvas extends Component<Props, State> {
     return (
       // receivedError ? <Redirect to='/error'/> :
       <div className='canvas-container'>
+<<<<<<< HEAD
         {this.state.showColorPicker && (
           <div className='color-picker'>
             <ColorPicker
               onCancel={this.onCancel}
-              onComplete={c => this.onComplete(c)}
+              onComplete={this.onComplete}
             />
           </div>
         )}
@@ -200,6 +204,17 @@ class Canvas extends Component<Props, State> {
           >
             <canvas ref={this.canvasRef} />
           </div>
+=======
+        {this.state.showColorPicker && (<div className='color-picker'>
+          <ColorPicker
+            onColorChange={(c) => this.onColorChange(c)}
+            onCancel={this.onCancel}
+            onComplete={this.onComplete}
+          />
+        </div>)}
+        <div className='zoom-canvas' style={{ transform: `scale(${zoomFactor}, ${zoomFactor})` }}>
+          <canvas ref={this.canvasRef} />
+>>>>>>> working
         </div>
         <div className='zoom-controls'>
           <Icon
