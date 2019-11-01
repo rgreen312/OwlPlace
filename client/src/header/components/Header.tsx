@@ -31,6 +31,7 @@ const Header: FC<Props> = ({ onLogin, isLoggedIn, name, onLogout }) => {
   const menu = (
     <Menu>
       <Menu.Item>
+        // Check the last 5 characters in a string.
         { location.substring(location.length - 5, location.length) != "about" ? 
         <Link to="/about">About</Link> : 
         <Link to="/">Home</Link>}
