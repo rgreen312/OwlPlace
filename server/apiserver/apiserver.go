@@ -103,7 +103,7 @@ func (api *ApiServer) GetImage(w http.ResponseWriter, req *http.Request) {
 func (api *ApiServer) UpdateUserList(w http.ResponseWriter, req *http.Request) {
 	// byt := []byte("")
 	user_id := req.URL.Query().Get("user_id")
-	lastMove, ifErr := api.GetLastUserModification(user_id)
+	_, ifErr := api.GetLastUserModification(user_id)
 	if (ifErr) {
 		err := api.SetLastUserModification(user_id, "0")
 		if (err) {
@@ -127,24 +127,24 @@ func (api *ApiServer) UpdateUserList(w http.ResponseWriter, req *http.Request) {
 /*
  * Insert the new user id to the userlist
  */
-func (api *ApiServer) CallUpdateUserList(user_id string) byte[] {
+func (api *ApiServer) CallUpdateUserList(user_id string) []byte {
 	byt := []byte("")
-	user_id := req.URL.Query().Get("user_id")
-	lastMove, ifErr := api.GetLastUserModification(user_id)
+	//user_id := req.URL.Query().Get("user_id")
+	_, ifErr := api.GetLastUserModification(user_id)
 	if (ifErr) {
 		err := api.SetLastUserModification(user_id, "0")
 		if (err) {
 			fmt.Println("Cannot update user list")
-			byt := []byte("Test failure")
+			byt = []byte("Test failure")
 		} else {
 			fmt.Println("Successfully created user")
-			byt := []byte("Successfully created user")
+			byt = []byte("Successfully created user")
 
 		}
 		
 	} else {
 		fmt.Println("User already exists")
-		byt := []byte("User already exists")
+		byt = []byte("User already exists")
 	}
 	return byt
 }
@@ -314,7 +314,7 @@ func (api *ApiServer) reader(conn *websocket.Conn) {
 			if err := json.Unmarshal(p, &cu_msg); err == nil {
 				fmt.Printf("%+v", cu_msg)
 				//CHECK NEXT TIME
-				byt = api.UpdateUserList(cu_msg.UserID)
+				byt = api.CallUpdateUserList(cu_msg.Id)
 			} else {
 				fmt.Println("JSON decoding error.")
 			}
