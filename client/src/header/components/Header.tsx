@@ -1,6 +1,6 @@
 import React, { FC } from "react";
 import { PageHeader, Button, Menu, Dropdown, Icon, Tag } from "antd";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import './Header.scss';
 
 interface Props {
@@ -10,7 +10,6 @@ interface Props {
   onLogout: () => void;
 }
 
-// TODO(Ryan): Should add a isLoggedIn prop, if they are then display user's name
 const Header: FC<Props> = ({ onLogin, isLoggedIn, name, onLogout }) => {
   //@ts-ignore
   window.onGoogleScriptLoad = () => {
@@ -18,18 +17,24 @@ const Header: FC<Props> = ({ onLogin, isLoggedIn, name, onLogout }) => {
   };
 
   const loginButton = isLoggedIn ? (
-    <>Hi, {name}</>
+    <div className='name-label'>
+      Hi, {name}
+    </div>
   ) : (
     <Button className="login-button" onClick={onLogin}>
       Login
     </Button>
   );
 
-  // TODO(ryan): add sign out functionality
+  let location = useLocation().pathname; 
+
   const menu = (
     <Menu>
       <Menu.Item>
-        <Link to="/about">About</Link>
+        // Check the last 5 characters in a string.
+        { location.substring(location.length - 5, location.length) != "about" ? 
+        <Link to="/about">About</Link> : 
+        <Link to="/">Home</Link>}
       </Menu.Item>
       {isLoggedIn && <Menu.Item onClick={onLogout}>Sign Out</Menu.Item>}
     </Menu>
