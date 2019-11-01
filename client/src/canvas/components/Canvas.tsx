@@ -30,6 +30,7 @@ class Canvas extends Component<Props, State> {
     this.state = {showColorPicker: false}
     this.onCancel = this.onCancel.bind(this); 
     this.onComplete = this.onComplete.bind(this); 
+    this.onColorChange = this.onColorChange.bind(this); 
   }
 
   componentDidMount() {
@@ -90,9 +91,11 @@ class Canvas extends Component<Props, State> {
     this.hideColorPicker(); 
   }
 
-  onComplete(c: RGBColor) {
+  onComplete() {
     this.hideColorPicker(); 
+  }
 
+  onColorChange(c: RGBColor) {
     const context = this.canvasRef.current!.getContext('2d');
 
     const x = this.props.position.x; 
@@ -123,8 +126,9 @@ class Canvas extends Component<Props, State> {
       <div className='canvas-container'>
         {this.state.showColorPicker && (<div className='color-picker'>
           <ColorPicker
+            onColorChange={(c) => this.onColorChange(c)}
             onCancel={this.onCancel}
-            onComplete={(c) => this.onComplete(c)}
+            onComplete={this.onComplete}
           />
         </div>)}
         <div className='zoom-canvas' style={{ transform: `scale(${zoomFactor}, ${zoomFactor})` }}>
