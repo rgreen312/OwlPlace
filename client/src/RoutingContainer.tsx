@@ -1,5 +1,5 @@
 import React, { FC } from 'react';
-import { BrowserRouter as Router, Route } from 'react-router-dom';
+import { HashRouter as Router, Route } from 'react-router-dom';
 import ScrollToTop from './components/ScrollToTop';
 import CanvasPageContainer from './canvas/containers/CanvasPageContainer';
 import AboutPage from './about/containers/AboutContainer';
@@ -8,7 +8,7 @@ import Footer from './footer/components/Footer';
 import ErrorPage from './error/components/Error';
 
 const RoutingContainer: FC = () => (
-  <Router>
+  <Router basename='/OwlPlace'>
     <ScrollToTop>
       <Header />
       <Route exact path='/' component={CanvasPageContainer} />
