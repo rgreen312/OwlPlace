@@ -121,3 +121,4 @@ public
 
 # DynamoDB Local files
 .dynamodb/
+.idea/
