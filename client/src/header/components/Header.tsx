@@ -1,7 +1,7 @@
 import React, { FC } from "react";
 import { PageHeader, Button, Menu, Dropdown, Icon, Tag } from "antd";
 import { Link, useLocation } from "react-router-dom";
-import './Header.scss';
+import "./Header.scss";
 
 interface Props {
   isLoggedIn: boolean;
@@ -17,24 +17,24 @@ const Header: FC<Props> = ({ onLogin, isLoggedIn, name, onLogout }) => {
   };
 
   const loginButton = isLoggedIn ? (
-    <div className='name-label'>
-      Hi, {name}
-    </div>
+    <div className="name-label">Hi, {name}</div>
   ) : (
     <Button className="login-button" onClick={onLogin}>
       Login
     </Button>
   );
 
-  let location = useLocation().pathname; 
+  let location = useLocation().pathname;
 
   const menu = (
     <Menu>
       <Menu.Item>
         // Check the last 5 characters in a string.
-        { location.substring(location.length - 5, location.length) != "about" ? 
-        <Link to="/about">About</Link> : 
-        <Link to="/">Home</Link>}
+        {location.substring(location.length - 5, location.length) != "about" ? (
+          <Link to="/about">About</Link>
+        ) : (
+          <Link to="/">Home</Link>
+        )}
       </Menu.Item>
       {isLoggedIn && <Menu.Item onClick={onLogout}>Sign Out</Menu.Item>}
     </Menu>
@@ -63,7 +63,6 @@ const Header: FC<Props> = ({ onLogin, isLoggedIn, name, onLogout }) => {
     <PageHeader
       title="OwlPlace"
       subTitle="change the canvas one pixel at a time"
-      tags={<Tag color="green">COMP 413</Tag>}
       extra={[loginButton, dropdownMenu]}
     />
   );
