@@ -84,6 +84,7 @@ class Canvas extends Component<Props, State> {
       this.props.onMouseOut();
     });
 
+    // On mousedown, get the current location to be used for dragging
     this.canvasRef.current!.addEventListener('mousedown', e => {
       const { translateX, translateY } = this.state;
       const startPositionX = e.clientX - translateX;
@@ -94,12 +95,20 @@ class Canvas extends Component<Props, State> {
         dragStartY: startPositionY
       });
 
+      // If the user moves after clicking, then they are dragging so we add listener
       this.canvasRef.current!.addEventListener(
         'mousemove',
         this.updateTranslate
       );
     });
 
+    /**
+     * On mouse up, we check if the user was dragging. If they were, we set isDrag to false and
+     * remove the event listener for dragging.
+     * 
+     * If they were not dragging, then we display the color picker so we can update the color of
+     * the pixel.
+     */
     this.canvasRef.current!.addEventListener('mouseup', ev => {
       this.canvasRef.current!.removeEventListener(
         'mousemove',
