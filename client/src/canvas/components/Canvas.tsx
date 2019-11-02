@@ -25,6 +25,8 @@ interface State {
   translateY: number;
   dragStartX: number;
   dragStartY: number;
+  colorPickerX: number;
+  colorPickerY: number;
 }
 
 class Canvas extends Component<Props, State> {
@@ -39,7 +41,9 @@ class Canvas extends Component<Props, State> {
       translateX: 0,
       translateY: 0,
       dragStartX: 0,
-      dragStartY: 0
+      dragStartY: 0,
+      colorPickerX: 0,
+      colorPickerY: 0,
     };
     this.onCancel = this.onCancel.bind(this);
     this.onComplete = this.onComplete.bind(this);
@@ -86,13 +90,25 @@ class Canvas extends Component<Props, State> {
 
     // On mousedown, get the current location to be used for dragging
     this.canvasRef.current!.addEventListener('mousedown', e => {
+      const { zoomFactor } = this.props;
       const { translateX, translateY } = this.state;
       const startPositionX = e.clientX - translateX;
       const startPositionY = e.clientY - translateY;
 
+      let pickerX = e.clientX + zoomFactor;
+      let pickerY = e.clientY;
+      if (pickerX + 220 > window.innerWidth) {
+        pickerX -= 220;
+      }
+      if (pickerY + 337 > window.innerHeight - 70) {
+        pickerY -= 337;
+      }
+
       this.setState({
         dragStartX: startPositionX,
-        dragStartY: startPositionY
+        dragStartY: startPositionY,
+        colorPickerX: pickerX,
+        colorPickerY: pickerY
       });
 
       // If the user moves after clicking, then they are dragging so we add listener
@@ -134,7 +150,8 @@ class Canvas extends Component<Props, State> {
     this.setState({
       isDrag: true,
       translateX: x,
-      translateY: y
+      translateY: y,
+      showColorPicker: false,
     });
   }
 
@@ -178,17 +195,17 @@ class Canvas extends Component<Props, State> {
 
   render() {
     const { receivedError, zoomFactor, setZoomFactor } = this.props;
-    const { translateX, translateY, isDrag } = this.state;
+    const { translateX, translateY, isDrag, colorPickerX, colorPickerY } = this.state;
     return (
       // receivedError ? <Redirect to='/error'/> :
       <div className='canvas-container'>
         {this.state.showColorPicker && (
-          <div className='color-picker'>
             <ColorPicker
               onCancel={this.onCancel}
               onComplete={c => this.onComplete(c)}
+              className='color-picker' 
+              style={{ top: `${colorPickerY}px`, left: `${colorPickerX}px`}}
             />
-          </div>
         )}
         <div
           className={classNames({ 'pan-canvas': true, 'drag-canvas': isDrag })}
