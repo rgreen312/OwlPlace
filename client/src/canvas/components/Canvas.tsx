@@ -97,6 +97,8 @@ class Canvas extends Component<Props, State> {
 
       let pickerX = e.clientX + zoomFactor;
       let pickerY = e.clientY;
+
+      // The color picker is 220 x 337 pixels 
       if (pickerX + 220 > window.innerWidth) {
         pickerX -= 220;
       }
