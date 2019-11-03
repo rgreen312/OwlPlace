@@ -19,17 +19,12 @@ interface Props {
 }
 
 interface State {
-<<<<<<< HEAD
   showColorPicker: boolean;
   isDrag: boolean;
   translateX: number;
   translateY: number;
   dragStartX: number;
   dragStartY: number;
-=======
-  showColorPicker: boolean; 
-  previousColor: RGBColor | undefined; 
->>>>>>> cancelling is acting weird
 }
 
 class Canvas extends Component<Props, State> {
@@ -38,7 +33,6 @@ class Canvas extends Component<Props, State> {
   constructor(props) {
     super(props);
     this.canvasRef = createRef();
-<<<<<<< HEAD
     this.state = {
       showColorPicker: false,
       isDrag: false,
@@ -50,15 +44,6 @@ class Canvas extends Component<Props, State> {
     this.onCancel = this.onCancel.bind(this);
     this.onComplete = this.onComplete.bind(this);
     this.updateTranslate = this.updateTranslate.bind(this);
-=======
-    this.state = {showColorPicker: false, previousColor: undefined}
-    this.onCancel = this.onCancel.bind(this); 
-<<<<<<< HEAD
-    this.onComplete = this.onComplete.bind(this);
->>>>>>> cancelling is acting weird
-=======
-    this.onComplete = this.onComplete.bind(this); 
->>>>>>> e541bdd9983a79eb7db199abdc80a06d537a6075
     this.onColorChange = this.onColorChange.bind(this); 
   }
 
@@ -100,7 +85,6 @@ class Canvas extends Component<Props, State> {
       this.props.onMouseOut();
     });
 
-<<<<<<< HEAD
     // On mousedown, get the current location to be used for dragging
     this.canvasRef.current!.addEventListener('mousedown', e => {
       const { translateX, translateY } = this.state;
@@ -153,17 +137,6 @@ class Canvas extends Component<Props, State> {
       translateX: x,
       translateY: y
     });
-=======
-    this.canvasRef.current!.addEventListener('click', (ev) => {
-      const { x, y } = this.getMousePos(this.canvasRef.current, ev);
-      this.props.updatePosition(x, y);
-      const imageData = this.canvasRef.current!.getContext('2d')!.getImageData(x, y, 1, 1)
-      this.setState({
-        previousColor: {r: imageData.data[1], g: imageData.data[2], b: imageData.data[3]} 
-      });
-      this.showColorPicker(); 
-    }, false);
->>>>>>> cancelling is acting weird
   }
 
   getMousePos(canvas, evt) {
@@ -175,19 +148,11 @@ class Canvas extends Component<Props, State> {
   }
 
   onCancel() {
-<<<<<<< HEAD
     this.hideColorPicker();
-=======
-    this.hideColorPicker(true); 
->>>>>>> cancelling is acting weird
   }
 
   onComplete() {
-<<<<<<< HEAD
-    this.hideColorPicker(false); 
-=======
     this.hideColorPicker(); 
->>>>>>> e541bdd9983a79eb7db199abdc80a06d537a6075
   }
 
   onColorChange(c: RGBColor) {
@@ -208,47 +173,22 @@ class Canvas extends Component<Props, State> {
     });
   }
 
-  hideColorPicker(didCancel: boolean) {
+  hideColorPicker() {
     this.setState({
       showColorPicker: false
-<<<<<<< HEAD
     });
   }
 
   render() {
     const { receivedError, zoomFactor, setZoomFactor } = this.props;
     const { translateX, translateY, isDrag } = this.state;
-=======
-    })
-    // We should change the color back if the cancel button was pressed.
-    if (didCancel) {
-      const context = this.canvasRef.current!.getContext('2d');
-
-      const x = this.props.position.x; 
-      const y = this.props.position.y;
-      const c = this.state.previousColor!; 
-
-      context!.fillStyle = 'rgb(' + c.r + ',' + c.g + ',' + c.b + ')'
-      context!.fillRect(x, y, 1, 1);
-
-      this.props.onUpdatePixel({ r: c.r, g: c.g, b: c.b}, x, y);
-    }
-  }
-
-  updatePixelWithColor(x, y, color) {
-
-  }
-
-  render() {
-    const { receivedError, zoomFactor, setZoomFactor, position } = this.props;
->>>>>>> cancelling is acting weird
     return (
       // receivedError ? <Redirect to='/error'/> :
       <div className='canvas-container'>
-<<<<<<< HEAD
         {this.state.showColorPicker && (
           <div className='color-picker'>
             <ColorPicker
+              onColorChange={(c) => this.onColorChange(c)}
               onCancel={this.onCancel}
               onComplete={this.onComplete}
             />
@@ -264,17 +204,6 @@ class Canvas extends Component<Props, State> {
           >
             <canvas ref={this.canvasRef} />
           </div>
-=======
-        {this.state.showColorPicker && (<div className='color-picker'>
-          <ColorPicker
-            onColorChange={(c) => this.onColorChange(c)}
-            onCancel={this.onCancel}
-            onComplete={this.onComplete}
-          />
-        </div>)}
-        <div className='zoom-canvas' style={{ transform: `scale(${zoomFactor}, ${zoomFactor})` }}>
-          <canvas ref={this.canvasRef} />
->>>>>>> working
         </div>
         <div className='zoom-controls'>
           <Icon
