@@ -20,6 +20,7 @@ interface Props {
 
 interface State {
   showColorPicker: boolean;
+  previousColor: RGBColor | null; 
   isDrag: boolean;
   translateX: number;
   translateY: number;
@@ -37,6 +38,7 @@ class Canvas extends Component<Props, State> {
     this.canvasRef = createRef();
     this.state = {
       showColorPicker: false,
+      previousColor: null, 
       isDrag: false,
       translateX: 0,
       translateY: 0,
@@ -47,6 +49,7 @@ class Canvas extends Component<Props, State> {
     };
     this.onCancel = this.onCancel.bind(this);
     this.onComplete = this.onComplete.bind(this);
+    this.onColorChange = this.onColorChange.bind(this); 
     this.updateTranslate = this.updateTranslate.bind(this);
   }
 
@@ -139,6 +142,13 @@ class Canvas extends Component<Props, State> {
         this.showColorPicker();
       }
 
+      const { x, y } = this.getMousePos(this.canvasRef.current, ev);
+      const imageData = this.canvasRef.current!.getContext('2d')!.getImageData(x, y, 1, 1)
+      this.setState({
+        previousColor: {r: imageData.data[1], g: imageData.data[2], b: imageData.data[3]} 
+      });
+      this.showColorPicker(); 
+
       this.setState({
         isDrag: false
       })
@@ -166,20 +176,19 @@ class Canvas extends Component<Props, State> {
   }
 
   onCancel() {
-    this.hideColorPicker();
+    this.hideColorPicker(true);
   }
 
-  onComplete(c: RGBColor) {
-    this.hideColorPicker();
+  onComplete() {
+    this.hideColorPicker(false);
+  }
 
+  onColorChange(c: RGBColor) {
     const context = this.canvasRef.current!.getContext('2d');
-
     const x = this.props.position.x - 1;
     const y = this.props.position.y - 1;
-
     context!.fillStyle = `rgb(${c.r}, ${c.g}, ${c.b})`
     context!.fillRect(x, y, 1, 1);
-
     this.props.onUpdatePixel({ r: c.r, g: c.g, b: c.b }, x, y);
   }
 
@@ -189,10 +198,24 @@ class Canvas extends Component<Props, State> {
     });
   }
 
-  hideColorPicker() {
+  hideColorPicker(didCancel: boolean) {
     this.setState({
       showColorPicker: false
     });
+
+    // We should change the color back if cancel was pressed.
+    if (didCancel) {
+      const context = this.canvasRef.current!.getContext('2d');
+
+      const x = this.props.position.x; 
+      const y = this.props.position.y;
+      const c = this.state.previousColor!; 
+
+      context!.fillStyle = 'rgb(' + c.r + ',' + c.g + ',' + c.b + ')'
+      context!.fillRect(x - 1, y - 1, 1, 1);
+
+      this.props.onUpdatePixel({ r: c.r, g: c.g, b: c.b}, x, y);
+    }
   }
 
   render() {
@@ -203,8 +226,9 @@ class Canvas extends Component<Props, State> {
       <div className='canvas-container'>
         {this.state.showColorPicker && (
             <ColorPicker
+              onColorChange={(c) => this.onColorChange(c)}
               onCancel={this.onCancel}
-              onComplete={c => this.onComplete(c)}
+              onComplete={this.onComplete}
               className='color-picker' 
               style={{ top: `${colorPickerY}px`, left: `${colorPickerX}px`}}
             />
