@@ -149,11 +149,11 @@ class Canvas extends Component<Props, State> {
     const { dragStartX, dragStartY } = this.state;
     const x = ev.clientX - dragStartX;
     const y = ev.clientY - dragStartY;
+    this.onCancel();
     this.setState({
       isDrag: true,
       translateX: x,
       translateY: y,
-      showColorPicker: false,
     });
   }
 
@@ -223,12 +223,12 @@ class Canvas extends Component<Props, State> {
         <div className='zoom-controls'>
           <Icon
             type='plus-circle'
-            onClick={() => setZoomFactor(zoomFactor + ZOOM_CHANGE_FACTOR)}
+            onClick={() => { setZoomFactor(zoomFactor + ZOOM_CHANGE_FACTOR); this.onCancel() }}
             className='zoom-icon'
           />
           <Icon
             type='minus-circle'
-            onClick={() => setZoomFactor(zoomFactor - ZOOM_CHANGE_FACTOR)}
+            onClick={() => { setZoomFactor(zoomFactor - ZOOM_CHANGE_FACTOR); this.onCancel() }}
             className='zoom-icon'
           />
         </div>
