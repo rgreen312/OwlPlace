@@ -21,6 +21,7 @@ interface Props {
 interface State {
   showColorPicker: boolean;
   isDrag: boolean;
+  previousColor: RGBColor | undefined;
   translateX: number;
   translateY: number;
   dragStartX: number;
@@ -35,6 +36,7 @@ class Canvas extends Component<Props, State> {
     this.canvasRef = createRef();
     this.state = {
       showColorPicker: false,
+      previousColor: undefined,
       isDrag: false,
       translateX: 0,
       translateY: 0,
@@ -148,11 +150,11 @@ class Canvas extends Component<Props, State> {
   }
 
   onCancel() {
-    this.hideColorPicker();
+    this.hideColorPicker(true);
   }
 
   onComplete() {
-    this.hideColorPicker(); 
+    this.hideColorPicker(false); 
   }
 
   onColorChange(c: RGBColor) {
@@ -173,7 +175,7 @@ class Canvas extends Component<Props, State> {
     });
   }
 
-  hideColorPicker() {
+  hideColorPicker(didCancel: boolean) {
     this.setState({
       showColorPicker: false
     });
