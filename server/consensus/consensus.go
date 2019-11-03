@@ -115,28 +115,20 @@ func FailureMessage(error_type int) ConsensusMessage {
 	}
 }
 
-var (
-	// initial nodes count is fixed to three, their addresses are also fixed
-	addresses = []string{
-		"localhost:63001",
-		"localhost:63002",
-		"localhost:63003",
-	}
-)
-
 func printUsage() {
 	fmt.Fprintf(os.Stdout, "Usage - \n")
 	fmt.Fprintf(os.Stdout, "put key value\n")
 	fmt.Fprintf(os.Stdout, "get key\n")
 }
 
-func MainConsensus(recvc chan BackendMessage, sendc chan ConsensusMessage, servers map[int]*common.ServerConfig, nodeId int) {
+func MainConsensus(recvc chan BackendMessage, sendc chan ConsensusMessage, servers map[int]*common.ServerConfig, nodeId int) {	
+
 
 	conf := servers[nodeId]
 	// For more information on the join parameter, see:
 	// https://godoc.org/github.com/lni/dragonboat#NodeHost.StartCluster
 	join := false
-	nodeAddr := fmt.Sprintf("%s:%d", conf.Hostname, conf.ConsensusPort)
+	nodeAddr := fmt.Sprintf("%s:%d", conf.Hostname, 3002)
 
 	// https://github.com/golang/go/issues/17393
 	if runtime.GOOS == "darwin" {
@@ -176,8 +168,7 @@ func MainConsensus(recvc chan BackendMessage, sendc chan ConsensusMessage, serve
 		log.Printf("Node %d: Valid Dragonboat Configuration\n", nodeId)
 	}
 	datadir := filepath.Join(
-		"example-data",
-		"helloworld-data",
+		"owlplace-data",
 		fmt.Sprintf("node%d", nodeId))
 	nhc := config.NodeHostConfig{
 		DeploymentID:   1,

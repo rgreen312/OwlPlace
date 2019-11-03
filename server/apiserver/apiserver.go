@@ -12,34 +12,38 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"time"
+	"strings"
+	"strconv"
 	"github.com/gorilla/websocket"
 
 	"github.com/rgreen312/owlplace/server/common"
 	"github.com/rgreen312/owlplace/server/consensus"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 )
 
 type ApiServer struct {
-	sendc chan consensus.BackendMessage
-	recvc chan consensus.ConsensusMessage
-	port  int
+	sendc 				chan consensus.BackendMessage
+	recvc 				chan consensus.ConsensusMessage
+	port  				int
+	pod_ip 				string
 }
 
-func NewApiServer(servers map[int]*common.ServerConfig, nodeId int) *ApiServer {
+func NewApiServer(pod_ip string) *ApiServer {
 
-	apiPort := servers[nodeId].ApiPort
+	apiPort := 3001
 
 	// Make the channels that for api server and consensus module communication
 	sendc := make(chan consensus.BackendMessage)
 	recvc := make(chan consensus.ConsensusMessage)
 
-	// Start the consensus service in the background
-	go consensus.MainConsensus(sendc, recvc, servers, nodeId)
-
 	return &ApiServer{
 		sendc: sendc,
 		recvc: recvc,
 		port:  apiPort,
+		pod_ip: pod_ip,
 	}
 }
 
@@ -47,13 +51,59 @@ func (api *ApiServer) ListenAndServe() {
 	http.HandleFunc("/headers", api.Headers)
 	http.HandleFunc("/get_image", api.GetImage)
 	http.HandleFunc("/update_pixel", api.UpdatePixel)
+	http.HandleFunc("/consensus_trigger", api.ConsensusTrigger)
+	// http.HandleFunc("/consensus_join_message", api.ConsensusJoinMessage)
 	http.HandleFunc("/ws", api.wsEndpoint)
-
-	// Although there is nothing wrong with this line, it prevents us from running multiple nodes on a single machine.
-	// Therefore, I am making failure non-fatal until we have some way of running locally from the same port (i.e. docker)
-	// log.Fatal(http.ListenAndServe(":3010", nil))
 	http.ListenAndServe(fmt.Sprintf(":%d", api.port), nil)
 }
+
+func (api *ApiServer) IPToNodeId(ip_address string) int {
+	// This function maps ip addresses to node-ids
+	components := strings.Split(ip_address, ".")
+	combined := fmt.Sprintf("%03s%03s", components[2], components[3])
+	node_id, _ := strconv.Atoi(combined)
+	return node_id
+}
+
+func (api *ApiServer) ConsensusTrigger(w http.ResponseWriter, req *http.Request) {
+
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		panic(err.Error())
+	}
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	pods, err := clientset.CoreV1().Pods("dev").List(metav1.ListOptions{})
+	if err != nil {
+		panic(err.Error())
+	}
+
+	fmt.Printf("There are %d pods in the cluster\n", len(pods.Items))
+
+	servers :=  make(map[int]*common.ServerConfig)
+	for _, pod := range pods.Items {
+		if(pod.Status.PodIP != api.pod_ip){
+			servers[api.IPToNodeId(pod.Status.PodIP)] = &common.ServerConfig{
+				Hostname: pod.Status.PodIP,
+				ApiPort: 3001,
+				ConsensusPort: 3010,
+			}
+		}
+    }
+	//At first, just print something so that we know http requests are working inside kubernetes
+	fmt.Fprintf(os.Stdout, "Pod Trigger Called\n")
+
+	// Start the consensus service in the background
+	go consensus.MainConsensus(api.sendc, api.recvc, servers, api.IPToNodeId(api.pod_ip) )
+}
+
+// func (api *ApiServer) ConsensusJoinMessage(){
+// 		// Start the consensus service in the background
+// 	go consensus.MainConsensus(sendc, recvc, servers, nodeId)
+// }
 
 func (api *ApiServer) GetImage(w http.ResponseWriter, req *http.Request) {
 	// Debug message
