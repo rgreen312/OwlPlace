@@ -20,7 +20,7 @@ interface Props {
 
 interface State {
   showColorPicker: boolean;
-  previousColor: RGBColor | undefined; 
+  previousColor: RGBColor | null; 
   isDrag: boolean;
   translateX: number;
   translateY: number;
@@ -38,7 +38,7 @@ class Canvas extends Component<Props, State> {
     this.canvasRef = createRef();
     this.state = {
       showColorPicker: false,
-      previousColor: undefined, 
+      previousColor: null, 
       isDrag: false,
       translateX: 0,
       translateY: 0,
