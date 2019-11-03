@@ -53,8 +53,12 @@ class Canvas extends Component<Props, State> {
 =======
     this.state = {showColorPicker: false, previousColor: undefined}
     this.onCancel = this.onCancel.bind(this); 
+<<<<<<< HEAD
     this.onComplete = this.onComplete.bind(this);
 >>>>>>> cancelling is acting weird
+=======
+    this.onComplete = this.onComplete.bind(this); 
+>>>>>>> e541bdd9983a79eb7db199abdc80a06d537a6075
     this.onColorChange = this.onColorChange.bind(this); 
   }
 
@@ -179,7 +183,11 @@ class Canvas extends Component<Props, State> {
   }
 
   onComplete() {
+<<<<<<< HEAD
     this.hideColorPicker(false); 
+=======
+    this.hideColorPicker(); 
+>>>>>>> e541bdd9983a79eb7db199abdc80a06d537a6075
   }
 
   onColorChange(c: RGBColor) {
