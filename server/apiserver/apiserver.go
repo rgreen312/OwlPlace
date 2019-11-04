@@ -46,7 +46,7 @@ func NewApiServer(servers map[int]*common.ServerConfig, nodeId int) *ApiServer {
 
 func (api *ApiServer) ListenAndServe() {
 	http.HandleFunc("/headers", api.Headers)
-	http.HandleFunc("/get_image", api.GetImage)
+	// http.HandleFunc("/get_image", api.HTTPGetImage)
 	http.HandleFunc("/update_pixel", api.HTTPUpdatePixel)
 	http.HandleFunc("/ws", api.wsEndpoint)
 
@@ -56,7 +56,11 @@ func (api *ApiServer) ListenAndServe() {
 	http.ListenAndServe(fmt.Sprintf(":%d", api.port), nil)
 }
 
-func (api *ApiServer) GetImage(w http.ResponseWriter, req *http.Request) {
+// func (api *ApiServer) HTTPGetImage(w http.ResponseWriter, req *http.Request) {
+// 	api.CallGetImage()
+// }
+
+func (api *ApiServer) CallGetImage() string {
 	// Debug message
 	fmt.Fprintf(os.Stdout, "Getting Image From Raft\n")
 	// Construct the message
@@ -68,8 +72,9 @@ func (api *ApiServer) GetImage(w http.ResponseWriter, req *http.Request) {
 								<body><img src="data:image/jpg;base64,{{.Image}}"></body>`
 	imageMsg := <-api.recvc
 
-	if tmpl, err := template.New("image").Parse(ImageTemplate); err != nil {
+	if _, err := template.New("image").Parse(ImageTemplate); err != nil {
 		fmt.Fprintf(os.Stdout, "Unable to parse image template.\n")
+		return "Unable to parse image template"
 	} else {
 
 		// Decode the message from the glob
@@ -88,10 +93,9 @@ func (api *ApiServer) GetImage(w http.ResponseWriter, req *http.Request) {
 		// Encode the bytes in the buffer to a base64 string
 		encodedString := base64.StdEncoding.EncodeToString(buff.Bytes())
 
-		data := map[string]interface{}{"Image": encodedString}
-		if err = tmpl.Execute(w, data); err != nil {
-			fmt.Fprintf(os.Stdout, "Unable to execute template.\n")
-		}
+		// TODO  wrap the encodedString in a message
+
+		return encodedString
 	}
 }
 
@@ -301,9 +305,24 @@ func (api *ApiServer) wsEndpoint(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 	}
 	// send image
-	//if err = ws.WriteMessage(1, ); err != nil {
+	serverString := api.CallGetImage()
 
-	//}
+	// var img_msg bytes.Buffer
+	// img := gob.NewEncoder(&img_msg)
+	msg := ImageMsg{
+		Type:         Image,
+		FormatString: serverString,
+	}
+	log.Printf("ImageMsg: %+v\n", msg)
+	// ws.WriteMessage(ImageMsg)
+	var b []byte
+	b, err = json.Marshal(msg)
+	if err != nil {
+		log.Println(err)
+	}
+	if err = ws.WriteMessage(1, b); err != nil {
+		log.Println(err)
+	}
 	api.reader(ws)
 
 }

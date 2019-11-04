@@ -7,6 +7,7 @@ const (
 	Open      MsgType = 0
 	DrawPixel MsgType = 1
 	LoginUser MsgType = 2
+	Image     MsgType = 4
 	Close     MsgType = 9
 )
 
@@ -27,4 +28,9 @@ type DrawPixelMsg struct {
 type LoginUserMsg struct {
 	Type MsgType `json:"type"`
 	Id   string  `json:"id"`
+}
+
+type ImageMsg struct {
+	Type         MsgType `json:"type"`
+	FormatString string  `json:"formatString"`
 }

@@ -220,8 +220,6 @@ func MainConsensus(recvc chan BackendMessage, sendc chan ConsensusMessage, serve
 					return
 				}
 
-				fmt.Println("REMOVE ME - in consensus.go. Received a new message!!!!!!")
-
 				// Start background context
 				ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 

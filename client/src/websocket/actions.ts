@@ -1,8 +1,7 @@
 import { HOSTNAME } from '../constants';
 import * as ActionTypes from './actionTypes';
 import { getWebSocket } from './selectors';
-
-const image = 4;
+import { ERROR, IMAGE, Msg, ErrorMsg, ImageMsg } from '../message';
 
 const startConnect = () => ({
   type: ActionTypes.StartConnect
@@ -59,8 +58,21 @@ export const openWebSocket = () => dispatch => {
 
   socket.onmessage = event => {
     const { data } = event;
+    let json = JSON.parse(data);
+    switch (json.type) {
+        case IMAGE: {
+            let msg = new ImageMsg(data.formatString); //now what?
+            console.log("Received an IMAGE message from the server!");
+            console.log("Format string: " + msg.formatString);
+            break;
+        }
+        default: {
+            console.log("Received a message from the server, message: " + data);
+            break;
+        }
+    }
     // TODO (Ryan): figure out the best way to handle this... probably need to write some middlewear
-    console.log("Recieved a message from the server, message: " + data);
+
   };
 }
 
