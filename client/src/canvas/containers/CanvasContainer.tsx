@@ -1,15 +1,15 @@
-import { connect } from "react-redux";
-import Canvas from "../components/Canvas";
-import { receivedError, getIsLoadingState } from "../../websocket/selectors";
+import { connect } from 'react-redux';
+import Canvas from '../components/Canvas';
+import { receivedError, getIsLoadingState } from '../../websocket/selectors';
 import {
   registerCanvasContext,
   updateCursorPosition,
   clearCursorPosition,
   setZoomFactor,
   updatePixel
-} from "../actions";
-import { getZoomFactor, getCurrentPosition } from "../selectors";
-import { Color } from "../types";
+} from '../actions';
+import { getZoomFactor, getCurrentPosition } from '../selectors';
+import { Color } from '../types';
 
 interface DispatchProps {
   registerContext: (context: CanvasRenderingContext2D) => void;

@@ -1,11 +1,11 @@
-import React, { Component, createRef, RefObject, useState } from "react";
-import ColorPicker from "../../colorPicker/components/colorPicker";
-import { Redirect } from "react-router-dom";
-import "./Canvas.scss";
-import { Icon, Spin } from "antd";
-import { ZOOM_CHANGE_FACTOR } from "../constants";
-import { Color, RGBColor } from "react-color";
-import classNames from "classnames";
+import React, { Component, createRef, RefObject, useState } from 'react';
+import ColorPicker from '../../colorPicker/components/colorPicker';
+import { Redirect } from 'react-router-dom';
+import './Canvas.scss';
+import { Icon, Spin } from 'antd';
+import { ZOOM_CHANGE_FACTOR } from '../constants';
+import { Color, RGBColor } from 'react-color';
+import classNames from 'classnames';
 
 interface Props {
   receivedError: boolean;
@@ -58,7 +58,7 @@ class Canvas extends Component<Props, State> {
     this.canvasRef.current!.width = 1000;
     this.canvasRef.current!.height = 1000;
 
-    const context = this.canvasRef.current!.getContext("2d");
+    const context = this.canvasRef.current!.getContext('2d');
 
     // const image = new Image();
 
@@ -76,24 +76,24 @@ class Canvas extends Component<Props, State> {
     context!.imageSmoothingEnabled = false;
 
     // TODO: remove this code
-    context!.fillStyle = "#000000";
+    context!.fillStyle = '#000000';
     context!.fillRect(0, 0, 1000, 500);
-    context!.fillStyle = "#ff0000";
+    context!.fillStyle = '#ff0000';
     context!.fillRect(0, 500, 1000, 500);
 
-    this.canvasRef.current!.addEventListener("mousemove", ev => {
+    this.canvasRef.current!.addEventListener('mousemove', ev => {
       if (this.state.showColorPicker) return;
       const { x, y } = this.getMousePos(this.canvasRef.current, ev);
       this.props.updatePosition(x, y);
     });
 
-    this.canvasRef.current!.addEventListener("mouseout", () => {
+    this.canvasRef.current!.addEventListener('mouseout', () => {
       if (this.state.showColorPicker) return;
       this.props.onMouseOut();
     });
 
     // On mousedown, get the current location to be used for dragging
-    this.canvasRef.current!.addEventListener("mousedown", e => {
+    this.canvasRef.current!.addEventListener('mousedown', e => {
       const { zoomFactor } = this.props;
       const { translateX, translateY } = this.state;
       const startPositionX = e.clientX - translateX;
@@ -119,7 +119,7 @@ class Canvas extends Component<Props, State> {
 
       // If the user moves after clicking, then they are dragging so we add listener
       this.canvasRef.current!.addEventListener(
-        "mousemove",
+        'mousemove',
         this.updateTranslate
       );
     });
@@ -131,9 +131,9 @@ class Canvas extends Component<Props, State> {
      * If they were not dragging, then we display the color picker so we can update the color of
      * the pixel.
      */
-    this.canvasRef.current!.addEventListener("mouseup", ev => {
+    this.canvasRef.current!.addEventListener('mouseup', ev => {
       this.canvasRef.current!.removeEventListener(
-        "mousemove",
+        'mousemove',
         this.updateTranslate
       );
 
@@ -145,7 +145,7 @@ class Canvas extends Component<Props, State> {
 
       const { x, y } = this.getMousePos(this.canvasRef.current, ev);
       const imageData = this.canvasRef
-        .current!.getContext("2d")!
+        .current!.getContext('2d')!
         .getImageData(x, y, 1, 1);
       this.setState({
         previousColor: {
@@ -191,7 +191,7 @@ class Canvas extends Component<Props, State> {
   }
 
   onColorChange(c: RGBColor) {
-    const context = this.canvasRef.current!.getContext("2d");
+    const context = this.canvasRef.current!.getContext('2d');
     const x = this.props.position.x - 1;
     const y = this.props.position.y - 1;
     context!.fillStyle = `rgb(${c.r}, ${c.g}, ${c.b})`;
@@ -212,13 +212,13 @@ class Canvas extends Component<Props, State> {
 
     // We should change the color back if cancel was pressed.
     if (didCancel) {
-      const context = this.canvasRef.current!.getContext("2d");
+      const context = this.canvasRef.current!.getContext('2d');
 
       const x = this.props.position.x;
       const y = this.props.position.y;
       const c = this.state.previousColor!;
 
-      context!.fillStyle = "rgb(" + c.r + "," + c.g + "," + c.b + ")";
+      context!.fillStyle = 'rgb(' + c.r + ',' + c.g + ',' + c.b + ')';
       context!.fillRect(x - 1, y - 1, 1, 1);
 
       this.props.onUpdatePixel({ r: c.r, g: c.g, b: c.b }, x, y);
@@ -241,8 +241,8 @@ class Canvas extends Component<Props, State> {
         {isLoading && <Spin className='spinner-style' size='large' />}
         <div
           className={classNames({
-            "hide-canvas": isLoading,
-            "canvas-container": true
+            'hide-canvas': isLoading,
+            'canvas-container': true
           })}
         >
           {this.state.showColorPicker && (
@@ -257,8 +257,8 @@ class Canvas extends Component<Props, State> {
 
           <div
             className={classNames({
-              "pan-canvas": true,
-              "drag-canvas": isDrag
+              'pan-canvas': true,
+              'drag-canvas': isDrag
             })}
             style={{ transform: `translate(${translateX}px, ${translateY}px)` }}
           >
