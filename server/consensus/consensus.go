@@ -121,14 +121,14 @@ func printUsage() {
 	fmt.Fprintf(os.Stdout, "get key\n")
 }
 
-func MainConsensus(recvc chan BackendMessage, sendc chan ConsensusMessage, servers map[int]*common.ServerConfig, nodeId int) {	
+
+func CreateConsensus(recvc chan BackendMessage, sendc chan ConsensusMessage, servers map[int]*common.ServerConfig, nodeId int, join bool) {	
 
 
 	conf := servers[nodeId]
 	// For more information on the join parameter, see:
 	// https://godoc.org/github.com/lni/dragonboat#NodeHost.StartCluster
-	join := false
-	nodeAddr := fmt.Sprintf("%s:%d", conf.Hostname, 3002)
+	nodeAddr := fmt.Sprintf("%s:%d", conf.Hostname, conf.ConsensusPort)
 
 	// https://github.com/golang/go/issues/17393
 	if runtime.GOOS == "darwin" {
@@ -196,6 +196,7 @@ func MainConsensus(recvc chan BackendMessage, sendc chan ConsensusMessage, serve
 		fmt.Fprintf(os.Stderr, "failed to add cluster, %v\n", err)
 		os.Exit(1)
 	}
+
 	raftStopper := syncutil.NewStopper()
 	raftStopper.RunWorker(func() {
 		cs := nh.GetNoOPSession(exampleClusterID)

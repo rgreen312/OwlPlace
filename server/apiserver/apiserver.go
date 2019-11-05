@@ -52,7 +52,7 @@ func (api *ApiServer) ListenAndServe() {
 	http.HandleFunc("/get_image", api.GetImage)
 	http.HandleFunc("/update_pixel", api.UpdatePixel)
 	http.HandleFunc("/consensus_trigger", api.ConsensusTrigger)
-	// http.HandleFunc("/consensus_join_message", api.ConsensusJoinMessage)
+	http.HandleFunc("/consensus_join_message", api.ConsensusJoinMessage)
 	http.HandleFunc("/ws", api.wsEndpoint)
 	http.ListenAndServe(fmt.Sprintf(":%d", api.port), nil)
 }
@@ -86,24 +86,38 @@ func (api *ApiServer) ConsensusTrigger(w http.ResponseWriter, req *http.Request)
 	servers :=  make(map[int]*common.ServerConfig)
 	for _, pod := range pods.Items {
 		if(pod.Status.PodIP != api.pod_ip){
-			servers[api.IPToNodeId(pod.Status.PodIP)] = &common.ServerConfig{
-				Hostname: pod.Status.PodIP,
-				ApiPort: 3001,
-				ConsensusPort: 3010,
+			// Send an http join request to the other nodes
+			_, err := http.Get(fmt.Sprintf("http://%s:%d/consensus_join_message", pod.Status.PodIP, api.port))
+			if(err != nil){
+				panic(err)
 			}
+		}
+		servers[api.IPToNodeId(pod.Status.PodIP)] = &common.ServerConfig{
+			Hostname: pod.Status.PodIP,
+			ApiPort: 3001,
+			ConsensusPort: 3010,
 		}
     }
 	//At first, just print something so that we know http requests are working inside kubernetes
 	fmt.Fprintf(os.Stdout, "Pod Trigger Called\n")
 
 	// Start the consensus service in the background
-	go consensus.MainConsensus(api.sendc, api.recvc, servers, api.IPToNodeId(api.pod_ip) )
+	join := false
+	go consensus.CreateConsensus(api.sendc, api.recvc, servers, api.IPToNodeId(api.pod_ip), join)
 }
 
-// func (api *ApiServer) ConsensusJoinMessage(){
-// 		// Start the consensus service in the background
-// 	go consensus.MainConsensus(sendc, recvc, servers, nodeId)
-// }
+func (api *ApiServer) ConsensusJoinMessage(w http.ResponseWriter, req *http.Request){
+	// Start the consensus service in the background
+	fmt.Fprintf(os.Stdout, "Got a join message\n")
+	servers :=  make(map[int]*common.ServerConfig)
+	servers[api.IPToNodeId(api.pod_ip)] = &common.ServerConfig{
+		Hostname: api.pod_ip,
+		ApiPort: 3001,
+		ConsensusPort: 3010,
+	}
+	join := true
+	go consensus.CreateConsensus(api.sendc, api.recvc, servers, api.IPToNodeId(api.pod_ip), join)
+}
 
 func (api *ApiServer) GetImage(w http.ResponseWriter, req *http.Request) {
 	// Debug message

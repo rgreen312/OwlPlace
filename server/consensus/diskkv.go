@@ -285,20 +285,19 @@ func (d *DiskKV) queryAppliedIndex(db *rocksdb) (uint64, error) {
 
 func (d *DiskKV) loadImageFromDB(db *rocksdb) {
 	fmt.Fprintf(os.Stdout, "Loading image from DB...\n")
-	for i := 0; i < IMAGE_WIDTH; i++ {
-		for j := 0; j < IMAGE_HEIGHT; j++ {
-			key := fmt.Sprintf("pixel(%d,%d)", i, j)
-			val, err := db.db.Get(db.ro, []byte(key))
-
-			if err == nil && string(val.Data()) != "" {
-				dataKV := &KVData{
-					Key: key,
-					Val: string(val.Data()),
-				}
-				d.UpdateInMemoryImage(dataKV)
-			}
-		}
-	}
+	// for i := 0; i < IMAGE_WIDTH; i++ {
+	// 	for j := 0; j < IMAGE_HEIGHT; j++ {
+	// 		key := fmt.Sprintf("pixel(%d,%d)", i, j)
+	// 		val, err := db.db.Get(db.ro, []byte(key))
+	// 		if err == nil && string(val.Data()) != "" {
+	// 			dataKV := &KVData{
+	// 				Key: key,
+	// 				Val: string(val.Data()),
+	// 			}
+	// 			d.UpdateInMemoryImage(dataKV)
+	// 		}
+	// 	}
+	// }
 	fmt.Fprintf(os.Stdout, "Done loading image from DB\n")
 }
 

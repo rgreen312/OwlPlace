@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"github.com/rgreen312/owlplace/server/apiserver"
 )
