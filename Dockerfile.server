@@ -1,4 +1,4 @@
-FROM golang:1.13.1-alpine3.10 AS rocksbuilder
+FROM golang:1.13.1-alpine3.10 AS builder
 
 RUN echo "@testing http://nl.alpinelinux.org/alpine/edge/testing" >>/etc/apk/repositories
 RUN apk add --update --no-cache build-base linux-headers git cmake bash #wget mercurial g++ autoconf libgflags-dev cmake  bash jemalloc
@@ -37,11 +37,12 @@ RUN cd /tmp && \
     cp -r include/* /usr/include/ && \
     rm -R /tmp/rocksdb/
 
+FROM builder AS compile-image
+
 COPY server /app
+RUN cd /app && go build
 
-RUN cd /app && go build 
-
-FROM alpine:3.10 AS server
+FROM alpine:3.10 AS runtime-image
 
 RUN echo "@testing http://nl.alpinelinux.org/alpine/edge/testing" >>/etc/apk/repositories
 RUN apk add --update --no-cache \
@@ -60,13 +61,13 @@ RUN apk add --update --no-cache \
         libtbb-dev@testing \
         libtbb@testing
 
-COPY --from=rocksbuilder /usr/lib/libgflags* /usr/lib/
-COPY --from=rocksbuilder /usr/include/gflags /usr/include/gflags
-COPY --from=rocksbuilder /usr/include/google /usr/include/google
-COPY --from=rocksbuilder /usr/local/rocksdb /usr/local/rocksdb
-COPY --from=rocksbuilder /usr/lib/librocksdb.so* /usr/lib/
-COPY --from=rocksbuilder /usr/local/rocksdb/include/rocksdb /usr/include/rocksdb
-COPY --from=rocksbuilder /app/server /bin/server
+COPY --from=builder /usr/lib/libgflags* /usr/lib/
+COPY --from=builder /usr/include/gflags /usr/include/gflags
+COPY --from=builder /usr/include/google /usr/include/google
+COPY --from=builder /usr/local/rocksdb /usr/local/rocksdb
+COPY --from=builder /usr/lib/librocksdb.so* /usr/lib/
+COPY --from=builder /usr/local/rocksdb/include/rocksdb /usr/include/rocksdb
+COPY --from=compile-image /app/server /bin/server
 
 ENV NODEID 0
 ENV CONFIG /usr/share/owlplace.json
