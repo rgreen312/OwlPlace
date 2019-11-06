@@ -1,7 +1,7 @@
 import { HOSTNAME } from '../constants';
 import * as ActionTypes from './actionTypes';
 import { getWebSocket } from './selectors';
-import { Msg, ErrorMsg, ImageMsg, MsgType, VerificationFailMsg, CreateUserMsg } from '../message';
+import { ERROR, IMAGE, Msg, ErrorMsg, ImageMsg, TESTING, DRAWRESPONSE, VERIFICATIONFAIL, CREATEUSER } from '../message';
 import { setImage } from '../canvas/actions';
 
 const startConnect = () => ({

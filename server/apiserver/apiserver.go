@@ -6,7 +6,7 @@ import (
 	"encoding/gob"
 	"encoding/json"
 	"fmt"
-	gwebsocket "github.com/gorilla/websocket"
+	"github.com/gorilla/websocket"
 	"html/template"
 	"image"
 	"image/png"
@@ -61,7 +61,6 @@ func (api *ApiServer) SetupRoutes() {
 	})
 	http.HandleFunc("/update_pixel", api.HTTPUpdatePixel)
 	http.HandleFunc("/update_user", api.HTTPUpdateUserList)
-
 
 	// Although there is nothing wrong with this line, it prevents us from running multiple nodes on a single machine.
 	// Therefore, I am making failure non-fatal until we have some way of running locally from the same port (i.e. docker)
@@ -159,7 +158,6 @@ func (api *ApiServer) HTTPUpdatePixel(w http.ResponseWriter, req *http.Request) 
 func (api *ApiServer) CallUpdatePixel(x int, y int, r int, g int, b int, userID string) []byte {
 	fmt.Println("\nWithin UpdatePixel")
 
-	// TODO verify that the user is able to update a pizel with the User Data Team
 	userVerification := api.validateUser(userID)
 	// If validation failed
 	if userVerification != 200 {
@@ -456,6 +454,32 @@ func makeStatusMessage(s int) []byte {
 func makeVerificationFailMessage(s int) []byte {
 	msg := VerificationFailMsg{
 		Type: VerificationFail,
+		Status: s,
+	}
+
+	b, err := json.Marshal(msg)
+	if err != nil {
+		log.Println(err)
+	}
+	return b
+}
+
+func makeCreateUserMessage(s int) []byte {
+	msg := CreateUserMsg{
+		Type: CreateUser,
+		Status: s,
+	}
+
+	b, err := json.Marshal(msg)
+	if err != nil {
+		log.Println(err)
+	}
+	return b
+}
+
+func makeVerificationFailMessage(s int) []byte {
+	msg := VerificationFailMsg{
+		Type: Verification,
 		Status: s,
 	}
 
