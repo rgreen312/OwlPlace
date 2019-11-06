@@ -13,8 +13,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 	"strconv"
-
 	"github.com/rgreen312/owlplace/server/common"
 	"github.com/rgreen312/owlplace/server/consensus"
 	"github.com/rgreen312/owlplace/server/websocket"
@@ -60,6 +60,8 @@ func (api *ApiServer) SetupRoutes() {
 		api.serveWs(pool, w, r)
 	})
 	http.HandleFunc("/update_pixel", api.HTTPUpdatePixel)
+	http.HandleFunc("/update_user", api.HTTPUpdateUserList)
+
 
 	// Although there is nothing wrong with this line, it prevents us from running multiple nodes on a single machine.
 	// Therefore, I am making failure non-fatal until we have some way of running locally from the same port (i.e. docker)
@@ -158,7 +160,7 @@ func (api *ApiServer) CallUpdatePixel(x int, y int, r int, g int, b int, userID 
 	fmt.Println("\nWithin UpdatePixel")
 
 	// TODO verify that the user is able to update a pizel with the User Data Team
-	userVerification := true
+	userVerification := api.validateUser(userID)
 	if !userVerification {
 		// User verification failed
 
@@ -203,6 +205,59 @@ func (api *ApiServer) CallUpdatePixel(x int, y int, r int, g int, b int, userID 
 		fmt.Fprintf(os.Stdout, "Update Failure\n")
 		byt := makeStatusMessage(400)
 		return byt
+	}
+}
+
+
+/*
+ * Insert the new user id to the userlist
+ */
+func (api *ApiServer) HTTPUpdateUserList(w http.ResponseWriter, req *http.Request) {
+	// Only for testing
+	user_id := req.URL.Query().Get("user_id")
+	api.CallUpdateUserList(user_id)
+}
+
+/*
+ * Insert the new user id to the userlist
+ */
+func (api *ApiServer) CallUpdateUserList(user_id string) []byte {
+	byt := []byte("")
+	_, ifErr := api.GetLastUserModification(user_id)
+	if (ifErr) {
+		err := api.SetLastUserModification(user_id, "0")
+		if (err) {
+			fmt.Println("Cannot update user list")
+			byt = []byte("Test failure")
+		} else {
+			fmt.Println("Successfully created user")
+			byt = []byte("Successfully created user")
+
+		}
+		
+	} else {
+		fmt.Println("User already exists")
+		byt = []byte("User already exists")
+	}
+	return byt
+}
+
+func (api *ApiServer) validateUser(user_id string) bool {
+	now := time.Now().Unix()
+	lastMove, ifErr := api.GetLastUserModification(user_id)
+	if (ifErr) {
+		return false
+	}
+	lastMoveInt, err := strconv.Atoi(lastMove)
+	if err != nil {
+		fmt.Println("SOME ERROR")
+	}
+	if (int(now) - lastMoveInt > 300) {
+		api.SetLastUserModification(user_id, strconv.Itoa(int(now)))
+		return true
+		//image team update pixel		
+	} else {
+		return false
 	}
 }
 
@@ -354,12 +409,10 @@ func (c *Client) Read(api *ApiServer) {
 			}
 		case LoginUser:
 			fmt.Println("CreateUser message received.")
-			var cuMsg LoginUserMsg
-			if err := json.Unmarshal(p, &cuMsg); err == nil {
-				fmt.Printf("%+v", cuMsg)
-				email := cuMsg.Id
-				// byt = api.CallUpdateUserList() // do something that actually affects it here
-				byt = []byte("{\"type\": 2, \"Id\": \"" + email + "\"}")
+			var cu_msg LoginUserMsg
+			if err := json.Unmarshal(p, &cu_msg); err == nil {
+				fmt.Printf("%+v", cu_msg)
+				byt = api.CallUpdateUserList(cu_msg.Id)
 			} else {
 				fmt.Println("JSON decoding error.")
 			}
