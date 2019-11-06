@@ -1,5 +1,6 @@
 export const ERROR = -1;
 export const IMAGE = 4;
+export const TESTING = 5;
 
 export interface Msg {
     type: number;

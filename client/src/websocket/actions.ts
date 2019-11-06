@@ -1,7 +1,7 @@
 import { HOSTNAME } from '../constants';
 import * as ActionTypes from './actionTypes';
 import { getWebSocket } from './selectors';
-import { ERROR, IMAGE, Msg, ErrorMsg, ImageMsg } from '../message';
+import { ERROR, IMAGE, Msg, ErrorMsg, ImageMsg, TESTING } from '../message';
 
 const startConnect = () => ({
   type: ActionTypes.StartConnect
@@ -58,16 +58,23 @@ export const openWebSocket = () => dispatch => {
 
   socket.onmessage = event => {
     const { data } = event;
+    console.log("data is" + data);
+    console.log(typeof(data))
     let json = JSON.parse(data);
     switch (json.type) {
         case IMAGE: {
-            let msg = new ImageMsg(data.formatString); //now what?
+            // let msg = new ImageMsg(data.formatString); //now what?
+            let imageString = json.formatString
             console.log("Received an IMAGE message from the server!");
-            console.log("Format string: " + msg.formatString);
+            console.log("Format string: " + imageString);
             break;
         }
+        case TESTING: {
+          console.log("Received a TESTING message from the server!");
+          console.log("Message: " + json.msg);
+        }
         default: {
-            console.log("Received a message from the server, message: " + data);
+            console.log("Received a message from the server of an unknown type, message: " + data);
             break;
         }
     }

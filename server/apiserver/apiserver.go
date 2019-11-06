@@ -155,11 +155,11 @@ func (api *ApiServer) CallUpdatePixel(x int, y int, r int, g int, b int, userID 
 	// format message back to the client saying it's been updated or if it failed.
 	if consensus_response.Type == consensus.SUCCESS {
 		fmt.Fprintf(os.Stdout, "Update Success")
-		byt := []byte("test success")
+		byt := []byte("{\"type\": 5, \"msg\": \"test success\"}")
 		return byt
 	} else {
 		fmt.Fprintf(os.Stdout, "Update Failure")
-		byt := []byte("test failed")
+		byt := []byte("{\"type\": 5, \"msg\": \"test failed\"}")
 		return byt
 	}
 }
@@ -256,7 +256,7 @@ func (api *ApiServer) reader(conn *websocket.Conn) {
 		}
 		// fmt.Println(dat)
 
-		byt := []byte("Default message")
+		byt := []byte("{\"type\": 5, \"msg\": \"Default message\"}")
 
 		switch dat.Type {
 		case DrawPixel:
@@ -301,7 +301,7 @@ func (api *ApiServer) wsEndpoint(w http.ResponseWriter, r *http.Request) {
 
 	// helpful log statement to show connections
 	log.Println("Client Connected")
-	if err = ws.WriteMessage(1, []byte("Hi Client! We just connected :)")); err != nil { // sent upon connection to any clients
+	if err = ws.WriteMessage(1, []byte("{\"Hi Client! We just connected :)\"}")); err != nil { // sent upon connection to any clients
 		log.Println(err)
 	}
 	// send image
