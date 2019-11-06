@@ -46,8 +46,8 @@ const (
 )
 
 const (
-	DRAGONBOAT_ERROR     int = 0
-	MESSAGE_ERROR        int = 1
+	DRAGONBOAT_ERROR int = 0
+	MESSAGE_ERROR    int = 1
 )
 
 type ConsensusMessage struct {
@@ -293,7 +293,7 @@ func MainConsensus(recvc chan BackendMessage, sendc chan ConsensusMessage, serve
 						fmt.Fprintf(os.Stdout, "Failed to read\n", umsg.UserId)
 						sendc <- FailureMessage(DRAGONBOAT_ERROR)
 					} else {
-						if(string(result.([]byte)) == ""){
+						if string(result.([]byte)) == "" {
 							sendc <- FailureMessage(DRAGONBOAT_ERROR)
 						} else {
 							sendc <- GetTimestampMessage(string(result.([]byte)))

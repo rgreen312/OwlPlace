@@ -1,14 +1,26 @@
 import React, { FC } from 'react';
 import './About.scss';
-import { sendUpdateMessage } from '../../websocket/actions';
+import { sendUpdateMessage, sendLoginMessage } from '../../websocket/actions'
+
+
+
 
 interface Props {
   sendUpdateMessage: (id, x, y, r, g, b) => void;
+  sendLoginMessage: (id) => void;
 }
 
-const About: FC<Props> = ({ sendUpdateMessage }) => (
+const About: FC<Props> = ({ sendUpdateMessage, sendLoginMessage }) => (
   <div className='about-page'>
+    <h2>TESTING AREA</h2>
+      <p>Click "Pixel 1" to send an update message to the server!
+      </p>
+        <button onClick = {() => sendUpdateMessage("user1", 10, 400, 255, 255, 255)} id="p1"> Pixel 1 </button>
+        <button onClick = {() => sendLoginMessage("testemail@gmail.com")} id="login"> User Login </button>
+    <h1>OwlPlace</h1>
+
     <h1>About</h1>
+
     <p>
       OwlPlace is a collaborative canvas editing application that allows users
       to alter the contents of a shared canvas. Users will be able to change the
@@ -46,6 +58,8 @@ const About: FC<Props> = ({ sendUpdateMessage }) => (
       </a>
       .
     </p>
+
+    
   </div>
 );
 

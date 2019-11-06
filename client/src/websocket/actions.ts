@@ -1,6 +1,7 @@
 import { HOSTNAME } from '../constants';
 import * as ActionTypes from './actionTypes';
 import { getWebSocket } from './selectors';
+import { ERROR, IMAGE, Msg, ErrorMsg, ImageMsg, TESTING } from '../message';
 
 const startConnect = () => ({
   type: ActionTypes.StartConnect
@@ -41,17 +42,7 @@ export const openWebSocket = () => dispatch => {
         })
       );
 
-      socket.send(
-        JSON.stringify({
-          type: 1,
-          userId: "AAAAAA",
-          x: 6,
-          y: 9,
-          r: 4,
-          g: 2,
-          b: 0
-        })
-      );
+      socket.send(makeUpdateMessage("AAAAAA", 6, 9, 4, 2, 0));
       
     dispatch(connectSuccess(socket));
   };
@@ -67,8 +58,28 @@ export const openWebSocket = () => dispatch => {
 
   socket.onmessage = event => {
     const { data } = event;
+    console.log("data is" + data);
+    console.log(typeof(data))
+    let json = JSON.parse(data);
+    switch (json.type) {
+        case IMAGE: {
+            // let msg = new ImageMsg(data.formatString); //now what?
+            let imageString = json.formatString
+            console.log("Received an IMAGE message from the server!");
+            console.log("Format string: " + imageString);
+            break;
+        }
+        case TESTING: {
+          console.log("Received a TESTING message from the server!");
+          console.log("Message: " + json.msg);
+        }
+        default: {
+            console.log("Received a message from the server of an unknown type, message: " + data);
+            break;
+        }
+    }
     // TODO (Ryan): figure out the best way to handle this... probably need to write some middlewear
-    console.log("Recieved a message from the server, message: " + data);
+
   };
 }
 
@@ -91,10 +102,27 @@ const makeUpdateMessage = (
   });
 };
 
+const makeLoginMessage = (
+  email: string
+) => {
+  return JSON.stringify({
+    type: 2, 
+    email: email
+  })
+}
+
 export const sendUpdateMessage = (id, x, y, r, g, b) => (dispatch, getState) => {
   const socket = getWebSocket(getState());
   if (socket) {
     socket.send(makeUpdateMessage(id, x, y, r, g, b));
+  }
+}
+
+export const sendLoginMessage = (email) => (dispatch, getState) => {
+  console.log("sending login message for email: " + email)
+  const socket = getWebSocket(getState());
+  if (socket) {
+    socket.send(makeLoginMessage(email));
   }
 }
 
