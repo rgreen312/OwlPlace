@@ -161,10 +161,10 @@ class Canvas extends Component<Props, State> {
   }
 
   updateTranslate(ev: MouseEvent) {
-    const { dragStartX, dragStartY } = this.state;
+    const { dragStartX, dragStartY, showColorPicker } = this.state;
     const x = ev.clientX - dragStartX;
     const y = ev.clientY - dragStartY;
-    this.onCancel(false);
+    this.onCancel(showColorPicker);
     this.setState({
       isDrag: true,
       translateX: x,
@@ -277,7 +277,7 @@ class Canvas extends Component<Props, State> {
               type='plus-circle'
               onClick={() => {
                 setZoomFactor(zoomFactor + ZOOM_CHANGE_FACTOR);
-                this.onCancel(false);
+                this.onCancel(true);
               }}
               className='zoom-icon'
             />
@@ -285,7 +285,7 @@ class Canvas extends Component<Props, State> {
               type='minus-circle'
               onClick={() => {
                 setZoomFactor(zoomFactor - ZOOM_CHANGE_FACTOR);
-                this.onCancel(false);
+                this.onCancel(true);
               }}
               className='zoom-icon'
             />
