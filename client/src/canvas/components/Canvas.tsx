@@ -141,20 +141,17 @@ class Canvas extends Component<Props, State> {
         const { x, y } = this.getMousePos(this.canvasRef.current, ev);
         this.props.updatePosition(x, y);
         this.showColorPicker();
+        const imageData = this.canvasRef
+          .current!.getContext('2d')!
+          .getImageData(x, y, 1, 1);
+        this.setState({
+          previousColor: {
+            r: imageData.data[1],
+            g: imageData.data[2],
+            b: imageData.data[3]
+          }
+        });
       }
-
-      const { x, y } = this.getMousePos(this.canvasRef.current, ev);
-      const imageData = this.canvasRef
-        .current!.getContext('2d')!
-        .getImageData(x, y, 1, 1);
-      this.setState({
-        previousColor: {
-          r: imageData.data[1],
-          g: imageData.data[2],
-          b: imageData.data[3]
-        }
-      });
-      this.showColorPicker();
 
       this.setState({
         isDrag: false
