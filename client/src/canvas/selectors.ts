@@ -8,3 +8,6 @@ export const getCurrentPosition = (state: State): {x: number, y: number} | undef
 
 export const getZoomFactor = (state: State): number => 
   state.canvas.zoomFactor;
+
+export const getTimeToChange = (state: State): number => 
+  state.canvas.timeToNextChange;

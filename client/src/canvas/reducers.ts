@@ -11,6 +11,7 @@ export interface State {
   initialImage: string | null;
   curPosition: { x: number, y: number} | null;
   zoomFactor: number;
+  timeToNextChange: number;
 }
 
 const canvasContext = createReducer<State['canvasContext']>(null, {
@@ -25,10 +26,15 @@ const curPosition = createReducer<State['curPosition']>(null, {
 
 const zoomFactor = createReducer<State['zoomFactor']>(DEFAULT_ZOOM, {
   [ActionTypes.SetZoom]: (state, action: SetZoom) => action.payload.zoom
-})
+});
+
+const timeToNextChange = createReducer<State['timeToNextChange']>(250000, {
+
+});
 
 export default combineReducers({
   canvasContext,
   curPosition,
   zoomFactor,
+  timeToNextChange,
 });

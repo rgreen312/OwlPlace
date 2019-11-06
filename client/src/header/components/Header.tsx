@@ -1,6 +1,7 @@
-import React, { FC } from "react";
+import React, { FC, useState } from "react";
 import { PageHeader, Button, Menu, Dropdown, Icon, Tag } from "antd";
 import { Link, useLocation } from "react-router-dom";
+import Timer from 'react-compound-timer';
 import "./Header.scss";
 
 interface Props {
@@ -8,9 +9,10 @@ interface Props {
   name?: string;
   onLogin: () => void;
   onLogout: () => void;
+  timeToNextChange: number;
 }
 
-const Header: FC<Props> = ({ onLogin, isLoggedIn, name, onLogout }) => {
+const Header: FC<Props> = ({ onLogin, isLoggedIn, name, onLogout, timeToNextChange }) => {
   //@ts-ignore
   window.onGoogleScriptLoad = () => {
     console.log("The google script has really loaded, cool!");
@@ -59,11 +61,38 @@ const Header: FC<Props> = ({ onLogin, isLoggedIn, name, onLogout }) => {
     </Dropdown>
   );
 
+  const [showPrefix, setShowPrefix] = useState(false);
+
+  const timer = (
+    <div className='timer'>
+      <Timer
+        initialTime={timeToNextChange}
+        direction='backward'
+        checkpoints={[
+          {
+            time: 10000,
+            callback: () => setShowPrefix(true)
+          },
+          {
+            time: 0,
+            callback: () => console.log('update the state here')
+          }
+        ]}
+      >
+        {() =>(
+          <>
+            <Timer.Minutes />:{showPrefix ? 0 : null}<Timer.Seconds />
+          </>
+        )}
+      </Timer>
+    </div>
+  )
+
   return (
     <PageHeader
       title='OwlPlace'
       subTitle='change the canvas one pixel at a time'
-      extra={[loginButton, dropdownMenu]}
+      extra={[timer, loginButton, dropdownMenu]}
     />
   );
 };

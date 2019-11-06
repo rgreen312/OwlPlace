@@ -9488,6 +9488,13 @@ react-color@^2.17.3:
     reactcss "^1.2.0"
     tinycolor2 "^1.4.1"
 
+react-compound-timer@^1.1.15:
+  version "1.1.15"
+  resolved "https://registry.yarnpkg.com/react-compound-timer/-/react-compound-timer-1.1.15.tgz#19ce6772839840f8e1432e6a7fa8f968ea273638"
+  integrity sha512-a2jqQZgLQt84Qkygk03lSqih7E9AZZwSxyVz4V7hhNOFrtczxWRimEQFqa+rH0J+2AvSrH2uYdgq1D/UrOE/jQ==
+  dependencies:
+    react "^16.8.6"
+
 react-dev-utils@^9.0.4:
   version "9.0.4"
   resolved "https://registry.yarnpkg.com/react-dev-utils/-/react-dev-utils-9.0.4.tgz#5c71a8e8afdec0232c44d4e049d21baa437a92af"
@@ -9671,6 +9678,15 @@ react-slick@~0.25.2:
     json2mq "^0.2.0"
     lodash.debounce "^4.0.8"
     resize-observer-polyfill "^1.5.0"
+
+react@^16.8.6:
+  version "16.11.0"
+  resolved "https://registry.yarnpkg.com/react/-/react-16.11.0.tgz#d294545fe62299ccee83363599bf904e4a07fdbb"
+  integrity sha512-M5Y8yITaLmU0ynd0r1Yvfq98Rmll6q8AxaEe88c8e7LxO8fZ2cNgmFt0aGAS9wzf1Ao32NKXtCl+/tVVtkxq6g==
+  dependencies:
+    loose-envify "^1.1.0"
+    object-assign "^4.1.1"
+    prop-types "^15.6.2"
 
 react@^16.9.0:
   version "16.9.0"
