@@ -1,12 +1,16 @@
 .canvas-container {
 
+  .drag-canvas {
+    cursor: grabbing;
+  }
+
   .zoom-canvas {
     image-rendering: pixelated;
+    
 
-  canvas {
+    canvas {
       z-index: -1;
     }
-
   }
 
   .zoom-controls {
@@ -26,9 +30,7 @@
   }
 
   .color-picker {
-    position: fixed; 
+    position: absolute; 
     z-index: 10; 
-    bottom: 100px;
-    right: 100px; 
   }
 }

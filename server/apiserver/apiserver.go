@@ -275,7 +275,7 @@ func (api *ApiServer) reader(conn *websocket.Conn) {
 				fmt.Printf("%+v", cu_msg)
 				email := cu_msg.Id
 				// byt = api.CallUpdateUserList()
-				byt = []byte("Login User " + email)
+				byt = []byte("{\"type\": 2, \"Id\": \"" + email + "\"}")
 			} else {
 				fmt.Println("JSON decoding error.")
 			}
