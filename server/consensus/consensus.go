@@ -69,12 +69,7 @@ type SetUserDataBackendMessage struct {
 }
 
 type UpdatePixelBackendMessage struct {
-	X string
-	Y string
-	R string
-	G string
-	B string
-	A string
+	X, Y, R, G, B, A string
 }
 
 func NewImageMessage(img image.RGBA) ConsensusMessage {
