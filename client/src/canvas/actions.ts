@@ -7,12 +7,24 @@ import { getZoomFactor, getCanvasContext } from './selectors';
 const fetchImageDataStart = () => ({
   type: ActionTypes.FetchImageStart
 });
-
 export type FetchImageDataStart = ReturnType<typeof fetchImageDataStart>;
 
 export const fetchImageData = () => dispatch => {
   dispatch(fetchImageDataStart());
 };
+
+export const setImage = (image: string) => ({
+  type: ActionTypes.FetchImageSuccess,
+  payload: {
+    image
+  }
+});
+export type SetInitialImage = ReturnType<typeof setImage>;
+
+export const setInitialImage = (image: string) => dispatch => {
+  console.log('setting image in state');
+  dispatch(setImage(image));
+}
 
 const registerContext = (ctx: CanvasRenderingContext2D) => ({
   type: ActionTypes.RegisterContext,

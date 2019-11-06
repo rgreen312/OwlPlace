@@ -6,9 +6,9 @@ import {
   updateCursorPosition,
   clearCursorPosition,
   setZoomFactor,
-  updatePixel
+  updatePixel,
 } from '../actions';
-import { getZoomFactor, getCurrentPosition } from '../selectors';
+import { getZoomFactor, getCurrentPosition, getInitialImage } from '../selectors';
 import { Color } from '../types';
 
 interface DispatchProps {
@@ -24,6 +24,7 @@ interface StateProps {
   zoomFactor: number;
   position: { x: number; y: number } | undefined;
   isLoading: boolean;
+  initialImage?: string;
 }
 
 const mapDispatchToProps: DispatchProps = {
@@ -38,7 +39,8 @@ const mapStateToProps = (state): StateProps => ({
   receivedError: receivedError(state),
   zoomFactor: getZoomFactor(state),
   position: getCurrentPosition(state),
-  isLoading: getIsLoadingState(state)
+  isLoading: getIsLoadingState(state),
+  initialImage: getInitialImage(state),
 });
 
 export default connect(

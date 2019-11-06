@@ -155,11 +155,11 @@ func (api *ApiServer) CallUpdatePixel(x int, y int, r int, g int, b int, userID 
 	// format message back to the client saying it's been updated or if it failed.
 	if consensus_response.Type == consensus.SUCCESS {
 		fmt.Fprintf(os.Stdout, "Update Success")
-		byt := makeTestingMessage("Update success")
+		byt := makeStatusMessage(200)
 		return byt
 	} else {
 		fmt.Fprintf(os.Stdout, "Update Failure")
-		byt := makeTestingMessage("Update failed")
+		byt := makeStatusMessage(400)
 		return byt
 	}
 }
@@ -329,11 +329,23 @@ func (api *ApiServer) wsEndpoint(w http.ResponseWriter, r *http.Request) {
 
 func makeTestingMessage(s string) []byte {
 	msg := TestingMsg{
-		Type: Testing,
+		Type: DrawResponse,
 		Msg:  s,
 	}
 
-	// var b []byte
+	b, err := json.Marshal(msg)
+	if err != nil {
+		log.Println(err)
+	}
+	return b
+}
+
+func makeStatusMessage(s int) []byte {
+	msg := DrawResponseMsg{
+		Type:   DrawResponse,
+		Status: s,
+	}
+
 	b, err := json.Marshal(msg)
 	if err != nil {
 		log.Println(err)
