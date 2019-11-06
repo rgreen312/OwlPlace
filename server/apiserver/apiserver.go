@@ -33,8 +33,6 @@ type ApiServer struct {
 
 func NewApiServer(pod_ip string) *ApiServer {
 
-	apiPort := 3001
-
 	// Make the channels that for api server and consensus module communication
 	sendc := make(chan consensus.BackendMessage)
 	recvc := make(chan consensus.ConsensusMessage)
@@ -42,7 +40,7 @@ func NewApiServer(pod_ip string) *ApiServer {
 	return &ApiServer{
 		sendc: sendc,
 		recvc: recvc,
-		port:  apiPort,
+		port:  common.apiPort,
 		pod_ip: pod_ip,
 	}
 }
@@ -57,16 +55,9 @@ func (api *ApiServer) ListenAndServe() {
 	http.ListenAndServe(fmt.Sprintf(":%d", api.port), nil)
 }
 
-func (api *ApiServer) IPToNodeId(ip_address string) int {
-	// This function maps ip addresses to node-ids
-	components := strings.Split(ip_address, ".")
-	combined := fmt.Sprintf("%03s%03s", components[2], components[3])
-	node_id, _ := strconv.Atoi(combined)
-	return node_id
-}
 
-func (api *ApiServer) ConsensusTrigger(w http.ResponseWriter, req *http.Request) {
 
+func (api *ApiServer) StartConsensus(join bool){
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		panic(err.Error())
@@ -92,7 +83,7 @@ func (api *ApiServer) ConsensusTrigger(w http.ResponseWriter, req *http.Request)
 				panic(err)
 			}
 		}
-		servers[api.IPToNodeId(pod.Status.PodIP)] = &common.ServerConfig{
+		servers[common.IPToNodeId(pod.Status.PodIP)] = &common.ServerConfig{
 			Hostname: pod.Status.PodIP,
 			ApiPort: 3001,
 			ConsensusPort: 3010,
@@ -102,21 +93,15 @@ func (api *ApiServer) ConsensusTrigger(w http.ResponseWriter, req *http.Request)
 	fmt.Fprintf(os.Stdout, "Pod Trigger Called\n")
 
 	// Start the consensus service in the background
-	join := false
-	go consensus.CreateConsensus(api.sendc, api.recvc, servers, api.IPToNodeId(api.pod_ip), join)
+	go consensus.CreateConsensus(api.sendc, api.recvc, servers, common.IPToNodeId(api.pod_ip), join)
+}
+
+func (api *ApiServer) ConsensusTrigger(w http.ResponseWriter, req *http.Request) {
+	api.StartConsensus(false)
 }
 
 func (api *ApiServer) ConsensusJoinMessage(w http.ResponseWriter, req *http.Request){
-	// Start the consensus service in the background
-	fmt.Fprintf(os.Stdout, "Got a join message\n")
-	servers :=  make(map[int]*common.ServerConfig)
-	servers[api.IPToNodeId(api.pod_ip)] = &common.ServerConfig{
-		Hostname: api.pod_ip,
-		ApiPort: 3001,
-		ConsensusPort: 3010,
-	}
-	join := true
-	go consensus.CreateConsensus(api.sendc, api.recvc, servers, api.IPToNodeId(api.pod_ip), join)
+	api.StartConsensus(true)
 }
 
 func (api *ApiServer) GetImage(w http.ResponseWriter, req *http.Request) {
