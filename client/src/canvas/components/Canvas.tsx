@@ -6,7 +6,6 @@ import { Icon, Spin } from 'antd';
 import { ZOOM_CHANGE_FACTOR } from '../constants';
 import { Color, RGBColor } from 'react-color';
 import classNames from 'classnames';
-import { getZoomFactor } from '../selectors';
 
 interface Props {
   receivedError: boolean;
@@ -165,7 +164,6 @@ class Canvas extends Component<Props, State> {
     const { dragStartX, dragStartY } = this.state;
     const x = ev.clientX - dragStartX;
     const y = ev.clientY - dragStartY;
-    console.log("we here"); 
     this.onCancel(false);
     this.setState({
       isDrag: true,
@@ -183,7 +181,8 @@ class Canvas extends Component<Props, State> {
   }
 
   onCancel(shouldUpdateColor) {
-    console.log("thinks we're canceling"); 
+    // In some states cancel is called without the color picker present (like zooming). 
+    // In this case, we shouldn't update the canvas' color since it would have never changed. 
     if (!shouldUpdateColor) {
       this.hideColorPicker(false); 
     } else {
@@ -217,7 +216,6 @@ class Canvas extends Component<Props, State> {
 
     // We should change the color back if cancel was pressed.
     if (didCancel) {
-      console.log("are we cancelling by accident?")
       const context = this.canvasRef.current!.getContext('2d');
 
       const x = this.props.position.x;
