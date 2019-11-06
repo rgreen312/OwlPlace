@@ -6,6 +6,7 @@ import { Icon, Spin } from 'antd';
 import { ZOOM_CHANGE_FACTOR } from '../constants';
 import { Color, RGBColor } from 'react-color';
 import classNames from 'classnames';
+import { getZoomFactor } from '../selectors';
 
 interface Props {
   receivedError: boolean;
@@ -143,12 +144,13 @@ class Canvas extends Component<Props, State> {
         this.showColorPicker();
         const imageData = this.canvasRef
           .current!.getContext('2d')!
-          .getImageData(x, y, 1, 1);
+          .getImageData(ev.offsetX, ev.offsetY, 1, 1);
+        console.log(imageData.data); 
         this.setState({
           previousColor: {
-            r: imageData.data[1],
-            g: imageData.data[2],
-            b: imageData.data[3]
+            r: imageData.data[0],
+            g: imageData.data[1],
+            b: imageData.data[2]
           }
         });
       }
@@ -163,7 +165,8 @@ class Canvas extends Component<Props, State> {
     const { dragStartX, dragStartY } = this.state;
     const x = ev.clientX - dragStartX;
     const y = ev.clientY - dragStartY;
-    this.onCancel();
+    console.log("we here"); 
+    this.onCancel(false);
     this.setState({
       isDrag: true,
       translateX: x,
@@ -179,8 +182,13 @@ class Canvas extends Component<Props, State> {
     };
   }
 
-  onCancel() {
-    this.hideColorPicker(true);
+  onCancel(shouldUpdateColor) {
+    console.log("thinks we're canceling"); 
+    if (!shouldUpdateColor) {
+      this.hideColorPicker(false); 
+    } else {
+      this.hideColorPicker(true);
+    }
   }
 
   onComplete() {
@@ -209,6 +217,7 @@ class Canvas extends Component<Props, State> {
 
     // We should change the color back if cancel was pressed.
     if (didCancel) {
+      console.log("are we cancelling by accident?")
       const context = this.canvasRef.current!.getContext('2d');
 
       const x = this.props.position.x;
@@ -244,7 +253,7 @@ class Canvas extends Component<Props, State> {
           {this.state.showColorPicker && (
             <ColorPicker
               onColorChange={c => this.onColorChange(c)}
-              onCancel={this.onCancel}
+              onCancel={() => this.onCancel(true)}
               onComplete={this.onComplete}
               className='color-picker'
               style={{ top: `${colorPickerY}px`, left: `${colorPickerX}px` }}
@@ -270,7 +279,7 @@ class Canvas extends Component<Props, State> {
               type='plus-circle'
               onClick={() => {
                 setZoomFactor(zoomFactor + ZOOM_CHANGE_FACTOR);
-                this.onCancel();
+                this.onCancel(false);
               }}
               className='zoom-icon'
             />
@@ -278,7 +287,7 @@ class Canvas extends Component<Props, State> {
               type='minus-circle'
               onClick={() => {
                 setZoomFactor(zoomFactor - ZOOM_CHANGE_FACTOR);
-                this.onCancel();
+                this.onCancel(false);
               }}
               className='zoom-icon'
             />
