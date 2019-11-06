@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"image"
-	"log"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -20,6 +19,8 @@ import (
 	"github.com/lni/dragonboat/v3/logger"
 	sm "github.com/lni/dragonboat/v3/statemachine"
 	"github.com/lni/goutils/syncutil"
+    log "github.com/sirupsen/logrus"
+    "github.com/pkg/errors"
 
 	"github.com/rgreen312/owlplace/server/common"
 )
@@ -72,70 +73,34 @@ type UpdatePixelBackendMessage struct {
 	X, Y, R, G, B, A string
 }
 
-func NewImageMessage(img image.RGBA) ConsensusMessage {
-	// In-memory buffer to store PNG image
-	// before we base 64 encode it
-	var encoded_msg bytes.Buffer
-	enc := gob.NewEncoder(&encoded_msg)
-	enc.Encode(img)
-
-	return ConsensusMessage{
-		Type: GET_IMAGE,
-		Data: encoded_msg,
-	}
-}
-
-func GetTimestampMessage(timestamp string) ConsensusMessage {
-	var encoded_msg bytes.Buffer
-	enc := gob.NewEncoder(&encoded_msg)
-	enc.Encode(timestamp)
-
-	return ConsensusMessage{
-		Type: GET_LAST_USER_UPDATE,
-		Data: encoded_msg,
-	}
-}
-
-func SuccessMessage() ConsensusMessage {
-	var empty_buffer bytes.Buffer
-	return ConsensusMessage{
-		Type: SUCCESS,
-		Data: empty_buffer,
-	}
-}
-
-func FailureMessage(error_type int) ConsensusMessage {
-	var encoded_msg bytes.Buffer
-	enc := gob.NewEncoder(&encoded_msg)
-	enc.Encode(error_type)
-
-	return ConsensusMessage{
-		Type: FAILURE,
-		Data: encoded_msg,
-	}
-}
-
-var (
-	// initial nodes count is fixed to three, their addresses are also fixed
-	addresses = []string{
-		"localhost:63001",
-		"localhost:63002",
-		"localhost:63003",
-	}
+const (
+    clusterInteractionTimeout = 3 * time.Second
 )
 
-func printUsage() {
-	fmt.Fprintf(os.Stdout, "Usage - \n")
-	fmt.Fprintf(os.Stdout, "put key value\n")
-	fmt.Fprintf(os.Stdout, "get key\n")
+var (
+    dragonboatConfigurationError = errors.New("dragonboat configuration")
+    noSuchUser = errors.New("no such user")
+)
+
+type IConsensus interface {
+    GetImage() (*image.RGBA, error)
+    GetLastUserModification(userId string) (time.Time, error)
+    SetLastUserModification(userId string, timestamp time.Time) (error)
 }
 
-func MainConsensus(recvc chan BackendMessage, sendc chan ConsensusMessage, servers map[int]*common.ServerConfig, nodeId int) {
+type ConsensusService struct {
+    nh *dragonboat.NodeHost
+    config *common.ServerConfig
+    dkv *DiskKV
+    nodeId int
+}
 
-	conf := servers[nodeId]
-	// For more information on the join parameter, see:
-	// https://godoc.org/github.com/lni/dragonboat#NodeHost.StartCluster
-	join := false
+func NewConsensusService(servers map[int]*common.ServerConfig, nodeId int) (*ConsensusService, error) {
+	conf, ok := servers[nodeId]
+    if !ok {
+        return nil, errors.Wrapf(dragonboatConfigurationError, "NodeID provided (%d) not present in server map.", nodeId)
+    }
+
 	nodeAddr := fmt.Sprintf("%s:%d", conf.Hostname, conf.ConsensusPort)
 
 	// https://github.com/golang/go/issues/17393
@@ -150,13 +115,13 @@ func MainConsensus(recvc chan BackendMessage, sendc chan ConsensusMessage, serve
 		}
 	}
 
-	// Log the node address for debugging purposes.
-	fmt.Fprintf(os.Stdout, "node address: %s\n", nodeAddr)
-	// Log the node ID
-	fmt.Fprintf(os.Stdout, "node id: %d\n", nodeId)
-	// Log the node address for debugging purposes.
-	fmt.Fprintf(os.Stdout, "peers: %+v\n", peers)
+    log.WithFields(log.Fields{
+        "node address": nodeAddr,
+        "node id": nodeId,
+        "peers": peers,
+    }).Debug()
 
+    // dragonboat provides it's own logging utilities.
 	logger.GetLogger("raft").SetLevel(logger.ERROR)
 	logger.GetLogger("rsm").SetLevel(logger.WARNING)
 	logger.GetLogger("transport").SetLevel(logger.WARNING)
@@ -170,15 +135,18 @@ func MainConsensus(recvc chan BackendMessage, sendc chan ConsensusMessage, serve
 		SnapshotEntries:    10,
 		CompactionOverhead: 5,
 	}
+    log.WithFields(log.Fields{
+        "raft config": rc,
+    }).Debug("Dragonboat Configuration")
 	if err := rc.Validate(); err != nil {
-		log.Fatalf("Invalid Dragonboat Configuration: %s\n", err)
-	} else {
-		log.Printf("Node %d: Valid Dragonboat Configuration\n", nodeId)
+        return nil, err
 	}
+
 	datadir := filepath.Join(
 		"example-data",
 		"helloworld-data",
 		fmt.Sprintf("node%d", nodeId))
+
 	nhc := config.NodeHostConfig{
 		DeploymentID:   1,
 		WALDir:         datadir,
@@ -186,127 +154,109 @@ func MainConsensus(recvc chan BackendMessage, sendc chan ConsensusMessage, serve
 		RTTMillisecond: 200,
 		RaftAddress:    nodeAddr,
 	}
+    log.WithFields(log.Fields{
+        "node host config": nhc,
+    }).Debug("Dragonboat Configuration")
 	if err := nhc.Validate(); err != nil {
-		log.Fatalf("Invalid Dragonboat Nodehost Configuration: %s\n", err)
-	} else {
-		log.Printf("Node %d: Valid Nodehost Dragonboat Configuration\n", nodeId)
+        return nil, err
 	}
+
 	nh, err := dragonboat.NewNodeHost(nhc)
 	if err != nil {
-		log.Fatalf("Failed to create new nodehost: %s\n", err)
+        return nil, errors.Wrap(err, "creating dragonboat nodehost")
 	}
-	var imgGetter func() image.RGBA
+
+    dkv := NewDiskKV(clusterID, nodeID)
+
+    return &ConsensusService{
+        nh: nh,
+        config: conf,
+        nodeId: nodeId,
+    }, nil
+}
+
+func (cs *ConsensusService) GetImage() (*image.RGBA, error) {
+    return &dkv.GetInMemoryImage(), nil
+}
+
+func (cs *ConsensusService) UpdatePixel(x, y, r, g, b, a int) (error) {
+    // Create the kv pair to send to dragonboat
+    kv := &KVData{
+        Key: fmt.Sprintf("pixel(%d,%d)", x, y),
+        Val: fmt.Sprintf("(%d,%d,%d,%d)", r, g, b, a),
+    }
+
+    data, err := json.Marshal(kv)
+    if err != nil {
+        return errors.Wrap(err, "marshalling update pixel kv data")
+    }
+
+    // sync with dragonboat
+    // TODO(gabe): determine if we should validate / check the result
+    // (currently not using it.)
+    session := cs.nh.GetNoOPSession(cs.clusterID)
+    _, err = nh.SyncPropose(ctx, session, data)
+    if err != nil {
+        return errors.Wrap(err, "syncing with dragonboat")
+    }
+
+    return nil
+}
+
+func (cs *ConsensusService) GetLastUserModification(userId string) (*time.Time, error) {
+
+    // Request a ready from dragonboat
+    result, err := nh.SyncRead(ctx, cs.clusterID, []byte(userId))
+    if err != nil {
+        return nil, errors.Wrap(err, "reading from dragonboat")
+    }
+    resultString := string(result.([]byte))
+    if resultString == "" {
+        return nil, noSuchUser
+    }
+
+    t, err := time.Parse(common.TimeFormat, resultString)
+    if err != nil {
+        return nil, errors.Wrap(err, "parsing time returned from dragonboat")
+    }
+
+    return &t, nil
+}
+
+func (cs *ConsensusService) SetLastUserModification(userId string, timestamp time.Time) (error) {
+
+    // Create the kv pair to send to dragonboat
+    kv := &KVData{
+        Key: userId,
+        Val: timestamp.Format(common.TimeFormat),
+    }
+
+    data, err := json.Marshal(kv)
+    if err != nil {
+        return errors.Wrap(err, "marshalling update pixel kv data")
+    }
+
+    // Sync with dragonboat
+    _, err = nh.SyncPropose(ctx, cs, data)
+    if err != nil {
+        return errors.Wrap(err, "syncing with dragonboat")
+    }
+
+    return nil
+}
+
+func (cs *ConsensusService) Start() (error) {
+	// For more information on the join parameter, see:
+	// https://godoc.org/github.com/lni/dragonboat#NodeHost.StartCluster
+	join := false
+
+    // Function to provide a state-machine reference to Raft
 	stateMachineProvider := func(clusterID uint64, nodeID uint64) sm.IOnDiskStateMachine {
-		dkv := NewDiskKV(clusterID, nodeID).(*DiskKV)
-		imgGetter = dkv.GetInMemoryImage
-		return dkv
+		return cs.dkv
 	}
-	if err := nh.StartOnDiskCluster(peers, join, stateMachineProvider, rc); err != nil {
-		fmt.Fprintf(os.Stderr, "failed to add cluster, %v\n", err)
-		os.Exit(1)
-	}
-	raftStopper := syncutil.NewStopper()
-	raftStopper.RunWorker(func() {
-		cs := nh.GetNoOPSession(exampleClusterID)
-		for {
-			select {
-			case backend_msg, ok := <-recvc:
-				if !ok {
-					return
-				}
+    return cs.nh.StartOnDiskCluster(peers, join, stateMachineProvider, rc)
+}
 
-				// Start background context
-				ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+func (cs *ConsensusService) Stop() (error) {
 
-				// Message decoding depends on the type
-				switch backend_msg.Type {
-				case GET_IMAGE:
-					sendc <- NewImageMessage(imgGetter())
-				case UPDATE_PIXEL:
-					// Decode the message from the glob
-					dec := gob.NewDecoder(&backend_msg.Data)
-					var umsg UpdatePixelBackendMessage
-					err = dec.Decode(&umsg)
-					if err != nil {
-						sendc <- FailureMessage(MESSAGE_ERROR)
-					}
-
-					// Create the kv pair to send to dragonboat
-					kv := &KVData{
-						Key: fmt.Sprintf("pixel(%s,%s)", umsg.X, umsg.Y),
-						Val: fmt.Sprintf("(%s,%s,%s,%s)", umsg.R, umsg.G, umsg.B, umsg.A),
-					}
-					data, err := json.Marshal(kv)
-					if err != nil {
-						sendc <- FailureMessage(MESSAGE_ERROR)
-					}
-
-					// Sync with dragonboat
-					_, err = nh.SyncPropose(ctx, cs, data)
-					if err != nil {
-						fmt.Fprintf(os.Stderr, "SyncPropose returned error %v\n", err)
-						sendc <- FailureMessage(MESSAGE_ERROR)
-					} else {
-						sendc <- SuccessMessage()
-					}
-				case SET_LAST_USER_UPDATE:
-					// Decode the message from the glob
-					dec := gob.NewDecoder(&backend_msg.Data)
-					var umsg SetUserDataBackendMessage
-					err = dec.Decode(&umsg)
-					if err != nil {
-						sendc <- FailureMessage(MESSAGE_ERROR)
-					}
-
-					// Create the kv pair to send to dragonboat
-					kv := &KVData{
-						Key: umsg.UserId,
-						Val: umsg.Timestamp,
-					}
-					data, err := json.Marshal(kv)
-					if err != nil {
-						sendc <- FailureMessage(MESSAGE_ERROR)
-					}
-
-					// Sync with dragonboat
-					_, err = nh.SyncPropose(ctx, cs, data)
-					if err != nil {
-						fmt.Fprintf(os.Stderr, "SyncPropose returned error %v\n", err)
-						sendc <- FailureMessage(DRAGONBOAT_ERROR)
-					} else {
-						sendc <- SuccessMessage()
-					}
-
-				case GET_LAST_USER_UPDATE:
-					// Decode the message from the glob
-					dec := gob.NewDecoder(&backend_msg.Data)
-					var umsg GetUserDataBackendMessage
-					err = dec.Decode(&umsg)
-					if err != nil {
-						fmt.Fprintf(os.Stdout, "Decoding Error \n")
-						sendc <- FailureMessage(MESSAGE_ERROR)
-					}
-
-					// Request a ready from dragonboat
-					result, err := nh.SyncRead(ctx, exampleClusterID, []byte(umsg.UserId))
-					if err != nil {
-						fmt.Fprintf(os.Stdout, "Failed to read\n", umsg.UserId)
-						sendc <- FailureMessage(DRAGONBOAT_ERROR)
-					} else {
-						if(string(result.([]byte)) == ""){
-							sendc <- FailureMessage(DRAGONBOAT_ERROR)
-						} else {
-							sendc <- GetTimestampMessage(string(result.([]byte)))
-						}
-					}
-
-				}
-				cancel()
-
-			case <-raftStopper.ShouldStop():
-				return
-			}
-		}
-	})
-	raftStopper.Wait()
 }
