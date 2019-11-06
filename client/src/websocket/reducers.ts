@@ -1,7 +1,7 @@
-import { createReducer } from "../createReducer";
-import * as ActionTypes from "./actionTypes";
-import { ConnectSuccess } from "./actions";
-import { combineReducers } from "redux";
+import { createReducer } from '../createReducer';
+import * as ActionTypes from './actionTypes';
+import { ConnectSuccess } from './actions';
+import { combineReducers } from 'redux';
 
 export interface State {
   socket: WebSocket | null;
@@ -10,7 +10,7 @@ export interface State {
   isLoading: boolean;
 }
 
-const socket = createReducer<State["socket"]>(null, {
+const socket = createReducer<State['socket']>(null, {
   [ActionTypes.StartConnect]: () => null,
   [ActionTypes.ConnectError]: () => null,
   [ActionTypes.CloseConnection]: () => null,
@@ -18,21 +18,21 @@ const socket = createReducer<State["socket"]>(null, {
     action.payload.socket
 });
 
-const isConnected = createReducer<State["isConnected"]>(false, {
+const isConnected = createReducer<State['isConnected']>(false, {
   [ActionTypes.StartConnect]: () => false,
   [ActionTypes.ConnectError]: () => false,
   [ActionTypes.CloseConnection]: () => false,
   [ActionTypes.ConnectSuccess]: () => true
 });
 
-const receivedError = createReducer<State["receivedError"]>(false, {
+const receivedError = createReducer<State['receivedError']>(false, {
   [ActionTypes.StartConnect]: () => false,
   [ActionTypes.ConnectError]: () => true,
   [ActionTypes.CloseConnection]: () => false,
   [ActionTypes.ConnectSuccess]: () => false
 });
 
-const isLoading = createReducer<State["isLoading"]>(false, {
+const isLoading = createReducer<State['isLoading']>(false, {
   [ActionTypes.StartConnect]: () => true,
   [ActionTypes.ConnectError]: () => false,
   [ActionTypes.CloseConnection]: () => false,

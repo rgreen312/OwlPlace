@@ -226,8 +226,7 @@ class Canvas extends Component<Props, State> {
   }
 
   render() {
-    const { receivedError, zoomFactor, setZoomFactor } = this.props;
-    const isLoading = true;
+    const { receivedError, zoomFactor, setZoomFactor, isLoading } = this.props;
     const {
       translateX,
       translateY,
