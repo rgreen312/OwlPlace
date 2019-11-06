@@ -50,8 +50,8 @@ const (
 )
 
 const (
-	DRAGONBOAT_ERROR     int = 0
-	MESSAGE_ERROR        int = 1
+	DRAGONBOAT_ERROR int = 0
+	MESSAGE_ERROR    int = 1
 )
 
 type ConsensusMessage struct {
@@ -147,7 +147,6 @@ func ScanDiscoveryService(servers map[int]*common.ServerConfig, nh *dragonboat.N
 			panic(err.Error())
 		}
 
-		servers :=  make(map[int]*common.ServerConfig)
 		for _, pod := range pods.Items {
 			if servers[common.IPToNodeId(pod.Status.PodIP)] == nil {
 				fmt.Fprintf(os.Stdout, "Found pod that's not in cluster\n")
@@ -161,7 +160,7 @@ func ScanDiscoveryService(servers map[int]*common.ServerConfig, nh *dragonboat.N
 				}
 
 				// Adding pod to cluster 
-				request_data, request_err := nh.RequestAddNode(exampleClusterID, nodeId, pod.Status.PodIP, 0, 1000*time.Millisecond)
+				request_data, request_err := nh.RequestAddNode(exampleClusterID, uint64(nodeId), fmt.Sprintf("%s:%d", pod.Status.PodIP, common.ApiPort), 0, 1000*time.Millisecond)
 				if(request_err != nil){
 					panic(err)
 				}
@@ -172,7 +171,7 @@ func ScanDiscoveryService(servers map[int]*common.ServerConfig, nh *dragonboat.N
 				if(results.Completed()){
 					fmt.Fprintf(os.Stdout, "Pod join success\n")
 					// Send an http join request to the other nodes
-					_, err := http.Get(fmt.Sprintf("http://%s:%d/consensus_join_message", pod.Status.PodIP, common.apiPort))
+					_, err := http.Get(fmt.Sprintf("http://%s:%d/consensus_join_message", pod.Status.PodIP , common.ApiPort))
 					if(err != nil){
 						panic(err)
 					}
@@ -355,7 +354,7 @@ func CreateConsensus(recvc chan BackendMessage, sendc chan ConsensusMessage, ser
 						fmt.Fprintf(os.Stdout, "Failed to read\n", umsg.UserId)
 						sendc <- FailureMessage(DRAGONBOAT_ERROR)
 					} else {
-						if(string(result.([]byte)) == ""){
+						if string(result.([]byte)) == "" {
 							sendc <- FailureMessage(DRAGONBOAT_ERROR)
 						} else {
 							sendc <- GetTimestampMessage(string(result.([]byte)))

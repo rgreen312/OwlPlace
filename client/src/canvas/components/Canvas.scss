@@ -1,12 +1,18 @@
+.hide-canvas {
+  visibility: hidden;
+}
+
 .canvas-container {
+  .drag-canvas {
+    cursor: grabbing;
+  }
 
   .zoom-canvas {
     image-rendering: pixelated;
 
-  canvas {
+    canvas {
       z-index: -1;
     }
-
   }
 
   .zoom-controls {
@@ -14,21 +20,29 @@
     bottom: 70px;
     right: 10px;
     background-color: white;
-    padding-left: 5px; 
+    padding-left: 5px;
     padding-right: 5px;
     border-radius: 10px;
-    font-size: 20px; 
+    font-size: 20px;
 
     .zoom-icon {
       padding-left: 1px;
-      padding-right: 1px; 
+      padding-right: 1px;
     }
   }
 
   .color-picker {
-    position: fixed; 
-    z-index: 10; 
-    bottom: 100px;
-    right: 100px; 
+    position: absolute;
+    z-index: 10;
+  }
+}
+
+.spinner-style {
+  left: 50%;
+  position: absolute;
+  top: 50%;
+
+  .ant-spin-dot-item {
+    background-color: black;
   }
 }

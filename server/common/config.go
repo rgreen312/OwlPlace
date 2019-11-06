@@ -22,6 +22,6 @@ func IPToNodeId(ip_address string) int {
 	return node_id
 }
 const (
-	apiPort int := 3001
+	ApiPort int = 3001
 )
 
