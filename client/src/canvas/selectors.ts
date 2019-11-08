@@ -15,3 +15,6 @@ export const getZoomFactor = (state: State): number =>
 
 export const getTimeToChange = (state: State): number => 
   state.canvas.timeToNextChange;
+
+export const canUpdatePixel = (state: State): boolean => 
+  state.canvas.timeToNextChange === 0;
