@@ -2,13 +2,14 @@ import React, { Component, createRef, RefObject, useState } from 'react';
 import ColorPicker from '../../colorPicker/components/colorPicker';
 import { Redirect } from 'react-router-dom';
 import './Canvas.scss';
-import { Icon } from 'antd';
+import { Icon, Spin } from 'antd';
 import { ZOOM_CHANGE_FACTOR } from '../constants';
 import { Color, RGBColor } from 'react-color';
 import classNames from 'classnames';
 
 interface Props {
   receivedError: boolean;
+  isLoading: boolean;
   registerContext: (context: CanvasRenderingContext2D) => void;
   updatePosition: (x: number, y: number) => void;
   position: { x: number; y: number };
@@ -20,6 +21,7 @@ interface Props {
 
 interface State {
   showColorPicker: boolean;
+  previousColor: RGBColor | null;
   isDrag: boolean;
   translateX: number;
   translateY: number;
@@ -37,16 +39,18 @@ class Canvas extends Component<Props, State> {
     this.canvasRef = createRef();
     this.state = {
       showColorPicker: false,
+      previousColor: null,
       isDrag: false,
       translateX: 0,
       translateY: 0,
       dragStartX: 0,
       dragStartY: 0,
       colorPickerX: 0,
-      colorPickerY: 0,
+      colorPickerY: 0
     };
     this.onCancel = this.onCancel.bind(this);
     this.onComplete = this.onComplete.bind(this);
+    this.onColorChange = this.onColorChange.bind(this);
     this.updateTranslate = this.updateTranslate.bind(this);
   }
 
@@ -98,7 +102,7 @@ class Canvas extends Component<Props, State> {
       let pickerX = e.clientX + zoomFactor;
       let pickerY = e.clientY;
 
-      // The color picker is 220 x 337 pixels 
+      // The color picker is 220 x 337 pixels
       if (pickerX + 220 > window.innerWidth) {
         pickerX -= 220;
       }
@@ -123,7 +127,7 @@ class Canvas extends Component<Props, State> {
     /**
      * On mouse up, we check if the user was dragging. If they were, we set isDrag to false and
      * remove the event listener for dragging.
-     * 
+     *
      * If they were not dragging, then we display the color picker so we can update the color of
      * the pixel.
      */
@@ -137,23 +141,34 @@ class Canvas extends Component<Props, State> {
         const { x, y } = this.getMousePos(this.canvasRef.current, ev);
         this.props.updatePosition(x, y);
         this.showColorPicker();
+        const imageData = this.canvasRef
+          .current!.getContext('2d')!
+          .getImageData(ev.offsetX, ev.offsetY, 1, 1);
+        console.log(imageData.data); 
+        this.setState({
+          previousColor: {
+            r: imageData.data[0],
+            g: imageData.data[1],
+            b: imageData.data[2]
+          }
+        });
       }
 
       this.setState({
         isDrag: false
-      })
+      });
     });
   }
 
   updateTranslate(ev: MouseEvent) {
-    const { dragStartX, dragStartY } = this.state;
+    const { dragStartX, dragStartY, showColorPicker } = this.state;
     const x = ev.clientX - dragStartX;
     const y = ev.clientY - dragStartY;
+    this.onCancel(showColorPicker);
     this.setState({
       isDrag: true,
       translateX: x,
-      translateY: y,
-      showColorPicker: false,
+      translateY: y
     });
   }
 
@@ -165,21 +180,26 @@ class Canvas extends Component<Props, State> {
     };
   }
 
-  onCancel() {
-    this.hideColorPicker();
+  onCancel(shouldUpdateColor) {
+    // In some states cancel is called without the color picker present (like zooming). 
+    // In this case, we shouldn't update the canvas' color since it would have never changed. 
+    if (!shouldUpdateColor) {
+      this.hideColorPicker(false); 
+    } else {
+      this.hideColorPicker(true);
+    }
   }
 
-  onComplete(c: RGBColor) {
-    this.hideColorPicker();
+  onComplete() {
+    this.hideColorPicker(false);
+  }
 
+  onColorChange(c: RGBColor) {
     const context = this.canvasRef.current!.getContext('2d');
-
     const x = this.props.position.x - 1;
     const y = this.props.position.y - 1;
-
-    context!.fillStyle = `rgb(${c.r}, ${c.g}, ${c.b})`
+    context!.fillStyle = `rgb(${c.r}, ${c.g}, ${c.b})`;
     context!.fillRect(x, y, 1, 1);
-
     this.props.onUpdatePixel({ r: c.r, g: c.g, b: c.b }, x, y);
   }
 
@@ -189,48 +209,87 @@ class Canvas extends Component<Props, State> {
     });
   }
 
-  hideColorPicker() {
+  hideColorPicker(didCancel: boolean) {
     this.setState({
       showColorPicker: false
     });
+
+    // We should change the color back if cancel was pressed.
+    if (didCancel) {
+      const context = this.canvasRef.current!.getContext('2d');
+
+      const x = this.props.position.x;
+      const y = this.props.position.y;
+      const c = this.state.previousColor!;
+
+      context!.fillStyle = 'rgb(' + c.r + ',' + c.g + ',' + c.b + ')';
+      context!.fillRect(x - 1, y - 1, 1, 1);
+
+      this.props.onUpdatePixel({ r: c.r, g: c.g, b: c.b }, x, y);
+    }
   }
 
   render() {
-    const { receivedError, zoomFactor, setZoomFactor } = this.props;
-    const { translateX, translateY, isDrag, colorPickerX, colorPickerY } = this.state;
+    const { receivedError, zoomFactor, setZoomFactor, isLoading } = this.props;
+    const {
+      translateX,
+      translateY,
+      isDrag,
+      colorPickerX,
+      colorPickerY
+    } = this.state;
     return (
       // receivedError ? <Redirect to='/error'/> :
-      <div className='canvas-container'>
-        {this.state.showColorPicker && (
-            <ColorPicker
-              onCancel={this.onCancel}
-              onComplete={c => this.onComplete(c)}
-              className='color-picker' 
-              style={{ top: `${colorPickerY}px`, left: `${colorPickerX}px`}}
-            />
-        )}
+      <div>
+        {isLoading && <Spin className='spinner-style' size='large' />}
         <div
-          className={classNames({ 'pan-canvas': true, 'drag-canvas': isDrag })}
-          style={{ transform: `translate(${translateX}px, ${translateY}px)` }}
+          className={classNames({
+            'hide-canvas': isLoading,
+            'canvas-container': true
+          })}
         >
+          {this.state.showColorPicker && (
+            <ColorPicker
+              onColorChange={c => this.onColorChange(c)}
+              onCancel={() => this.onCancel(true)}
+              onComplete={this.onComplete}
+              className='color-picker'
+              style={{ top: `${colorPickerY}px`, left: `${colorPickerX}px` }}
+            />
+          )}
+
           <div
-            className='zoom-canvas'
-            style={{ transform: `scale(${zoomFactor}, ${zoomFactor})` }}
+            className={classNames({
+              'pan-canvas': true,
+              'drag-canvas': isDrag
+            })}
+            style={{ transform: `translate(${translateX}px, ${translateY}px)` }}
           >
-            <canvas ref={this.canvasRef} />
+            <div
+              className='zoom-canvas'
+              style={{ transform: `scale(${zoomFactor}, ${zoomFactor})` }}
+            >
+              <canvas ref={this.canvasRef} />
+            </div>
           </div>
-        </div>
-        <div className='zoom-controls'>
-          <Icon
-            type='plus-circle'
-            onClick={() => setZoomFactor(zoomFactor + ZOOM_CHANGE_FACTOR)}
-            className='zoom-icon'
-          />
-          <Icon
-            type='minus-circle'
-            onClick={() => setZoomFactor(zoomFactor - ZOOM_CHANGE_FACTOR)}
-            className='zoom-icon'
-          />
+          <div className='zoom-controls'>
+            <Icon
+              type='plus-circle'
+              onClick={() => {
+                setZoomFactor(zoomFactor + ZOOM_CHANGE_FACTOR);
+                this.onCancel(true);
+              }}
+              className='zoom-icon'
+            />
+            <Icon
+              type='minus-circle'
+              onClick={() => {
+                setZoomFactor(zoomFactor - ZOOM_CHANGE_FACTOR);
+                this.onCancel(true);
+              }}
+              className='zoom-icon'
+            />
+          </div>
         </div>
       </div>
     );
