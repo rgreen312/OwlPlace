@@ -30,7 +30,7 @@ const zoomFactor = createReducer<State['zoomFactor']>(DEFAULT_ZOOM, {
   [ActionTypes.SetZoom]: (state, action: SetZoom) => action.payload.zoom
 });
 
-const timeToNextChange = createReducer<State['timeToNextChange']>(10000, { // TODO: default to 0
+const timeToNextChange = createReducer<State['timeToNextChange']>(0, {
   [ActionTypes.SetTimeRemaining]: (state, action: SetTimeRemaining) => action.payload.time,
   [ActionTypes.UpdatePixelSuccess]: () => TIME_BETWEEN_UPDATES_MS,
 });
