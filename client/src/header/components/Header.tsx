@@ -97,6 +97,7 @@ const Header: FC<Props> = ({
   const timerComponent = (
     <div className='timer'>
       {Math.floor(time / 60000)}:
+      {/* Get the number of seconds remaining, and force a trailing 0 if necessary */}
       {('0' + Math.floor((time % 60000) / 1000)).slice(-2)}
     </div>
   );
