@@ -10,4 +10,11 @@ export const getCurrentPosition = (
 ): { x: number; y: number } | undefined =>
   state.canvas.curPosition || undefined;
 
-export const getZoomFactor = (state: State): number => state.canvas.zoomFactor;
+export const getZoomFactor = (state: State): number => 
+  state.canvas.zoomFactor;
+
+export const getTimeToChange = (state: State): number => 
+  state.canvas.timeToNextChange;
+
+export const canUpdatePixel = (state: State): boolean => 
+  state.canvas.timeToNextChange === 0;

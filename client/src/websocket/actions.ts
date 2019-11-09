@@ -138,5 +138,3 @@ export const closeWebSocket = () => (dispatch, getState) => {
   }
   dispatch(closeConnection());
 }
-
-// TODO (ryan): create action send different message types

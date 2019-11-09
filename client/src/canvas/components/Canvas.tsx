@@ -2,7 +2,7 @@ import React, { Component, createRef, RefObject, useState } from 'react';
 import ColorPicker from '../../colorPicker/components/colorPicker';
 import { Redirect } from 'react-router-dom';
 import './Canvas.scss';
-import { Icon, Spin } from 'antd';
+import { Icon, Spin, notification } from 'antd';
 import { ZOOM_CHANGE_FACTOR } from '../constants';
 import { Color, RGBColor } from 'react-color';
 import classNames from 'classnames';
@@ -17,6 +17,7 @@ interface Props {
   onUpdatePixel: (newColor: Color, x: number, y: number) => void;
   zoomFactor: number;
   setZoomFactor: (newZoom: number) => void;
+  canUpdatePixel: boolean;
 }
 
 interface State {
@@ -137,21 +138,29 @@ class Canvas extends Component<Props, State> {
         this.updateTranslate
       );
 
+      const { canUpdatePixel } = this.props;
       if (!this.state.isDrag) {
-        const { x, y } = this.getMousePos(this.canvasRef.current, ev);
-        this.props.updatePosition(x, y);
-        this.showColorPicker();
-        const imageData = this.canvasRef
-          .current!.getContext('2d')!
-          .getImageData(ev.offsetX, ev.offsetY, 1, 1);
-        console.log(imageData.data); 
-        this.setState({
-          previousColor: {
-            r: imageData.data[0],
-            g: imageData.data[1],
-            b: imageData.data[2]
-          }
-        });
+        if (canUpdatePixel) {
+          const { x, y } = this.getMousePos(this.canvasRef.current, ev);
+          this.props.updatePosition(x, y);
+          this.showColorPicker();
+          const imageData = this.canvasRef
+            .current!.getContext('2d')!
+            .getImageData(ev.offsetX, ev.offsetY, 1, 1);
+  
+          this.setState({
+            previousColor: {
+              r: imageData.data[0],
+              g: imageData.data[1],
+              b: imageData.data[2]
+            }
+          });
+        } else {
+          notification.error({
+            message: 'Cannot update pixel',
+            description: 'Sorry, you cannot update a pixel at this time. Please wait until the timer is up in order to update another pixel.'
+          })
+        }
       }
 
       this.setState({
@@ -191,7 +200,9 @@ class Canvas extends Component<Props, State> {
   }
 
   onComplete() {
+    const { onUpdatePixel } = this.props;
     this.hideColorPicker(false);
+    onUpdatePixel({ r: 0, g: 0, b: 0 } , 0, 0);
   }
 
   onColorChange(c: RGBColor) {
@@ -200,7 +211,6 @@ class Canvas extends Component<Props, State> {
     const y = this.props.position.y - 1;
     context!.fillStyle = `rgb(${c.r}, ${c.g}, ${c.b})`;
     context!.fillRect(x, y, 1, 1);
-    this.props.onUpdatePixel({ r: c.r, g: c.g, b: c.b }, x, y);
   }
 
   showColorPicker() {
