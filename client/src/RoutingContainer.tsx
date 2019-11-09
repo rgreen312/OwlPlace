@@ -6,6 +6,7 @@ import AboutPage from './about/containers/AboutContainer';
 import Header from './header/containers/HeaderContainer';
 import Footer from './footer/components/Footer';
 import ErrorPage from './error/components/Error';
+import TestingPage from './testing/components/Testing'; 
 
 const RoutingContainer: FC = () => (
   <Router basename='/OwlPlace'>
@@ -14,6 +15,7 @@ const RoutingContainer: FC = () => (
       <Route exact path='/' component={CanvasPageContainer} />
       <Route path='/about' component={AboutPage} />
       <Route path='/error' component={ErrorPage} />
+      <Route path='/testing' component={TestingPage} />
       <Footer />
     </ScrollToTop>
   </Router>
