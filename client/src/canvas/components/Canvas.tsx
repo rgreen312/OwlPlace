@@ -153,7 +153,6 @@ class Canvas extends Component<Props, State> {
             .current!.getContext('2d')!
             .getImageData(position.x - 1, position.y - 1, 1, 1);
 
-          console.log('setting previous color', position.x, position.y);
           this.setState({
             previousColor: {
               r: imageData.data[0],
