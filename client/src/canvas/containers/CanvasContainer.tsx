@@ -8,7 +8,12 @@ import {
   setZoomFactor,
   updatePixel,
 } from '../actions';
-import { getZoomFactor, getCurrentPosition, getInitialImage } from '../selectors';
+import {
+  getZoomFactor,
+  getCurrentPosition,
+  getInitialImage,
+  canUpdatePixel,
+} from '../selectors';
 import { Color } from '../types';
 
 interface DispatchProps {
@@ -25,6 +30,7 @@ interface StateProps {
   position: { x: number; y: number } | undefined;
   isLoading: boolean;
   initialImage?: string;
+  canUpdatePixel: boolean;
 }
 
 const mapDispatchToProps: DispatchProps = {
@@ -41,6 +47,7 @@ const mapStateToProps = (state): StateProps => ({
   position: getCurrentPosition(state),
   isLoading: getIsLoadingState(state),
   initialImage: getInitialImage(state),
+  canUpdatePixel: canUpdatePixel(state)
 });
 
 export default connect(

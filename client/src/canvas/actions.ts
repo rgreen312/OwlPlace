@@ -93,4 +93,23 @@ export const updatePixel = (
   newColor: Color,
   x: number,
   y: number
-) => dispatch => {};
+) => dispatch => {
+  console.log('updated pixel');
+  dispatch({ type: ActionTypes.UpdatePixelSuccess });
+};
+
+export const setTimeRemaining = (time: number) => ({
+  type: ActionTypes.SetTimeRemaining,
+  payload: {
+    time,
+  }
+});
+export type SetTimeRemaining = ReturnType<typeof setTimeRemaining>;
+
+export const setTimeToNextMove = (time: number) => dispatch => {
+  // Don't let time remaining be negative
+  if (time < 0) {
+    dispatch(setTimeRemaining(0));
+  }
+  dispatch(setTimeRemaining(time));
+}
