@@ -46,7 +46,7 @@ func NewApiServer(servers map[int]*common.ServerConfig, nodeId int) *ApiServer {
 
 func (api *ApiServer) ListenAndServe() {
 	http.HandleFunc("/headers", api.Headers)
-	// http.HandleFunc("/get_image", api.HTTPGetImage)
+	http.HandleFunc("/get_image", api.HTTPGetImage)
 	http.HandleFunc("/update_pixel", api.HTTPUpdatePixel)
 	http.HandleFunc("/ws", api.wsEndpoint)
 
@@ -56,9 +56,50 @@ func (api *ApiServer) ListenAndServe() {
 	http.ListenAndServe(fmt.Sprintf(":%d", api.port), nil)
 }
 
-// func (api *ApiServer) HTTPGetImage(w http.ResponseWriter, req *http.Request) {
-// 	api.CallGetImage()
-// }
+func (api *ApiServer) HTTPGetImage(w http.ResponseWriter, req *http.Request) {
+	// This has only been added back for debugging purposes and will probably be removed in the final thing.
+	// Debug message
+	fmt.Fprintf(os.Stdout, "Getting Image From Raft\n")
+	fmt.Fprintf(os.Stdout, "Called from http writer. n")
+	// Construct the message
+	m := consensus.BackendMessage{Type: consensus.GET_IMAGE}
+	// Send a message through the channel
+	api.sendc <- m
+	var ImageTemplate string = `<!DOCTYPE html>
+								<html lang="en"><head></head>
+								<body><img src="data:image/jpg;base64,{{.Image}}"></body>`
+	imageMsg := <-api.recvc
+	image_msg := <-api.recvc
+
+	if _, err := template.New("image").Parse(ImageTemplate); err != nil {
+	if tmpl, err := template.New("image").Parse(ImageTemplate); err != nil {
+		fmt.Fprintf(os.Stdout, "Unable to parse image template.\n")
+		return "Unable to parse image template"
+	} else {
+
+		// Decode the message from the glob
+		dec := gob.NewDecoder(&imageMsg.Data)
+		dec := gob.NewDecoder(&image_msg.Data)
+		var img image.RGBA
+		dec.Decode(&img)
+
+		// In-memory buffer to store PNG image
+		// before we base 64 encode it
+		var buff bytes.Buffer
+		// The Buffer satisfies the Writer interface so we can use it with Encode
+		// In previous example we encoded to a file, this time to a temp buffer
+		png.Encode(&buff, &img)
+		// Encode the bytes in the buffer to a base64 string
+		encodedString := base64.StdEncoding.EncodeToString(buff.Bytes())
+
+		// TODO  wrap the encodedString in a message
+
+		return encodedString
+		data := map[string]interface{}{"Image": encodedString}
+		if err = tmpl.Execute(w, data); err != nil {
+			fmt.Fprintf(os.Stdout, "Unable to execute template.\n")
+		}
+	}
 
 func (api *ApiServer) CallGetImage() string {
 	// Debug message

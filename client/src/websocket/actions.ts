@@ -122,6 +122,16 @@ export const sendUpdateMessage = (id, x, y, r, g, b) => (dispatch, getState) => 
   const socket = getWebSocket(getState());
   if (socket) {
     socket.send(makeUpdateMessage(id, x, y, r, g, b));
+
+    // The follwing should be REMOVED when testing is done/ you want to only do single pixels
+    let lower = 495;
+    let upper = 505;
+    for (let i = lower; i < upper; i++) {
+      for (let j = lower; j < upper; j++) {
+        console.log("sending..")
+        socket.send(makeUpdateMessage(id, i, j, r, g, b));
+      }
+    }
   }
 }
 

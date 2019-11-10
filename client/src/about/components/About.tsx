@@ -15,7 +15,7 @@ const About: FC<Props> = ({ sendUpdateMessage, sendLoginMessage }) => (
     <h2>TESTING AREA</h2>
       <p>Click "Pixel 1" to send an update message to the server!
       </p>
-        <button onClick = {() => sendUpdateMessage("user1", 500, 500, 25, 125, 255)} id="p1"> Pixel 1 </button>
+        <button onClick = {() => sendUpdateMessage("user1", 500, 500, 0, 125, 255)} id="p1"> Pixel 1 </button>
         <button onClick = {() => sendLoginMessage("testemail@gmail.com")} id="login"> User Login </button>
     <h1>OwlPlace</h1>
 
