@@ -6,7 +6,7 @@ import AboutPage from './about/containers/AboutContainer';
 import Header from './header/containers/HeaderContainer';
 import Footer from './footer/components/Footer';
 import ErrorPage from './error/components/Error';
-import TestingPage from './testing/components/Testing'; 
+import TestingPage from './testing/containers/TestingContainer'; 
 
 const RoutingContainer: FC = () => (
   <Router basename='/OwlPlace'>
