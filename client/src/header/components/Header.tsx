@@ -109,7 +109,7 @@ const Header: FC<Props> = ({
     <PageHeader
       title='OwlPlace'
       subTitle='change the canvas one pixel at a time'
-      extra={[timerComponent, loginButton, dropdownMenu]}
+      extra={[isLoggedIn ? timerComponent : null, loginButton, dropdownMenu]}
     />
   );
 };
