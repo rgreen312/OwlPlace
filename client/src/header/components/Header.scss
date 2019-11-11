@@ -1,4 +1,10 @@
 .ant-page-header {
   background-color: white;
   z-index: 10;
+  user-select: none;
+}
+
+.name-label {
+  float: left;
+  user-select: none;
 }
