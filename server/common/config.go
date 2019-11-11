@@ -1,11 +1,11 @@
 package common
 
 import (
-    "time"
+	"time"
 )
 
 const (
-    TimeFormat = time.RFC339
+	TimeFormat = time.RFC3339
 )
 
 type ServerConfig struct {
