@@ -1,6 +1,6 @@
 import { connect } from 'react-redux';
 import { sendUpdateMessage, sendLoginMessage } from '../../websocket/actions';
-import About from '../components/About';
+import Testing from '../components/Testing';
 
 interface DispatchProps {
   sendUpdateMessage: (id, x, y, r, g, b) => void;
@@ -15,4 +15,4 @@ const mapDispatchToProps: DispatchProps = {
 export default connect(
   null,
   mapDispatchToProps
-)(About);
+)(Testing);
