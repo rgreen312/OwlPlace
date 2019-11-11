@@ -138,16 +138,21 @@ class Canvas extends Component<Props, State> {
         this.updateTranslate
       );
 
-      const { canUpdatePixel } = this.props;
+      const { canUpdatePixel, updatePosition } = this.props;
       if (!this.state.isDrag) {
         if (canUpdatePixel) {
-          const { x, y } = this.getMousePos(this.canvasRef.current, ev);
-          this.props.updatePosition(x, y);
+          const { x: xNew, y: yNew } = this.getMousePos(
+            this.canvasRef.current,
+            ev
+          );
+          updatePosition(xNew, yNew);
           this.showColorPicker();
+
+          const { position } = this.props;
           const imageData = this.canvasRef
             .current!.getContext('2d')!
-            .getImageData(ev.offsetX, ev.offsetY, 1, 1);
-  
+            .getImageData(position.x - 1, position.y - 1, 1, 1);
+
           this.setState({
             previousColor: {
               r: imageData.data[0],
@@ -158,8 +163,9 @@ class Canvas extends Component<Props, State> {
         } else {
           notification.error({
             message: 'Cannot update pixel',
-            description: 'Sorry, you cannot update a pixel at this time. Please wait until the timer is up in order to update another pixel.'
-          })
+            description:
+              'Sorry, you cannot update a pixel at this time. Please wait until the timer is up in order to update another pixel.'
+          });
         }
       }
 
@@ -170,10 +176,10 @@ class Canvas extends Component<Props, State> {
   }
 
   updateTranslate(ev: MouseEvent) {
-    const { dragStartX, dragStartY, showColorPicker } = this.state;
+    const { dragStartX, dragStartY } = this.state;
     const x = ev.clientX - dragStartX;
     const y = ev.clientY - dragStartY;
-    this.onCancel(showColorPicker);
+    this.onCancel();
     this.setState({
       isDrag: true,
       translateX: x,
@@ -182,27 +188,35 @@ class Canvas extends Component<Props, State> {
   }
 
   getMousePos(canvas, evt) {
-    var rect = canvas.getBoundingClientRect();
+    const rect = canvas.getBoundingClientRect();
     return {
       x: evt.clientX - rect.left,
       y: evt.clientY - rect.top
     };
   }
 
-  onCancel(shouldUpdateColor) {
-    // In some states cancel is called without the color picker present (like zooming). 
-    // In this case, we shouldn't update the canvas' color since it would have never changed. 
-    if (!shouldUpdateColor) {
-      this.hideColorPicker(false); 
-    } else {
-      this.hideColorPicker(true);
+  onCancel() {
+    // In some states cancel is called without the color picker present (like zooming).
+    // In this case, we shouldn't update the canvas' color since it would have never changed.
+    this.hideColorPicker();
+
+    if (this.props.position && this.state.previousColor) {
+      const context = this.canvasRef.current!.getContext('2d');
+
+      const x = this.props.position.x;
+      const y = this.props.position.y;
+      const c = this.state.previousColor;
+
+      context!.fillStyle = 'rgb(' + c.r + ',' + c.g + ',' + c.b + ')';
+      context!.fillRect(x - 1, y - 1, 1, 1);
     }
+    this.setState({ previousColor: null });
   }
 
   onComplete() {
     const { onUpdatePixel } = this.props;
-    this.hideColorPicker(false);
-    onUpdatePixel({ r: 0, g: 0, b: 0 } , 0, 0);
+    this.hideColorPicker();
+    onUpdatePixel({ r: 0, g: 0, b: 0 }, 0, 0);
   }
 
   onColorChange(c: RGBColor) {
@@ -219,24 +233,10 @@ class Canvas extends Component<Props, State> {
     });
   }
 
-  hideColorPicker(didCancel: boolean) {
+  hideColorPicker() {
     this.setState({
       showColorPicker: false
     });
-
-    // We should change the color back if cancel was pressed.
-    if (didCancel) {
-      const context = this.canvasRef.current!.getContext('2d');
-
-      const x = this.props.position.x;
-      const y = this.props.position.y;
-      const c = this.state.previousColor!;
-
-      context!.fillStyle = 'rgb(' + c.r + ',' + c.g + ',' + c.b + ')';
-      context!.fillRect(x - 1, y - 1, 1, 1);
-
-      this.props.onUpdatePixel({ r: c.r, g: c.g, b: c.b }, x, y);
-    }
   }
 
   render() {
@@ -261,7 +261,7 @@ class Canvas extends Component<Props, State> {
           {this.state.showColorPicker && (
             <ColorPicker
               onColorChange={c => this.onColorChange(c)}
-              onCancel={() => this.onCancel(true)}
+              onCancel={() => this.onCancel()}
               onComplete={this.onComplete}
               className='color-picker'
               style={{ top: `${colorPickerY}px`, left: `${colorPickerX}px` }}
@@ -287,7 +287,7 @@ class Canvas extends Component<Props, State> {
               type='plus-circle'
               onClick={() => {
                 setZoomFactor(zoomFactor + ZOOM_CHANGE_FACTOR);
-                this.onCancel(true);
+                this.onCancel();
               }}
               className='zoom-icon'
             />
@@ -295,7 +295,7 @@ class Canvas extends Component<Props, State> {
               type='minus-circle'
               onClick={() => {
                 setZoomFactor(zoomFactor - ZOOM_CHANGE_FACTOR);
-                this.onCancel(true);
+                this.onCancel();
               }}
               className='zoom-icon'
             />
