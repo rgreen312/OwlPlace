@@ -1,11 +1,11 @@
-import React, { Component, createRef, RefObject, useState } from 'react';
-import ColorPicker from '../../colorPicker/components/colorPicker';
-import { Redirect } from 'react-router-dom';
-import './Canvas.scss';
-import { Icon, Spin, notification } from 'antd';
-import { ZOOM_CHANGE_FACTOR } from '../constants';
-import { Color, RGBColor } from 'react-color';
-import classNames from 'classnames';
+import React, { Component, createRef, RefObject, useState } from "react";
+import ColorPicker from "../../colorPicker/components/colorPicker";
+import { Redirect } from "react-router-dom";
+import "./Canvas.scss";
+import { Icon, Spin, notification } from "antd";
+import { ZOOM_CHANGE_FACTOR } from "../constants";
+import { Color, RGBColor } from "react-color";
+import classNames from "classnames";
 
 interface Props {
   receivedError: boolean;
@@ -60,7 +60,7 @@ class Canvas extends Component<Props, State> {
     this.canvasRef.current!.width = 1000;
     this.canvasRef.current!.height = 1000;
 
-    const context = this.canvasRef.current!.getContext('2d');
+    const context = this.canvasRef.current!.getContext("2d");
 
     // const image = new Image();
 
@@ -78,24 +78,24 @@ class Canvas extends Component<Props, State> {
     context!.imageSmoothingEnabled = false;
 
     // TODO: remove this code
-    context!.fillStyle = '#000000';
+    context!.fillStyle = "#000000";
     context!.fillRect(0, 0, 1000, 500);
-    context!.fillStyle = '#ff0000';
+    context!.fillStyle = "#ff0000";
     context!.fillRect(0, 500, 1000, 500);
 
-    this.canvasRef.current!.addEventListener('mousemove', ev => {
+    this.canvasRef.current!.addEventListener("mousemove", ev => {
       if (this.state.showColorPicker) return;
       const { x, y } = this.getMousePos(this.canvasRef.current, ev);
       this.props.updatePosition(x, y);
     });
 
-    this.canvasRef.current!.addEventListener('mouseout', () => {
+    this.canvasRef.current!.addEventListener("mouseout", () => {
       if (this.state.showColorPicker) return;
       this.props.onMouseOut();
     });
 
     // On mousedown, get the current location to be used for dragging
-    this.canvasRef.current!.addEventListener('mousedown', e => {
+    this.canvasRef.current!.addEventListener("mousedown", e => {
       const { zoomFactor } = this.props;
       const { translateX, translateY } = this.state;
       const startPositionX = e.clientX - translateX;
@@ -121,7 +121,7 @@ class Canvas extends Component<Props, State> {
 
       // If the user moves after clicking, then they are dragging so we add listener
       this.canvasRef.current!.addEventListener(
-        'mousemove',
+        "mousemove",
         this.updateTranslate
       );
     });
@@ -133,9 +133,9 @@ class Canvas extends Component<Props, State> {
      * If they were not dragging, then we display the color picker so we can update the color of
      * the pixel.
      */
-    this.canvasRef.current!.addEventListener('mouseup', ev => {
+    this.canvasRef.current!.addEventListener("mouseup", ev => {
       this.canvasRef.current!.removeEventListener(
-        'mousemove',
+        "mousemove",
         this.updateTranslate
       );
 
@@ -151,7 +151,7 @@ class Canvas extends Component<Props, State> {
 
           const { position } = this.props;
           const imageData = this.canvasRef
-            .current!.getContext('2d')!
+            .current!.getContext("2d")!
             .getImageData(position.x - 1, position.y - 1, 1, 1);
 
           this.setState({
@@ -163,9 +163,9 @@ class Canvas extends Component<Props, State> {
           });
         } else {
           notification.error({
-            message: 'Cannot update pixel',
+            message: "Cannot update pixel",
             description:
-              'Sorry, you cannot update a pixel at this time. Please wait until the timer is up in order to update another pixel.'
+              "Sorry, you cannot update a pixel at this time. Please wait until the timer is up in order to update another pixel."
           });
         }
       }
@@ -177,10 +177,13 @@ class Canvas extends Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    console.log('component updated');
-    if (this.props.initialImage && this.props.initialImage !== prevProps.initialImage) {
-      console.log('image drawn');
-      const context = this.canvasRef.current!.getContext('2d');
+    console.log("component updated");
+    if (
+      this.props.initialImage &&
+      this.props.initialImage !== prevProps.initialImage
+    ) {
+      console.log("image drawn");
+      const context = this.canvasRef.current!.getContext("2d");
       if (context) {
         const image = new Image();
         image.onload = function() {
@@ -217,13 +220,13 @@ class Canvas extends Component<Props, State> {
     this.hideColorPicker();
 
     if (this.props.position && this.state.previousColor) {
-      const context = this.canvasRef.current!.getContext('2d');
+      const context = this.canvasRef.current!.getContext("2d");
 
       const x = this.props.position.x;
       const y = this.props.position.y;
       const c = this.state.previousColor;
 
-      context!.fillStyle = 'rgb(' + c.r + ',' + c.g + ',' + c.b + ')';
+      context!.fillStyle = "rgb(" + c.r + "," + c.g + "," + c.b + ")";
       context!.fillRect(x - 1, y - 1, 1, 1);
     }
     this.setState({ previousColor: null });
@@ -236,7 +239,7 @@ class Canvas extends Component<Props, State> {
   }
 
   onColorChange(c: RGBColor) {
-    const context = this.canvasRef.current!.getContext('2d');
+    const context = this.canvasRef.current!.getContext("2d");
     const x = this.props.position.x - 1;
     const y = this.props.position.y - 1;
     context!.fillStyle = `rgb(${c.r}, ${c.g}, ${c.b})`;
@@ -265,13 +268,13 @@ class Canvas extends Component<Props, State> {
       colorPickerY
     } = this.state;
     return (
-      // receivedError ? <Redirect to='/error'/> :
+      //   receivedError ? <Redirect to='/error'/> :
       <div>
-        {isLoading && <Spin className='spinner-style' size='large' />}
+        {isLoading && <Spin className="spinner-style" size="large" />}
         <div
           className={classNames({
-            'hide-canvas': isLoading,
-            'canvas-container': true
+            "hide-canvas": isLoading,
+            "canvas-container": true
           })}
         >
           {this.state.showColorPicker && (
@@ -279,41 +282,41 @@ class Canvas extends Component<Props, State> {
               onColorChange={c => this.onColorChange(c)}
               onCancel={() => this.onCancel()}
               onComplete={this.onComplete}
-              className='color-picker'
+              className="color-picker"
               style={{ top: `${colorPickerY}px`, left: `${colorPickerX}px` }}
             />
           )}
 
           <div
             className={classNames({
-              'pan-canvas': true,
-              'drag-canvas': isDrag
+              "pan-canvas": true,
+              "drag-canvas": isDrag
             })}
             style={{ transform: `translate(${translateX}px, ${translateY}px)` }}
           >
             <div
-              className='zoom-canvas'
+              className="zoom-canvas"
               style={{ transform: `scale(${zoomFactor}, ${zoomFactor})` }}
             >
               <canvas ref={this.canvasRef} />
             </div>
           </div>
-          <div className='zoom-controls'>
+          <div className="zoom-controls">
             <Icon
-              type='plus-circle'
+              type="plus-circle"
               onClick={() => {
                 setZoomFactor(zoomFactor + ZOOM_CHANGE_FACTOR);
                 this.onCancel();
               }}
-              className='zoom-icon'
+              className="zoom-icon"
             />
             <Icon
-              type='minus-circle'
+              type="minus-circle"
               onClick={() => {
                 setZoomFactor(zoomFactor - ZOOM_CHANGE_FACTOR);
                 this.onCancel();
               }}
-              className='zoom-icon'
+              className="zoom-icon"
             />
           </div>
         </div>

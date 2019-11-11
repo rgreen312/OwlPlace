@@ -1,16 +1,15 @@
-.about-page {
+.error-page {
   align-items: center;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
   margin-left: 20%;
   margin-right: 20%;
 }
 
 h1 {
-  margin: 0 !important;
+  margin-top: 20%;
 }
 
 p {
-  margin-top: 10px;
+  font-size: 15px;
 }
