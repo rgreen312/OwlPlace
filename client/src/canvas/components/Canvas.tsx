@@ -17,6 +17,7 @@ interface Props {
   onUpdatePixel: (newColor: Color, x: number, y: number) => void;
   zoomFactor: number;
   setZoomFactor: (newZoom: number) => void;
+  initialImage?: string;
   canUpdatePixel: boolean;
 }
 
@@ -173,6 +174,21 @@ class Canvas extends Component<Props, State> {
         isDrag: false
       });
     });
+  }
+
+  componentDidUpdate(prevProps: Props) {
+    console.log('component updated');
+    if (this.props.initialImage && this.props.initialImage !== prevProps.initialImage) {
+      console.log('image drawn');
+      const context = this.canvasRef.current!.getContext('2d');
+      if (context) {
+        const image = new Image();
+        image.onload = function() {
+          context.drawImage(image, 0, 0);
+        };
+        image.src = this.props.initialImage;
+      }
+    }
   }
 
   updateTranslate(ev: MouseEvent) {

@@ -6,12 +6,13 @@ import {
   updateCursorPosition,
   clearCursorPosition,
   setZoomFactor,
-  updatePixel
+  updatePixel,
 } from '../actions';
 import {
   getZoomFactor,
   getCurrentPosition,
-  canUpdatePixel
+  getInitialImage,
+  canUpdatePixel,
 } from '../selectors';
 import { Color } from '../types';
 
@@ -28,6 +29,7 @@ interface StateProps {
   zoomFactor: number;
   position: { x: number; y: number } | undefined;
   isLoading: boolean;
+  initialImage?: string;
   canUpdatePixel: boolean;
 }
 
@@ -44,6 +46,7 @@ const mapStateToProps = (state): StateProps => ({
   zoomFactor: getZoomFactor(state),
   position: getCurrentPosition(state),
   isLoading: getIsLoadingState(state),
+  initialImage: getInitialImage(state),
   canUpdatePixel: canUpdatePixel(state)
 });
 
