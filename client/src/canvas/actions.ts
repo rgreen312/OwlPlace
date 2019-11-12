@@ -100,7 +100,7 @@ export const updatePixel = (
   dispatch({ type: ActionTypes.UpdatePixelSuccess });
   const socket = getWebSocket(getState());
   const email = getUserEmail(getState());
-
+  console.log("This is being called!", newColor, newColor.r, newColor.g, newColor.b)
   if (socket && email) {
     socket.send(makeUpdateMessage(email, x, y, newColor.r, newColor.g, newColor.b));
   } else {
