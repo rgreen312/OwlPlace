@@ -45,5 +45,6 @@ func main() {
 	log.Printf("Joining Dragonboat cluster with configuration:\n%+v", servers)
 
 	server := apiserver.NewApiServer(servers, *nodeId)
-	server.ListenAndServe()
+	server.SetupRoutes()
+	// http.ListenAndServe(fmt.Sprintf(":%d", api.port), nil)
 }

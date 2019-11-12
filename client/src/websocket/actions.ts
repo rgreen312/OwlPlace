@@ -42,7 +42,7 @@ export const openWebSocket = () => dispatch => {
         })
       );
 
-      socket.send(makeUpdateMessage("AAAAAA", 6, 9, 4, 2, 0));
+      // socket.send(makeUpdateMessage("AAAAAA", 6, 9, 4, 2, 0));
       
     dispatch(connectSuccess(socket));
   };

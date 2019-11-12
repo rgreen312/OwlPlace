@@ -4,16 +4,24 @@ type MsgType uint8
 
 // Well defined Message types
 const (
-	Open      MsgType = 0
-	DrawPixel MsgType = 1
-	LoginUser MsgType = 2
-	Image     MsgType = 4
-	Testing   MsgType = 5
-	Close     MsgType = 9
+	// Error        MsgType = -1
+	Open         MsgType = 0
+	DrawPixel    MsgType = 1
+	LoginUser    MsgType = 2
+	UpdatePixel  MsgType = 3
+	Image        MsgType = 4
+	Testing      MsgType = 5
+	DrawResponse MsgType = 6
+	Close        MsgType = 9
 )
 
 type Msg struct {
 	Type MsgType `json:"type"`
+}
+
+type Message struct {
+	Type int    `json:"type"`
+	Body string `json:"body"`
 }
 
 type DrawPixelMsg struct {
@@ -39,4 +47,9 @@ type ImageMsg struct {
 type TestingMsg struct {
 	Type MsgType `json:"type"`
 	Msg  string  `json:"msg"`
+}
+
+type DrawResponseMsg struct {
+	Type   MsgType `json:"type"`
+	Status int     `json:"status"`
 }
