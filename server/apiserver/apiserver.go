@@ -161,15 +161,15 @@ func (api *ApiServer) CallUpdatePixel(x int, y int, r int, g int, b int, userID 
 
 	// TODO verify that the user is able to update a pizel with the User Data Team
 	userVerification := api.validateUser(userID)
-	if !userVerification {
+	// If validation failed
+	if userVerification != 200 {
 		// User verification failed
-
 		log.Println(fmt.Sprintf("USER %s failed authentication", userID))
 		// TODO return the appropriate failure message
 		imageMsg := "FAILURE. TODO make this properly formatted"
 
-		// send message back to the client saying it's been updated or if it failed
-		byt := []byte(imageMsg)
+		// send message back to the client indicating verification failure
+		byt := makeVerificationFailMessage(userVerification)
 		return byt
 	}
 	// User has now been verified
@@ -227,37 +227,39 @@ func (api *ApiServer) CallUpdateUserList(user_id string) []byte {
 	if (ifErr) {
 		err := api.SetLastUserModification(user_id, "0")
 		if (err) {
-			fmt.Println("Cannot update user list")
-			byt = []byte("Test failure")
+			// Error from SetLastUserModification call
+			byt = makeCreateUserMessage(403)
 		} else {
-			fmt.Println("Successfully created user")
-			byt = []byte("Successfully created user")
-
+			// Successfully created the user
+			byt = makeCreateUserMessage(200)
 		}
-		
 	} else {
-		fmt.Println("User already exists")
-		byt = []byte("User already exists")
+		// User already existed
+		byt = makeCreateUserMessage(401)
 	}
 	return byt
 }
 
-func (api *ApiServer) validateUser(user_id string) bool {
+func (api *ApiServer) validateUser(user_id string) int {
 	now := time.Now().Unix()
 	lastMove, ifErr := api.GetLastUserModification(user_id)
+	// Cannot get this user's last modification
 	if (ifErr) {
-		return false
+		return 401
 	}
-	lastMoveInt, err := strconv.Atoi(lastMove)
-	if err != nil {
-		fmt.Println("SOME ERROR")
-	}
-	if (int(now) - lastMoveInt > 300) {
-		api.SetLastUserModification(user_id, strconv.Itoa(int(now)))
-		return true
-		//image team update pixel		
+	lastMoveInt, _ := strconv.Atoi(lastMove)
+	if (int(now) - lastMoveInt > 3000) {
+		err := api.SetLastUserModification(user_id, strconv.Itoa(int(now)))
+		if err {
+			// Error from SetLastUserModification call
+			return 403
+		} else {
+			// Successfully updated the user's last modification
+			return 200
+		}
 	} else {
-		return false
+		// User cannot make a move yet.
+		return 429
 	}
 }
 
@@ -444,6 +446,32 @@ func makeTestingMessage(s string) []byte {
 func makeStatusMessage(s int) []byte {
 	msg := DrawResponseMsg{
 		Type:   DrawResponse,
+		Status: s,
+	}
+
+	b, err := json.Marshal(msg)
+	if err != nil {
+		log.Println(err)
+	}
+	return b
+}
+
+func makeVerificationFailMessage(s int) []byte {
+	msg := VerificationFailMsg{
+		Type: Verification,
+		Status: s,
+	}
+
+	b, err := json.Marshal(msg)
+	if err != nil {
+		log.Println(err)
+	}
+	return b
+}
+
+func makeCreateUserMessage(s int) []byte {
+	msg := CreateUserMsg{
+		Type: CreateUser,
 		Status: s,
 	}
 

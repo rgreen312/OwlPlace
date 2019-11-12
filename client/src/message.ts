@@ -8,6 +8,8 @@ export enum MsgType {
     TESTING = 5,
     DRAWRESPONSE = 6,
     CLOSE = 9,
+    VERIFICATIONFAIL = 10,
+    CREATEUSER = 11
 }
 
 /*
@@ -20,6 +22,8 @@ export enum MsgType {
 	Testing      MsgType = 5
 	DrawResponse MsgType = 6
     Close        MsgType = 9
+    VerificationFail MsgType = 10
+    CreateUser  MsgType = 11
     */
 
 export interface Msg {
@@ -36,6 +40,24 @@ export class ImageMsg implements Msg {
     
     constructor(formatString: string) {
         this.formatString = formatString;
+    }
+}
+
+export class VerificationFailMsg implements Msg {
+    type: number = MsgType.VERIFICATIONFAIL;
+    status: number;
+    
+    constructor(status: number) {
+        this.status = status;
+    }
+}
+
+export class CreateUserMsg implements Msg {
+    type: number = MsgType.CREATEUSER;
+    status: number;
+    
+    constructor(status: number) {
+        this.status = status;
     }
 }
 
