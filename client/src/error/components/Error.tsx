@@ -22,10 +22,10 @@ class Error extends Component<Props, State> {
 
   render() {
     return this.shouldRedirect ? (
-      <Redirect to="/" />
+      <Redirect to='/' />
     ) : (
-      <div className="error-page">
-        <h1>Whoops, something went wrong.</h1>
+      <div className='error-page'>
+        <div className='error-title'>Whoops, something went wrong.</div>
         <p>Hang tight, we're working hard to fix the issue!</p>
       </div>
     );

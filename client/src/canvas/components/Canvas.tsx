@@ -267,10 +267,10 @@ class Canvas extends Component<Props, State> {
       colorPickerX,
       colorPickerY,
     } = this.state;
+    //   receivedError ? <Redirect to='/error'/> :
     return (
-      //   receivedError ? <Redirect to='/error'/> :
       <div>
-        {isLoading && <Spin className="spinner-style" size="large" />}
+        {isLoading && <Spin className='spinner-style' size='large' />}
         <div
           className={classNames({
             'hide-canvas': isLoading,
@@ -282,7 +282,7 @@ class Canvas extends Component<Props, State> {
               onColorChange={c => this.onColorChange(c)}
               onCancel={() => this.onCancel()}
               onComplete={this.onComplete}
-              className="color-picker"
+              className='color-picker'
               style={{ top: `${colorPickerY}px`, left: `${colorPickerX}px` }}
             />
           )}
@@ -295,28 +295,28 @@ class Canvas extends Component<Props, State> {
             style={{ transform: `translate(${translateX}px, ${translateY}px)` }}
           >
             <div
-              className="zoom-canvas"
+              className='zoom-canvas'
               style={{ transform: `scale(${zoomFactor}, ${zoomFactor})` }}
             >
               <canvas ref={this.canvasRef} />
             </div>
           </div>
-          <div className="zoom-controls">
+          <div className='zoom-controls'>
             <Icon
-              type="plus-circle"
+              type='plus-circle'
               onClick={() => {
                 setZoomFactor(zoomFactor + ZOOM_CHANGE_FACTOR);
                 this.onCancel();
               }}
-              className="zoom-icon"
+              className='zoom-icon'
             />
             <Icon
-              type="minus-circle"
+              type='minus-circle'
               onClick={() => {
                 setZoomFactor(zoomFactor - ZOOM_CHANGE_FACTOR);
                 this.onCancel();
               }}
-              className="zoom-icon"
+              className='zoom-icon'
             />
           </div>
         </div>
