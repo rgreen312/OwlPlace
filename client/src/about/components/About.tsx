@@ -1,5 +1,5 @@
-import React, { FC } from 'react'
-import './About.scss'
+import React, { FC } from 'react';
+import './About.scss';
 
 const About: FC = () => (
   <div className="about-page">
@@ -43,6 +43,6 @@ const About: FC = () => (
       .
     </p>
   </div>
-)
+);
 
-export default About
+export default About;
