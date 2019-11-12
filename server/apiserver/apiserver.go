@@ -55,21 +55,17 @@ func (api *ApiServer) SetupRoutes() {
 	go pool.Start()
 
 	http.HandleFunc("/headers", api.Headers)
-	// http.HandleFunc("/get_image", api.HTTPGetImage)
-	//	http.HandleFunc("/update_pixel", api.HTTPUpdatePixel)
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 		api.serveWs(pool, w, r)
 	})
+	//http.HandleFunc("/get_image", api.HTTPGetImage)
+	http.HandleFunc("/update_pixel", api.HTTPUpdatePixel)
 
 	// Although there is nothing wrong with this line, it prevents us from running multiple nodes on a single machine.
 	// Therefore, I am making failure non-fatal until we have some way of running locally from the same port (i.e. docker)
 	// log.Fatal(http.setupRoutes(":3010", nil))
 	http.ListenAndServe(fmt.Sprintf(":%d", api.port), nil)
 }
-
-// func (api *ApiServer) HTTPGetImage(w http.ResponseWriter, req *http.Request) {
-// 	api.CallGetImage()
-// }
 
 func (api *ApiServer) CallGetImage() string {
 	// Debug message
@@ -110,19 +106,70 @@ func (api *ApiServer) CallGetImage() string {
 	}
 }
 
-// updatepixel has been moved to client.go, we can keep this method for testing if needed, but technically
-// updatepixel should only be triggered with a message
-// func (api *ApiServer) HTTPUpdatePixel(w http.ResponseWriter, req *http.Request) {
-// 	// This was previously called UpdatePixel. Its logic has been moved into CallUpdatePixel.
-// 	// This is only a wrapper to allow for testing and all design logic should be flowing
-// 	// through the websocket connection.
-// 	x, _ := strconv.Atoi(req.URL.Query().Get("X"))
-// 	y, _ := strconv.Atoi(req.URL.Query().Get("Y"))
-// 	r, _ := strconv.Atoi(req.URL.Query().Get("R"))
-// 	g, _ := strconv.Atoi(req.URL.Query().Get("G"))
-// 	b, _ := strconv.Atoi(req.URL.Query().Get("B"))
-// 	api.CallUpdatePixel(x, y, r, g, b, "RandomHttpUser")
-// }
+func (api *ApiServer) HTTPUpdatePixel(w http.ResponseWriter, req *http.Request) {
+	// This was previously called UpdatePixel. Its logic has been moved into CallUpdatePixel.
+	// This is only a wrapper to allow for testing and all design logic should be flowing
+	// through the websocket connection.
+	x, _ := strconv.Atoi(req.URL.Query().Get("X"))
+	y, _ := strconv.Atoi(req.URL.Query().Get("Y"))
+	r, _ := strconv.Atoi(req.URL.Query().Get("R"))
+	g, _ := strconv.Atoi(req.URL.Query().Get("G"))
+	b, _ := strconv.Atoi(req.URL.Query().Get("B"))
+	api.CallUpdatePixel(x, y, r, g, b, "RandomHttpUser")
+}
+
+// Call this when telling consensus to updatea pixel.
+func (api *ApiServer) CallUpdatePixel(x int, y int, r int, g int, b int, userID string) []byte {
+	fmt.Println("\nWithin UpdatePixel")
+
+	// TODO verify that the user is able to update a pizel with the User Data Team
+	userVerification := true
+	if !userVerification {
+		// User verification failed
+
+		log.Println(fmt.Sprintf("USER %s failed authentication", userID))
+		// TODO return the appropriate failure message
+		imageMsg := "FAILURE. TODO make this properly formatted"
+
+		// send message back to the client saying it's been updated or if it failed
+		byt := []byte(imageMsg)
+		return byt
+	}
+	// User has now been verified
+
+	var encoded_msg bytes.Buffer
+	enc := gob.NewEncoder(&encoded_msg)
+	msg := consensus.UpdatePixelBackendMessage{
+		X: strconv.Itoa(x),
+		Y: strconv.Itoa(y),
+		R: strconv.Itoa(r),
+		G: strconv.Itoa(g),
+		B: strconv.Itoa(b),
+		A: "255",
+	}
+	log.Printf("UpdatePixelBackendMessage: %+v\n", msg)
+	if err := enc.Encode(msg); err != nil {
+		log.Fatalf("Error encoding struct: %s", err)
+	}
+
+	// Send the encoded message to the backend
+	m := consensus.BackendMessage{Type: consensus.UPDATE_PIXEL, Data: encoded_msg}
+
+	// Send BackendMessage
+	api.sendc <- m
+	consensus_response := <-api.recvc
+
+	// format message back to the client saying it's been updated or if it failed.
+	if consensus_response.Type == consensus.SUCCESS {
+		fmt.Fprintf(os.Stdout, "Update Success\n")
+		byt := makeStatusMessage(200)
+		return byt
+	} else {
+		fmt.Fprintf(os.Stdout, "Update Failure\n")
+		byt := makeStatusMessage(400)
+		return byt
+	}
+}
 
 /*
  * This function takes in a user id and returns a string timestamp for the last time that user updated a pixel
@@ -189,59 +236,6 @@ func (api *ApiServer) Headers(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-// Call this when telling consensus to update a pixel.
-func (api *ApiServer) CallUpdatePixel(x int, y int, r int, g int, b int, userID string) []byte {
-	fmt.Println("\nWithin UpdatePixel")
-
-	// TODO verify that the user is able to update a pizel with the User Data Team
-	userVerification := true
-	if !userVerification {
-		// User verification failed
-
-		log.Println(fmt.Sprintf("USER %s failed authentication", userID))
-		// TODO return the appropriate failure message
-		imageMsg := "FAILURE. TODO make this properly formatted"
-
-		// send message back to the client saying it's been updated or if it failed
-		byt := []byte(imageMsg)
-		return byt
-	}
-	// User has now been verified
-
-	var encodeMsg bytes.Buffer
-	enc := gob.NewEncoder(&encodeMsg)
-	msg := consensus.UpdatePixelBackendMessage{
-		X: strconv.Itoa(x),
-		Y: strconv.Itoa(y),
-		R: strconv.Itoa(r),
-		G: strconv.Itoa(g),
-		B: strconv.Itoa(b),
-		A: "255",
-	}
-	log.Printf("UpdatePixelBackendMessage: %+v\n", msg)
-	if err := enc.Encode(msg); err != nil {
-		log.Fatalf("Error encoding struct: %s", err)
-	}
-
-	// Send the encoded message to the backend
-	m := consensus.BackendMessage{Type: consensus.UPDATE_PIXEL, Data: encodeMsg}
-
-	// Send BackendMessage
-	api.sendc <- m
-	consensus_response := <-api.recvc
-
-	// format message back to the client saying it's been updated or if it failed.
-	if consensus_response.Type == consensus.SUCCESS {
-		fmt.Fprintf(os.Stdout, "Update Success")
-		byt := makeStatusMessage(200)
-		return byt
-	} else {
-		fmt.Fprintf(os.Stdout, "Update Failure")
-		byt := makeStatusMessage(400)
-		return byt
-	}
-}
-
 func (api *ApiServer) serveWs(pool *Pool, w http.ResponseWriter, r *http.Request) {
 	fmt.Println("WebSocket Endpoint Hit")
 	conn, err := websocket.Upgrade(w, r)
@@ -253,8 +247,6 @@ func (api *ApiServer) serveWs(pool *Pool, w http.ResponseWriter, r *http.Request
 		Conn: conn, // this is the same as websocket instance
 		Pool: pool,
 	}
-
-	pool.Register <- client
 
 	// helpful log statement to show connections
 	log.Println("Client Connected")
@@ -281,6 +273,7 @@ func (api *ApiServer) serveWs(pool *Pool, w http.ResponseWriter, r *http.Request
 		log.Println(err)
 	}
 
+	pool.Register <- client
 	client.Read(api)
 }
 
@@ -351,10 +344,10 @@ func (c *Client) Read(api *ApiServer) {
 	}
 }
 
-func makeStatusMessage(s int) []byte {
-	msg := DrawResponseMsg{
-		Type:   DrawResponse,
-		Status: s,
+func makeTestingMessage(s string) []byte {
+	msg := TestingMsg{
+		Type: DrawResponse,
+		Msg:  s,
 	}
 
 	b, err := json.Marshal(msg)
@@ -364,10 +357,10 @@ func makeStatusMessage(s int) []byte {
 	return b
 }
 
-func makeTestingMessage(s string) []byte {
-	msg := TestingMsg{
-		Type: DrawResponse,
-		Msg:  s,
+func makeStatusMessage(s int) []byte {
+	msg := DrawResponseMsg{
+		Type:   DrawResponse,
+		Status: s,
 	}
 
 	b, err := json.Marshal(msg)

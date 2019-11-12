@@ -34,7 +34,7 @@ const Header: FC<Props> = ({
   );
 
   let location = useLocation().pathname;
-
+  
   const menu = (
     <Menu>
       <Menu.Item>
@@ -45,7 +45,10 @@ const Header: FC<Props> = ({
           <Link to='/'>Home</Link>
         )}
       </Menu.Item>
+
       {isLoggedIn && <Menu.Item onClick={onLogout}>Sign Out</Menu.Item>}
+
+      {window.location.hostname == 'localhost' && <Menu.Item><Link to='/testing'>Testing</Link></Menu.Item>}
     </Menu>
   );
 
@@ -106,7 +109,7 @@ const Header: FC<Props> = ({
     <PageHeader
       title='OwlPlace'
       subTitle='change the canvas one pixel at a time'
-      extra={[timerComponent, loginButton, dropdownMenu]}
+      extra={[isLoggedIn ? timerComponent : null, loginButton, dropdownMenu]}
     />
   );
 };
