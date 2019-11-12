@@ -3,6 +3,7 @@ import { SketchPicker } from "react-color";
 import { Button } from "antd";
 import { Redirect } from "react-router-dom";
 import './colorPicker.scss';
+import { Color } from "../../canvas/types";
 
 interface RGBColor {
   r: number;
@@ -12,7 +13,7 @@ interface RGBColor {
 
 interface Props {
   onColorChange: (color:RGBColor) => void; 
-  onComplete: () => void;
+  onComplete: (c: Color) => void;
   onCancel: () => void;
   className?: string;
   style?: CSSProperties;
@@ -21,7 +22,7 @@ interface Props {
 
 const ColorPicker: FC<Props> = ({ onColorChange, onComplete, onCancel, className, style }) => {
   const [color, setColor] = useState({ r: 0, g: 0, b: 0 })
-  const complete = () => onComplete();
+  const complete = (color) => onComplete(color);
 
   const onColorSelection = (color) => {
     onColorChange(color); 

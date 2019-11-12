@@ -1,7 +1,7 @@
 import { HOSTNAME } from '../constants';
 import * as ActionTypes from './actionTypes';
 import { getWebSocket } from './selectors';
-import { ERROR, IMAGE, Msg, ErrorMsg, ImageMsg, TESTING, DRAWRESPONSE } from '../message';
+import { Msg, ErrorMsg, ImageMsg, MsgType } from '../message';
 import { setImage } from '../canvas/actions';
 
 const startConnect = () => ({
@@ -9,7 +9,7 @@ const startConnect = () => ({
 });
 export type StartConnect =  ReturnType<typeof startConnect>;
 
-const connectError = (error: string) => ({
+export const connectError = (error: string) => ({
   type: ActionTypes.ConnectError,
   payload: {
     error
@@ -61,20 +61,19 @@ export const openWebSocket = () => dispatch => {
     const { data } = event;
     let json = JSON.parse(data);
     switch (json.type) {
-        case IMAGE: {
+        case MsgType.IMAGE: {
             // let msg = new ImageMsg(data.formatString); //now what?
             let imageString = json.formatString
             console.log("Received an IMAGE message from the server!");
-            console.log("Format string: " + imageString);
             dispatch(setImage('data:image/png;base64,' + imageString));
             break;
         }
-        case TESTING: {
+        case MsgType.TESTING: {
           console.log("Received a TESTING message from the server!");
           console.log("Message: " + json.msg);
           break;
         }
-        case DRAWRESPONSE: {
+        case MsgType.DRAWRESPONSE: {
           let status = json.status
           console.log("Received a DRAWRESPONSE message from the server!");
           console.log("The status was " + status)
@@ -90,7 +89,7 @@ export const openWebSocket = () => dispatch => {
   };
 }
 
-const makeUpdateMessage = (
+export const makeUpdateMessage = (
   id: string,
   x: number,
   y: number,
@@ -109,7 +108,7 @@ const makeUpdateMessage = (
   });
 };
 
-const makeLoginMessage = (
+export const makeLoginMessage = (
   email: string
 ) => {
   return JSON.stringify({
@@ -120,18 +119,19 @@ const makeLoginMessage = (
 
 export const sendUpdateMessage = (id, x, y, r, g, b) => (dispatch, getState) => {
   const socket = getWebSocket(getState());
+  console.log("getting an update message! If websocket were up it would send")
   if (socket) {
     socket.send(makeUpdateMessage(id, x, y, r, g, b));
 
     // The follwing should be REMOVED when testing is done/ you want to only do single pixels
-    let lower = 495;
-    let upper = 505;
-    for (let i = lower; i < upper; i++) {
-      for (let j = lower; j < upper; j++) {
-        console.log("sending..")
-        socket.send(makeUpdateMessage(id, i, j, r, g, b));
-      }
-    }
+    // let lower = 495;
+    // let upper = 505;
+    // for (let i = lower; i < upper; i++) {
+    //   for (let j = lower; j < upper; j++) {
+    //     console.log("sending..")
+    //     socket.send(makeUpdateMessage(id, i, j, r, g, b));
+    //   }
+    // }
   }
 }
 

@@ -177,9 +177,7 @@ class Canvas extends Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    console.log('component updated');
     if (this.props.initialImage && this.props.initialImage !== prevProps.initialImage) {
-      console.log('image drawn');
       const context = this.canvasRef.current!.getContext('2d');
       if (context) {
         const image = new Image();
@@ -229,10 +227,10 @@ class Canvas extends Component<Props, State> {
     this.setState({ previousColor: null });
   }
 
-  onComplete() {
-    const { onUpdatePixel } = this.props;
+  onComplete(color: Color) {
+    const { onUpdatePixel, position } = this.props;
     this.hideColorPicker();
-    onUpdatePixel({ r: 0, g: 0, b: 0 }, 0, 0);
+    onUpdatePixel(color, position.x - 1, position.y - 1);
   }
 
   onColorChange(c: RGBColor) {

@@ -1,12 +1,14 @@
-export const ERROR = -1;
-export const OPEN = 0;
-export const DRAWPIXEL = 1;
-export const LOGINUSER = 2;
-export const UPDATEPIXEL = 3;
-export const IMAGE = 4;
-export const TESTING = 5;
-export const DRAWRESPONSE = 6;
-export const CLOSE = 9;
+export enum MsgType {
+    ERROR = -1,
+    OPEN = 0,
+    DRAWPIXEL = 1,
+    LOGINUSER = 2,
+    UPDATEPIXEL = 3,
+    IMAGE = 4,
+    TESTING = 5,
+    DRAWRESPONSE = 6,
+    CLOSE = 9,
+}
 
 /*
     Error        MsgType = -1
@@ -25,11 +27,11 @@ export interface Msg {
 }
 
 export class ErrorMsg implements Msg {
-    type: number = ERROR;
+    type: number = MsgType.ERROR;
 }
 
 export class ImageMsg implements Msg {
-    type: number = IMAGE;
+    type: number = MsgType.IMAGE;
     formatString: string;
     
     constructor(formatString: string) {
@@ -40,7 +42,7 @@ export class ImageMsg implements Msg {
 function parseMsg(json : string) : Msg {
     let data = JSON.parse(json);
     switch (data.type) {
-        case IMAGE: {
+        case MsgType.IMAGE: {
             return new ImageMsg(data.formatString);
             break;
         }
