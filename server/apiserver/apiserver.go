@@ -63,7 +63,7 @@ func (api *ApiServer) SetupRoutes() {
 
 	// Although there is nothing wrong with this line, it prevents us from running multiple nodes on a single machine.
 	// Therefore, I am making failure non-fatal until we have some way of running locally from the same port (i.e. docker)
-	// log.Fatal(http.setupRoutes(":3010", nil))
+	// log.Fatal(http.ListenAndServe(":3010", nil))
 	http.ListenAndServe(fmt.Sprintf(":%d", api.port), nil)
 }
 
