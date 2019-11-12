@@ -119,7 +119,7 @@ export const makeLoginMessage = (
 
 export const sendUpdateMessage = (id, x, y, r, g, b) => (dispatch, getState) => {
   const socket = getWebSocket(getState());
-  console.log("getting an update message! If websocket were up it would send")
+  console.log("sending along websocket message")
   if (socket) {
     socket.send(makeUpdateMessage(id, x, y, r, g, b));
 
