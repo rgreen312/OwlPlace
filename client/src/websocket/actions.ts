@@ -57,6 +57,7 @@ export const openWebSocket = () => dispatch => {
 
   socket.onmessage = event => {
     const { data } = event;
+    console.log(data)
     let json = JSON.parse(data);
     switch (json.type) {
         case MsgType.IMAGE: {

@@ -285,7 +285,7 @@ func (api *ApiServer) serveWs(pool *Pool, w http.ResponseWriter, r *http.Request
 
 	// helpful log statement to show connections
 	log.Println("Client Connected")
-	if err = client.Conn.WriteMessage(1, []byte("{\"Hi Client! We just connected :)\"}")); err != nil { // sent upon connection to any clients
+	if err = client.Conn.WriteMessage(1, makeTestingMessage("{\"Hi Client! We just connected :)\"}")); err != nil { // sent upon connection to any clients
 		log.Println(err)
 	}
 	// send image
