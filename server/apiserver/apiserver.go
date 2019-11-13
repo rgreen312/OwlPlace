@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"os"
 	"time"
+	"math"
 	"strconv"
 	"github.com/rgreen312/owlplace/server/common"
 	"github.com/rgreen312/owlplace/server/consensus"
@@ -218,19 +219,19 @@ func (api *ApiServer) HTTPUpdateUserList(w http.ResponseWriter, req *http.Reques
  */
 func (api *ApiServer) CallUpdateUserList(user_id string) []byte {
 	byt := []byte("")
-	_, ifErr := api.GetLastUserModification(user_id)
+	lastMove, ifErr := api.GetLastUserModification(user_id)
 	if (ifErr) {
 		err := api.SetLastUserModification(user_id, "0")
 		if (err) {
 			// Error from SetLastUserModification call
-			byt = makeCreateUserMessage(403)
+			byt = makeCreateUserMessage(403, -1)
 		} else {
 			// Successfully created the user
-			byt = makeCreateUserMessage(200)
+			byt = makeCreateUserMessage(200, 300000)
 		}
 	} else {
 		// User already existed
-		byt = makeCreateUserMessage(401)
+		byt = makeCreateUserMessage(401, math.Max(300000 - (time.now() - strconv.Atoi(lastMove)), 0))
 	}
 	return byt
 }
@@ -490,10 +491,11 @@ func makeVerificationFailMessage(s int) []byte {
 	return b
 }
 
-func makeCreateUserMessage(s int) []byte {
+func makeCreateUserMessage(s int, c int) []byte {
 	msg := CreateUserMsg{
 		Type: CreateUser,
 		Status: s,
+		Cooldown: c
 	}
 
 	b, err := json.Marshal(msg)

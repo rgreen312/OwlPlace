@@ -55,9 +55,11 @@ export class VerificationFailMsg implements Msg {
 export class CreateUserMsg implements Msg {
     type: number = MsgType.CREATEUSER;
     status: number;
+    cooldown: number;
     
-    constructor(status: number) {
+    constructor(status: number, cooldown: number) {
         this.status = status;
+        this.cooldown = cooldown;
     }
 }
 
