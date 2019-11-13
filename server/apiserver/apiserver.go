@@ -55,10 +55,10 @@ func (api *ApiServer) SetupRoutes() {
 	go pool.Start()
 
 	http.HandleFunc("/headers", api.Headers)
+	http.HandleFunc("/get_image", api.HTTPGetImage)
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 		api.serveWs(pool, w, r)
 	})
-	//http.HandleFunc("/get_image", api.HTTPGetImage)
 	http.HandleFunc("/update_pixel", api.HTTPUpdatePixel)
 
 	// Although there is nothing wrong with this line, it prevents us from running multiple nodes on a single machine.
@@ -326,8 +326,8 @@ func (c *Client) Read(api *ApiServer) {
 			return
 		}
 		message := Message{Type: messageType, Body: string(p)}
-
-		// our code vvvv
+		fmt.Printf("Message Received: %+v\n", message)
+		
 		var dat Msg
 
 		if err := json.Unmarshal(p, &dat); err != nil {
@@ -372,8 +372,6 @@ func (c *Client) Read(api *ApiServer) {
 		if err := c.Conn.WriteMessage(gwebsocket.TextMessage, byt); err != nil {
 			log.Println(err)
 		}
-
-		fmt.Printf("Message Received: %+v\n", message)
 	}
 }
 
