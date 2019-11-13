@@ -21,11 +21,12 @@ interface Props {
 // http://casesandberg.github.io/react-color/
 
 const ColorPicker: FC<Props> = ({ onColorChange, onComplete, onCancel, className, style }) => {
-  const [color, setColor] = useState({ r: 0, g: 0, b: 0 })
-  const complete = (color) => onComplete(color);
+  const [color, setColor] = useState({ r: 0, g: 0, b: 0 });
+  const complete = () => onComplete(color);
 
-  const onColorSelection = (color) => {
-    onColorChange(color); 
+  const onColorSelection = (c) => {
+    setColor(c);
+    onColorChange(c); 
   }
 
   return ( 
