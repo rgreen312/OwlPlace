@@ -6,6 +6,7 @@ import (
 	"encoding/gob"
 	"encoding/json"
 	"fmt"
+	gwebsocket "github.com/gorilla/websocket"
 	"html/template"
 	"image"
 	"image/png"
@@ -14,16 +15,21 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/gorilla/websocket"
-
 	"github.com/rgreen312/owlplace/server/common"
 	"github.com/rgreen312/owlplace/server/consensus"
+	"github.com/rgreen312/owlplace/server/websocket"
 )
 
 type ApiServer struct {
 	sendc chan consensus.BackendMessage
 	recvc chan consensus.ConsensusMessage
 	port  int
+}
+
+type Client struct {
+	ID   string
+	Conn *gwebsocket.Conn
+	Pool *Pool
 }
 
 func NewApiServer(servers map[int]*common.ServerConfig, nodeId int) *ApiServer {
@@ -44,18 +50,22 @@ func NewApiServer(servers map[int]*common.ServerConfig, nodeId int) *ApiServer {
 	}
 }
 
-func (api *ApiServer) ListenAndServe() {
+func (api *ApiServer) SetupRoutes() {
+	pool := NewPool()
+	go pool.Start()
+
 	http.HandleFunc("/headers", api.Headers)
 	http.HandleFunc("/get_image", api.HTTPGetImage)
+	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
+		api.serveWs(pool, w, r)
+	})
 	http.HandleFunc("/update_pixel", api.HTTPUpdatePixel)
-	http.HandleFunc("/ws", api.wsEndpoint)
 
 	// Although there is nothing wrong with this line, it prevents us from running multiple nodes on a single machine.
 	// Therefore, I am making failure non-fatal until we have some way of running locally from the same port (i.e. docker)
 	// log.Fatal(http.ListenAndServe(":3010", nil))
 	http.ListenAndServe(fmt.Sprintf(":%d", api.port), nil)
 }
-
 
 func (api *ApiServer) HTTPGetImage(w http.ResponseWriter, req *http.Request) {
 	// This is the method that will be removed. Displays the image on a webpage
@@ -186,11 +196,11 @@ func (api *ApiServer) CallUpdatePixel(x int, y int, r int, g int, b int, userID 
 
 	// format message back to the client saying it's been updated or if it failed.
 	if consensus_response.Type == consensus.SUCCESS {
-		fmt.Fprintf(os.Stdout, "Update Success")
+		fmt.Fprintf(os.Stdout, "Update Success\n")
 		byt := makeStatusMessage(200)
 		return byt
 	} else {
-		fmt.Fprintf(os.Stdout, "Update Failure")
+		fmt.Fprintf(os.Stdout, "Update Failure\n")
 		byt := makeStatusMessage(400)
 		return byt
 	}
@@ -261,79 +271,21 @@ func (api *ApiServer) Headers(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-// Upgrader "upgrades" HTTP endpoint to WS endpoint, this requires a Read and Write buffer size
-var upgrader = websocket.Upgrader{} // use default options
-
-// define a reader which will listen for new messages being sent to our WebSocket endpoint
-func (api *ApiServer) reader(conn *websocket.Conn) {
-	for {
-		// read in a message
-		// _ (message type) is an int with value websocket.BinaryMessage or websocket.TextMessage
-		// p is []byte
-		_, p, err := conn.ReadMessage()
-		if err != nil {
-			log.Println(err)
-			return
-		}
-
-		var dat Msg
-
-		if err := json.Unmarshal(p, &dat); err != nil {
-			log.Printf("error decoding client response: %v", err)
-			if e, ok := err.(*json.SyntaxError); ok {
-				log.Printf("syntax error at byte offset %d", e.Offset)
-			}
-			log.Printf("client response: %q", p)
-			panic(err)
-		}
-		// fmt.Println(dat)
-
-		byt := makeTestingMessage("Default Message")
-
-		switch dat.Type {
-		case DrawPixel:
-			fmt.Println("DrawPixel message received.")
-			var dp_msg DrawPixelMsg
-			if err := json.Unmarshal(p, &dp_msg); err == nil {
-				fmt.Printf("%+v", dp_msg)
-				byt = api.CallUpdatePixel(dp_msg.X, dp_msg.Y, dp_msg.R, dp_msg.G, dp_msg.B, dp_msg.UserID)
-			} else {
-				fmt.Println("JSON decoding error.")
-			}
-		case LoginUser:
-			fmt.Println("CreateUser message received.")
-			var cu_msg LoginUserMsg
-			if err := json.Unmarshal(p, &cu_msg); err == nil {
-				fmt.Printf("%+v", cu_msg)
-				email := cu_msg.Id
-				// byt = api.CallUpdateUserList()
-				byt = []byte("{\"type\": 2, \"Id\": \"" + email + "\"}")
-			} else {
-				fmt.Println("JSON decoding error.")
-			}
-		default:
-			fmt.Printf("Message of type: %d received.", dat.Type)
-		}
-
-		if err := conn.WriteMessage(websocket.TextMessage, byt); err != nil {
-			log.Println(err)
-		}
-	}
-}
-
-func (api *ApiServer) wsEndpoint(w http.ResponseWriter, r *http.Request) {
-	// checks if incoming request is allowed to connect, otherwise CORS error, currently always true
-	upgrader.CheckOrigin = func(r *http.Request) bool { return true }
-
-	// upgrade this connection to a WebSocket connection
-	ws, err := upgrader.Upgrade(w, r, nil)
+func (api *ApiServer) serveWs(pool *Pool, w http.ResponseWriter, r *http.Request) {
+	fmt.Println("WebSocket Endpoint Hit")
+	conn, err := websocket.Upgrade(w, r)
 	if err != nil {
-		log.Println(err)
+		fmt.Fprintf(w, "%+v\n", err)
+	}
+
+	client := &Client{
+		Conn: conn, // this is the same as websocket instance
+		Pool: pool,
 	}
 
 	// helpful log statement to show connections
 	log.Println("Client Connected")
-	if err = ws.WriteMessage(1, []byte("{\"Hi Client! We just connected :)\"}")); err != nil { // sent upon connection to any clients
+	if err = client.Conn.WriteMessage(1, makeTestingMessage("{\"Hi Client! We just connected :)\"}")); err != nil { // sent upon connection to any clients
 		log.Println(err)
 	}
 	// send image
@@ -346,17 +298,81 @@ func (api *ApiServer) wsEndpoint(w http.ResponseWriter, r *http.Request) {
 		FormatString: serverString,
 	}
 	log.Printf("ImageMsg: %+v\n", msg)
-	// ws.WriteMessage(ImageMsg)
+
 	var b []byte
 	b, err = json.Marshal(msg)
 	if err != nil {
 		log.Println(err)
 	}
-	if err = ws.WriteMessage(1, b); err != nil {
+	if err = client.Conn.WriteMessage(1, b); err != nil {
 		log.Println(err)
 	}
-	api.reader(ws)
 
+	pool.Register <- client
+	client.Read(api)
+}
+
+// reading messages now go in here
+func (c *Client) Read(api *ApiServer) {
+	defer func() {
+		c.Pool.Unregister <- c
+		c.Conn.Close()
+	}()
+
+	for {
+		messageType, p, err := c.Conn.ReadMessage()
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		message := Message{Type: messageType, Body: string(p)}
+		fmt.Printf("Message Received: %+v\n", message)
+		
+		var dat Msg
+
+		if err := json.Unmarshal(p, &dat); err != nil {
+			log.Printf("error decoding client response: %v", err)
+			if e, ok := err.(*json.SyntaxError); ok {
+				log.Printf("syntax error at byte offset %d", e.Offset)
+			}
+			log.Printf("client response: %q", p)
+			panic(err)
+		}
+		// fmt.Println(dat)
+		byt := makeTestingMessage("Default Message")
+
+		switch dat.Type {
+		case DrawPixel:
+			fmt.Println("DrawPixel message received.")
+			var dpMsg DrawPixelMsg
+			if err := json.Unmarshal(p, &dpMsg); err == nil {
+				fmt.Printf("%+v", dpMsg)
+				//api.CallUpdatePixel(dpMsg.X, dpMsg.Y, dpMsg.R, dpMsg.G, dpMsg.B, dpMsg.UserID)
+				byt = api.CallUpdatePixel(dpMsg.X, dpMsg.Y, dpMsg.R, dpMsg.G, dpMsg.B, dpMsg.UserID)
+			} else {
+				fmt.Println("JSON decoding error.")
+			}
+		case LoginUser:
+			fmt.Println("CreateUser message received.")
+			var cuMsg LoginUserMsg
+			if err := json.Unmarshal(p, &cuMsg); err == nil {
+				fmt.Printf("%+v", cuMsg)
+				email := cuMsg.Id
+				// byt = api.CallUpdateUserList() // do something that actually affects it here
+				byt = []byte("{\"type\": 2, \"Id\": \"" + email + "\"}")
+			} else {
+				fmt.Println("JSON decoding error.")
+			}
+		default:
+			// this is what the case is if the message is recieved from other servers
+			fmt.Printf("Message of type: %d received.\n", dat.Type)
+		}
+
+		// write message back to the client sent to signal that you received message
+		if err := c.Conn.WriteMessage(gwebsocket.TextMessage, byt); err != nil {
+			log.Println(err)
+		}
+	}
 }
 
 func makeTestingMessage(s string) []byte {

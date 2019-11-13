@@ -42,8 +42,6 @@ export const openWebSocket = () => dispatch => {
           message: "Hi From the Client! The websocket just opened"
         })
       );
-
-      socket.send(makeUpdateMessage("AAAAAA", 6, 9, 4, 2, 0));
       
     dispatch(connectSuccess(socket));
   };

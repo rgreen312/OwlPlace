@@ -19,6 +19,11 @@ type Msg struct {
 	Type MsgType `json:"type"`
 }
 
+type Message struct {
+	Type int    `json:"type"`
+	Body string `json:"body"`
+}
+
 /*
 	This message type is intended to be sent from
 	the client to the server, signifying that the

@@ -121,3 +121,8 @@ public
 
 # DynamoDB Local files
 .dynamodb/
+.idea/misc.xml
+.idea/modules.xml
+.idea/OwlPlace.iml
+.idea/.gitignore
+.idea/vcs.xml
