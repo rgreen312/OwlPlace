@@ -67,6 +67,42 @@ func (api *ApiServer) SetupRoutes() {
 	http.ListenAndServe(fmt.Sprintf(":%d", api.port), nil)
 }
 
+
+func (api *ApiServer) HTTPGetImage(w http.ResponseWriter, req *http.Request) {
+	// This is the method that will be removed. Displays the image on a webpage
+
+	// Debug message
+	fmt.Fprintf(os.Stdout, "Getting Image From Raft\n")
+	// Construct the message
+	m := consensus.BackendMessage{Type: consensus.GET_IMAGE}
+	// Send a message through the channel
+	api.sendc <- m
+	var ImageTemplate string = `<!DOCTYPE html>
+								<html lang="en"><head></head>
+								<body><img src="data:image/jpg;base64,{{.Image}}"></body>`
+	image_msg := <-api.recvc
+	if tmpl, err := template.New("image").Parse(ImageTemplate); err != nil {
+		fmt.Fprintf(os.Stdout, "Unable to parse image template.\n")
+	} else {
+		// Decode the message from the glob
+		dec := gob.NewDecoder(&image_msg.Data)
+		var img image.RGBA
+		dec.Decode(&img)
+		// In-memory buffer to store PNG image
+		// before we base 64 encode it
+		var buff bytes.Buffer
+		// The Buffer satisfies the Writer interface so we can use it with Encode
+		// In previous example we encoded to a file, this time to a temp buffer
+		png.Encode(&buff, &img)
+		// Encode the bytes in the buffer to a base64 string
+		encodedString := base64.StdEncoding.EncodeToString(buff.Bytes())
+		data := map[string]interface{}{"Image": encodedString}
+		if err = tmpl.Execute(w, data); err != nil {
+			fmt.Fprintf(os.Stdout, "Unable to execute template.\n")
+		}
+	}
+}
+
 func (api *ApiServer) CallGetImage() string {
 	// Debug message
 	fmt.Fprintf(os.Stdout, "Getting Image From Raft\n")

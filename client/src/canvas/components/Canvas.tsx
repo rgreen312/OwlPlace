@@ -48,7 +48,7 @@ class Canvas extends Component<Props, State> {
       dragStartX: 0,
       dragStartY: 0,
       colorPickerX: 0,
-      colorPickerY: 0
+      colorPickerY: 0,
     };
     this.onCancel = this.onCancel.bind(this);
     this.onComplete = this.onComplete.bind(this);
@@ -116,7 +116,7 @@ class Canvas extends Component<Props, State> {
         dragStartX: startPositionX,
         dragStartY: startPositionY,
         colorPickerX: pickerX,
-        colorPickerY: pickerY
+        colorPickerY: pickerY,
       });
 
       // If the user moves after clicking, then they are dragging so we add listener
@@ -158,27 +158,30 @@ class Canvas extends Component<Props, State> {
             previousColor: {
               r: imageData.data[0],
               g: imageData.data[1],
-              b: imageData.data[2]
-            }
+              b: imageData.data[2],
+            },
           });
         } else {
           notification.error({
             message: 'Cannot update pixel',
             description:
-              'Sorry, you cannot update a pixel at this time. Please wait until the timer is up in order to update another pixel.'
+              'Sorry, you cannot update a pixel at this time. Please wait until the timer is up in order to update another pixel.',
           });
         }
       }
 
       this.setState({
-        isDrag: false
+        isDrag: false,
       });
     });
   }
 
   componentDidUpdate(prevProps: Props) {
     console.log('component updated');
-    if (this.props.initialImage && this.props.initialImage !== prevProps.initialImage) {
+    if (
+      this.props.initialImage &&
+      this.props.initialImage !== prevProps.initialImage
+    ) {
       console.log('image drawn');
       const context = this.canvasRef.current!.getContext('2d');
       if (context) {
@@ -199,7 +202,7 @@ class Canvas extends Component<Props, State> {
     this.setState({
       isDrag: true,
       translateX: x,
-      translateY: y
+      translateY: y,
     });
   }
 
@@ -207,7 +210,7 @@ class Canvas extends Component<Props, State> {
     const rect = canvas.getBoundingClientRect();
     return {
       x: evt.clientX - rect.left,
-      y: evt.clientY - rect.top
+      y: evt.clientY - rect.top,
     };
   }
 
@@ -245,13 +248,13 @@ class Canvas extends Component<Props, State> {
 
   showColorPicker() {
     this.setState({
-      showColorPicker: true
+      showColorPicker: true,
     });
   }
 
   hideColorPicker() {
     this.setState({
-      showColorPicker: false
+      showColorPicker: false,
     });
   }
 
@@ -262,16 +265,16 @@ class Canvas extends Component<Props, State> {
       translateY,
       isDrag,
       colorPickerX,
-      colorPickerY
+      colorPickerY,
     } = this.state;
+    //   receivedError ? <Redirect to='/error'/> :
     return (
-      // receivedError ? <Redirect to='/error'/> :
       <div>
         {isLoading && <Spin className='spinner-style' size='large' />}
         <div
           className={classNames({
             'hide-canvas': isLoading,
-            'canvas-container': true
+            'canvas-container': true,
           })}
         >
           {this.state.showColorPicker && (
@@ -287,7 +290,7 @@ class Canvas extends Component<Props, State> {
           <div
             className={classNames({
               'pan-canvas': true,
-              'drag-canvas': isDrag
+              'drag-canvas': isDrag,
             })}
             style={{ transform: `translate(${translateX}px, ${translateY}px)` }}
           >

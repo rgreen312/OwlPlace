@@ -53,5 +53,10 @@
   },
   "devDependencies": {
     "gh-pages": "^2.1.1"
+  },
+  "prettier": {
+    "trailingComma": "es5",
+    "singleQuote": true,
+    "jsxSingleQuote": true
   }
 }
