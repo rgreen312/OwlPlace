@@ -56,6 +56,7 @@ func (api *ApiServer) ListenAndServe() {
 	http.ListenAndServe(fmt.Sprintf(":%d", api.port), nil)
 }
 
+
 func (api *ApiServer) HTTPGetImage(w http.ResponseWriter, req *http.Request) {
 	// This is the method that will be removed. Displays the image on a webpage
 
