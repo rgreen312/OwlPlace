@@ -373,9 +373,7 @@ func (c *Client) Read(api *ApiServer) {
 		if err := c.Conn.WriteMessage(gwebsocket.TextMessage, []byte("the server just recieved a message")); err != nil {
 			log.Println(err)
 		}
-
-		// send message to other servers... TODO figure out how to not trigger this from other servers
-		c.Pool.Broadcast <- message
+		
 		fmt.Printf("Message Received: %+v\n", message)
 	}
 }
