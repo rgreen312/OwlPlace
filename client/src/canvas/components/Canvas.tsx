@@ -177,7 +177,6 @@ class Canvas extends Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    console.log('component updated');
     if (
       this.props.initialImage &&
       this.props.initialImage !== prevProps.initialImage
