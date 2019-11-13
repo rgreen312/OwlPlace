@@ -3,8 +3,6 @@ import './About.scss';
 
 const About: FC = () => (
   <div className='about-page'>
-    <h1>OwlPlace</h1>
-
     <h1>About</h1>
 
     <p>
@@ -44,8 +42,6 @@ const About: FC = () => (
       </a>
       .
     </p>
-
-    
   </div>
 );
 
