@@ -15,6 +15,7 @@ import {
   canUpdatePixel,
 } from '../selectors';
 import { Color } from '../types';
+import { getIsLoggedIn } from '../../login/selectors';
 
 interface DispatchProps {
   registerContext: (context: CanvasRenderingContext2D) => void;
@@ -31,6 +32,7 @@ interface StateProps {
   isLoading: boolean;
   initialImage?: string;
   canUpdatePixel: boolean;
+  isLoggedIn: boolean; 
 }
 
 const mapDispatchToProps: DispatchProps = {
@@ -47,7 +49,8 @@ const mapStateToProps = (state): StateProps => ({
   position: getCurrentPosition(state),
   isLoading: getIsLoadingState(state),
   initialImage: getInitialImage(state),
-  canUpdatePixel: canUpdatePixel(state)
+  canUpdatePixel: canUpdatePixel(state),
+  isLoggedIn: getIsLoggedIn(state)
 });
 
 export default connect(
