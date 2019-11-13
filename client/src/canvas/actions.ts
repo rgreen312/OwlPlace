@@ -3,6 +3,9 @@
 import { Color } from './types';
 import * as ActionTypes from './actionTypes';
 import { getZoomFactor, getCanvasContext } from './selectors';
+import { getWebSocket } from '../websocket/selectors';
+import { getUserEmail } from '../login/selectors';
+import { connectError, makeUpdateMessage } from '../websocket/actions';
 
 const fetchImageDataStart = () => ({
   type: ActionTypes.FetchImageStart
@@ -93,9 +96,16 @@ export const updatePixel = (
   newColor: Color,
   x: number,
   y: number
-) => dispatch => {
-  console.log('updated pixel');
+) => (dispatch, getState) => {
   dispatch({ type: ActionTypes.UpdatePixelSuccess });
+  const socket = getWebSocket(getState());
+  const email = getUserEmail(getState());
+  console.log("This is being called!", newColor, newColor.r, newColor.g, newColor.b)
+  if (socket && email) {
+    socket.send(makeUpdateMessage(email, x, y, newColor.r, newColor.g, newColor.b));
+  } else {
+    dispatch(connectError('Could not connect'))
+  }
 };
 
 export const setTimeRemaining = (time: number) => ({
