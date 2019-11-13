@@ -19,6 +19,7 @@ interface Props {
   setZoomFactor: (newZoom: number) => void;
   initialImage?: string;
   canUpdatePixel: boolean;
+  isLoggedIn: boolean;
 }
 
 interface State {
@@ -139,9 +140,9 @@ class Canvas extends Component<Props, State> {
         this.updateTranslate
       );
 
-      const { canUpdatePixel, updatePosition } = this.props;
+      const { canUpdatePixel, updatePosition, isLoggedIn } = this.props;
       if (!this.state.isDrag) {
-        if (canUpdatePixel) {
+        if (canUpdatePixel && isLoggedIn) {
           const { x: xNew, y: yNew } = this.getMousePos(
             this.canvasRef.current,
             ev
@@ -162,11 +163,19 @@ class Canvas extends Component<Props, State> {
             },
           });
         } else {
-          notification.error({
-            message: 'Cannot update pixel',
-            description:
-              'Sorry, you cannot update a pixel at this time. Please wait until the timer is up in order to update another pixel.',
-          });
+          if (!isLoggedIn) {
+            notification.error({
+              message: 'Cannot update pixel',
+              description:
+                'Sorry, you must log in before you can update a pixel.',
+            });
+          } else {
+            notification.error({
+              message: 'Cannot update pixel',
+              description:
+                'Sorry, you cannot update a pixel at this time. Please wait until the timer is up in order to update another pixel.',
+            });
+          }
         }
       }
 
@@ -177,7 +186,6 @@ class Canvas extends Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    console.log('component updated');
     if (
       this.props.initialImage &&
       this.props.initialImage !== prevProps.initialImage
@@ -232,10 +240,10 @@ class Canvas extends Component<Props, State> {
     this.setState({ previousColor: null });
   }
 
-  onComplete() {
-    const { onUpdatePixel } = this.props;
+  onComplete(color: Color) {
+    const { onUpdatePixel, position } = this.props;
     this.hideColorPicker();
-    onUpdatePixel({ r: 0, g: 0, b: 0 }, 0, 0);
+    onUpdatePixel(color, position.x - 1, position.y - 1);
   }
 
   onColorChange(c: RGBColor) {
