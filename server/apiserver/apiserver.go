@@ -67,7 +67,6 @@ func (api *ApiServer) SetupRoutes() {
 	http.ListenAndServe(fmt.Sprintf(":%d", api.port), nil)
 }
 
-
 func (api *ApiServer) HTTPGetImage(w http.ResponseWriter, req *http.Request) {
 	// This is the method that will be removed. Displays the image on a webpage
 
@@ -340,7 +339,7 @@ func (c *Client) Read(api *ApiServer) {
 			panic(err)
 		}
 		// fmt.Println(dat)
-		// byt := makeTestingMessage("Default Message")
+		byt := makeTestingMessage("Default Message")
 
 		switch dat.Type {
 		case DrawPixel:
@@ -348,8 +347,8 @@ func (c *Client) Read(api *ApiServer) {
 			var dpMsg DrawPixelMsg
 			if err := json.Unmarshal(p, &dpMsg); err == nil {
 				fmt.Printf("%+v", dpMsg)
-				api.CallUpdatePixel(dpMsg.X, dpMsg.Y, dpMsg.R, dpMsg.G, dpMsg.B, dpMsg.UserID)
-				//byt := api.CallUpdatePixel(dpMsg.X, dpMsg.Y, dpMsg.R, dpMsg.G, dpMsg.B, dpMsg.UserID)
+				//api.CallUpdatePixel(dpMsg.X, dpMsg.Y, dpMsg.R, dpMsg.G, dpMsg.B, dpMsg.UserID)
+				byt = api.CallUpdatePixel(dpMsg.X, dpMsg.Y, dpMsg.R, dpMsg.G, dpMsg.B, dpMsg.UserID)
 			} else {
 				fmt.Println("JSON decoding error.")
 			}
@@ -358,9 +357,9 @@ func (c *Client) Read(api *ApiServer) {
 			var cuMsg LoginUserMsg
 			if err := json.Unmarshal(p, &cuMsg); err == nil {
 				fmt.Printf("%+v", cuMsg)
-				// email := cuMsg.Id
+				email := cuMsg.Id
 				// byt = api.CallUpdateUserList() // do something that actually affects it here
-				// byt := []byte("{\"type\": 2, \"Id\": \"" + email + "\"}")
+				byt = []byte("{\"type\": 2, \"Id\": \"" + email + "\"}")
 			} else {
 				fmt.Println("JSON decoding error.")
 			}
@@ -370,10 +369,10 @@ func (c *Client) Read(api *ApiServer) {
 		}
 
 		// write message back to the client sent to signal that you received message
-		if err := c.Conn.WriteMessage(gwebsocket.TextMessage, []byte("the server just recieved a message")); err != nil {
+		if err := c.Conn.WriteMessage(gwebsocket.TextMessage, byt); err != nil {
 			log.Println(err)
 		}
-		
+
 		fmt.Printf("Message Received: %+v\n", message)
 	}
 }
