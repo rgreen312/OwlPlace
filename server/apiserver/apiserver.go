@@ -13,8 +13,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 	"strconv"
-
 	"github.com/rgreen312/owlplace/server/common"
 	"github.com/rgreen312/owlplace/server/consensus"
 	"github.com/rgreen312/owlplace/server/websocket"
@@ -60,6 +60,8 @@ func (api *ApiServer) SetupRoutes() {
 		api.serveWs(pool, w, r)
 	})
 	http.HandleFunc("/update_pixel", api.HTTPUpdatePixel)
+	http.HandleFunc("/update_user", api.HTTPUpdateUserList)
+
 
 	// Although there is nothing wrong with this line, it prevents us from running multiple nodes on a single machine.
 	// Therefore, I am making failure non-fatal until we have some way of running locally from the same port (i.e. docker)
@@ -158,16 +160,13 @@ func (api *ApiServer) CallUpdatePixel(x int, y int, r int, g int, b int, userID 
 	fmt.Println("\nWithin UpdatePixel")
 
 	// TODO verify that the user is able to update a pizel with the User Data Team
-	userVerification := true
-	if !userVerification {
+	userVerification := api.validateUser(userID)
+	// If validation failed
+	if userVerification != 200 {
 		// User verification failed
-
 		log.Println(fmt.Sprintf("USER %s failed authentication", userID))
-		// TODO return the appropriate failure message
-		imageMsg := "FAILURE. TODO make this properly formatted"
-
-		// send message back to the client saying it's been updated or if it failed
-		byt := []byte(imageMsg)
+		// send message back to the client indicating verification failure
+		byt := makeVerificationFailMessage(userVerification)
 		return byt
 	}
 	// User has now been verified
@@ -203,6 +202,61 @@ func (api *ApiServer) CallUpdatePixel(x int, y int, r int, g int, b int, userID 
 		fmt.Fprintf(os.Stdout, "Update Failure\n")
 		byt := makeStatusMessage(400)
 		return byt
+	}
+}
+
+
+/*
+ * Insert the new user id to the userlist
+ */
+func (api *ApiServer) HTTPUpdateUserList(w http.ResponseWriter, req *http.Request) {
+	// Only for testing
+	user_id := req.URL.Query().Get("user_id")
+	api.CallUpdateUserList(user_id)
+}
+
+/*
+ * Insert the new user id to the userlist
+ */
+func (api *ApiServer) CallUpdateUserList(user_id string) []byte {
+	byt := []byte("")
+	_, ifErr := api.GetLastUserModification(user_id)
+	if (ifErr) {
+		err := api.SetLastUserModification(user_id, "0")
+		if (err) {
+			// Error from SetLastUserModification call
+			byt = makeCreateUserMessage(403)
+		} else {
+			// Successfully created the user
+			byt = makeCreateUserMessage(200)
+		}
+	} else {
+		// User already existed
+		byt = makeCreateUserMessage(401)
+	}
+	return byt
+}
+
+func (api *ApiServer) validateUser(user_id string) int {
+	now := time.Now().Unix()
+	lastMove, ifErr := api.GetLastUserModification(user_id)
+	// Cannot get this user's last modification
+	if (ifErr) {
+		return 401
+	}
+	lastMoveInt, _ := strconv.Atoi(lastMove)
+	if (int(now) - lastMoveInt > 3000) {
+		err := api.SetLastUserModification(user_id, strconv.Itoa(int(now)))
+		if err {
+			// Error from SetLastUserModification call
+			return 403
+		} else {
+			// Successfully updated the user's last modification
+			return 200
+		}
+	} else {
+		// User cannot make a move yet.
+		return 429
 	}
 }
 
@@ -354,12 +408,10 @@ func (c *Client) Read(api *ApiServer) {
 			}
 		case LoginUser:
 			fmt.Println("CreateUser message received.")
-			var cuMsg LoginUserMsg
-			if err := json.Unmarshal(p, &cuMsg); err == nil {
-				fmt.Printf("%+v", cuMsg)
-				email := cuMsg.Id
-				// byt = api.CallUpdateUserList() // do something that actually affects it here
-				byt = []byte("{\"type\": 2, \"Id\": \"" + email + "\"}")
+			var cu_msg LoginUserMsg
+			if err := json.Unmarshal(p, &cu_msg); err == nil {
+				fmt.Printf("%+v", cu_msg)
+				byt = api.CallUpdateUserList(cu_msg.Id)
 			} else {
 				fmt.Println("JSON decoding error.")
 			}
@@ -391,6 +443,32 @@ func makeTestingMessage(s string) []byte {
 func makeStatusMessage(s int) []byte {
 	msg := DrawResponseMsg{
 		Type:   DrawResponse,
+		Status: s,
+	}
+
+	b, err := json.Marshal(msg)
+	if err != nil {
+		log.Println(err)
+	}
+	return b
+}
+
+func makeVerificationFailMessage(s int) []byte {
+	msg := VerificationFailMsg{
+		Type: VerificationFail,
+		Status: s,
+	}
+
+	b, err := json.Marshal(msg)
+	if err != nil {
+		log.Println(err)
+	}
+	return b
+}
+
+func makeCreateUserMessage(s int) []byte {
+	msg := CreateUserMsg{
+		Type: CreateUser,
 		Status: s,
 	}
 

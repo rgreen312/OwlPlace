@@ -1,7 +1,7 @@
 import { HOSTNAME } from '../constants';
 import * as ActionTypes from './actionTypes';
 import { getWebSocket } from './selectors';
-import { Msg, ErrorMsg, ImageMsg, MsgType } from '../message';
+import { Msg, ErrorMsg, ImageMsg, MsgType, VerificationFailMsg, CreateUserMsg } from '../message';
 import { setImage } from '../canvas/actions';
 
 const startConnect = () => ({
@@ -74,6 +74,18 @@ export const openWebSocket = () => dispatch => {
         case MsgType.DRAWRESPONSE: {
           let status = json.status
           console.log("Received a DRAWRESPONSE message from the server!");
+          console.log("The status was " + status)
+          break;
+        }
+        case MsgType.VERIFICATIONFAIL: {
+          let status = json.status
+          console.log("Received a VERIFICATIONFAIL message from the server!");
+          console.log("The status was " + status)
+          break;
+        }
+        case MsgType.CREATEUSER: {
+          let status = json.status
+          console.log("Received a CREATEUSER message from the server!");
           console.log("The status was " + status)
           break;
         }
