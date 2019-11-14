@@ -67,7 +67,7 @@ type ImageMsg struct {
 
 type TestingMsg struct {
 	Type MsgType `json:"type"`
-	Body string  `json:"body"`
+	Msg string  `json:"msg"`
 }
 
 type DrawResponseMsg struct {

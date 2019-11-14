@@ -3,8 +3,8 @@ import { HOSTNAME } from '../constants';
 import * as ActionTypes from './actionTypes';
 import { getWebSocket } from './selectors';
 import { Msg, ErrorMsg, ImageMsg, MsgType } from '../message';
-import { setImage, updatePixel } from '../canvas/actions';
-
+import { setImage } from '../canvas/actions';
+import { getCanvasContext } from '../../src/canvas/selectors';
 const startConnect = () => ({
   type: ActionTypes.StartConnect
 });
@@ -76,9 +76,9 @@ export const openWebSocket = () => dispatch => {
           console.log("Received a CHANGECLIENTPIXEL message from the server!");
           let x = json.x
           let y = json.y
-          let color = { r: json.r, g: json.g, b: json.b }
+          // let color = { r: json.r, g: json.g, b: json.b }
            //change pixel on front end TODO
-          dispatch()
+          dispatch(setColor(x, y, json.r, json.g, json.b))
         }
         case MsgType.DRAWRESPONSE: {
           let status = json.status
@@ -114,6 +114,16 @@ export const makeUpdateMessage = (
     b: b
   });
 };
+
+const setColor = (x: number, y: number, r: number, g: number, b: number) => (dispatch, getState) => {
+  console.log("inside set color in actions.ts")
+  const state = getState();
+  const ctx = getCanvasContext(state);
+  if (ctx) {
+    ctx!.fillStyle = 'rgb('+ r + ',' + g + ',' + b + ')';
+    ctx!.fillRect(x , y , 1, 1);
+  }
+}
 
 export const makeLoginMessage = (
   email: string
