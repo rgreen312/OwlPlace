@@ -165,9 +165,6 @@ func (api *ApiServer) CallUpdatePixel(x int, y int, r int, g int, b int, userID 
 	if userVerification != 200 {
 		// User verification failed
 		log.Println(fmt.Sprintf("USER %s failed authentication", userID))
-		// TODO return the appropriate failure message
-		imageMsg := "FAILURE. TODO make this properly formatted"
-
 		// send message back to the client indicating verification failure
 		byt := makeVerificationFailMessage(userVerification)
 		return byt
@@ -458,7 +455,7 @@ func makeStatusMessage(s int) []byte {
 
 func makeVerificationFailMessage(s int) []byte {
 	msg := VerificationFailMsg{
-		Type: Verification,
+		Type: VerificationFail,
 		Status: s,
 	}
 
