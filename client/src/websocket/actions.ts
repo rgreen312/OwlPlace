@@ -1,8 +1,9 @@
+import { Color } from 'react-color';
 import { HOSTNAME } from '../constants';
 import * as ActionTypes from './actionTypes';
 import { getWebSocket } from './selectors';
 import { Msg, ErrorMsg, ImageMsg, MsgType } from '../message';
-import { setImage } from '../canvas/actions';
+import { setImage, updatePixel } from '../canvas/actions';
 
 const startConnect = () => ({
   type: ActionTypes.StartConnect
@@ -71,6 +72,14 @@ export const openWebSocket = () => dispatch => {
           console.log("Message: " + json.msg);
           break;
         }
+        case MsgType.CHANGECLIENTPIXEL: {
+          console.log("Received a CHANGECLIENTPIXEL message from the server!");
+          let x = json.x
+          let y = json.y
+          let color = { r: json.r, g: json.g, b: json.b }
+           //change pixel on front end TODO
+          dispatch()
+        }
         case MsgType.DRAWRESPONSE: {
           let status = json.status
           console.log("Received a DRAWRESPONSE message from the server!");
@@ -78,7 +87,7 @@ export const openWebSocket = () => dispatch => {
           break;
         }
         default: {
-            console.log("Received a message from the server of an unknown type, message: " + data);
+            console.log("Received a message from the server of an unknown type, message: " + data + " type: " + json.type) ;
             break;
         }
     }

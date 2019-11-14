@@ -4,21 +4,22 @@ type MsgType int8
 
 // Well defined Message types
 const (
-	Error        MsgType = -1
-	Open         MsgType = 0
-	DrawPixel    MsgType = 1
-	LoginUser    MsgType = 2
-	UpdatePixel  MsgType = 3
-	Image        MsgType = 4
-	Testing      MsgType = 5
-	DrawResponse MsgType = 6
-	Close        MsgType = 9
+	Error             MsgType = -1
+	Open              MsgType = 0
+	DrawPixel         MsgType = 1
+	LoginUser         MsgType = 2
+	ChangeClientPixel MsgType = 3 // sent from server to other clients
+	Image             MsgType = 4
+	Testing           MsgType = 5
+	DrawResponse      MsgType = 6
+	Close             MsgType = 9
 )
 
 type Msg struct {
 	Type MsgType `json:"type"`
 }
 
+// Message generic message recieved through websocket
 type Message struct {
 	Type int    `json:"type"`
 	Body string `json:"body"`
@@ -49,7 +50,7 @@ type LoginUserMsg struct {
 	the server to the client, notifying the user
 	that a pixel was drawn by another user.
 */
-type UpdatePixelMsg struct {
+type ChangeClientPixelMsg struct {
 	Type   MsgType `json:"type"`
 	X      int     `json:"x"`
 	Y      int     `json:"y"`
@@ -66,7 +67,7 @@ type ImageMsg struct {
 
 type TestingMsg struct {
 	Type MsgType `json:"type"`
-	Msg  string  `json:"msg"`
+	Body string  `json:"body"`
 }
 
 type DrawResponseMsg struct {
