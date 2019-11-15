@@ -17,6 +17,19 @@ export const connectError = (error: string) => ({
 });
 export type ConnectError =  ReturnType<typeof connectError>;
 
+export const loginError = () => ({
+  type: ActionTypes.LoginError,
+});
+export type LoginError =  ReturnType<typeof loginError>;
+
+export const loginSuccess = (coolDown: number) => ({
+  type: ActionTypes.LoginSuccess, 
+  payload: {
+    coolDown
+  }
+})
+export type LoginSuccess =  ReturnType<typeof loginSuccess>;
+
 const closeConnection = () => ({
   type: ActionTypes.CloseConnection,
 });
@@ -97,6 +110,7 @@ export const openWebSocket = () => dispatch => {
           console.log("Received a CREATEUSER message from the server!");
           console.log("The status was " + status);
           console.log("The remaining cooldown time for current user is: " + cooldown);
+          dispatch(userCreated(status, cooldown)); 
           break;
         }
         default: {
@@ -127,6 +141,14 @@ export const makeUpdateMessage = (
     b: b
   });
 };
+
+const userCreated = (status: number, cooldown: number) => (dispatch, getState) => {
+  if (status != 403) {
+    dispatch(loginSuccess(cooldown)); 
+  } else {
+    dispatch(loginError()); 
+  }
+}
 
 const setColor = (x: number, y: number, r: number, g: number, b: number) => (dispatch, getState) => {
   console.log("inside set color in actions.ts")
