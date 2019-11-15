@@ -27,6 +27,7 @@ type Msg struct {
 	Type MsgType `json:"type"`
 }
 
+// Message generic message recieved through websocket
 type Message struct {
 	Type int    `json:"type"`
 	Body string `json:"body"`
@@ -104,7 +105,7 @@ type LoginUserMsg struct {
 	the server to the client, notifying the user
 	that a pixel was drawn by another user.
 */
-type UpdatePixelMsg struct {
+type ChangeClientPixelMsg struct {
 	Type   MsgType `json:"type"`
 	X      int     `json:"x"`
 	Y      int     `json:"y"`
@@ -121,7 +122,7 @@ type ImageMsg struct {
 
 type TestingMsg struct {
 	Type MsgType `json:"type"`
-	Msg  string  `json:"msg"`
+	Msg string  `json:"msg"`
 }
 
 type DrawResponseMsg struct {
