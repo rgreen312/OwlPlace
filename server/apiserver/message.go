@@ -3,7 +3,6 @@ package apiserver
 import (
 	"net/http"
 	"strconv"
-
 	"github.com/pkg/errors"
 )
 
@@ -52,7 +51,7 @@ type DrawPixelMsg struct {
 func NewDrawPixelMsg(req *http.Request) (*DrawPixelMsg, error) {
 
 	intExtractor := func(queryParam string) (int, error) {
-		val, err := strconv.ParseInt(req.URL.Query().Get(queryParam), 10, 8)
+		val, err := strconv.ParseUint(req.URL.Query().Get(queryParam), 10, 8)
 		return int(val), err
 	}
 
