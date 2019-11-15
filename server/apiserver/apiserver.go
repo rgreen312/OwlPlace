@@ -10,6 +10,7 @@ import (
 	"image/png"
 	"net/http"
 	"time"
+	"os"
 
 	gwebsocket "github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
@@ -28,12 +29,7 @@ const (
 	AlphaMask = 255
 )
 
-type ApiServer struct {
-	sendc 				chan consensus.BackendMessage
-	recvc 				chan consensus.ConsensusMessage
-	port  				int
-	pod_ip 				string
-}
+
 var (
 	configError   = errors.New("invalid configuration error")
 	ImageTemplate = `
@@ -47,7 +43,8 @@ var (
 )
 
 type ApiServer struct {
-	config     *common.ServerConfig
+	pod_ip     string
+	node_id     int
 	conService *consensus.ConsensusService
 }
 
@@ -57,30 +54,24 @@ type Client struct {
 	Pool *Pool
 }
 
+
+const (
+	API_PORT int = 3001
+)
+
+const (
+	CONSENSUS_PORT int = 3010
+)
+
 var cooldown = 300000
 
 func NewApiServer(pod_ip string) *ApiServer {
 
-	conf, ok := servers[nodeId]
-	if !ok {
-		return nil, errors.Wrapf(configError, "missing entry for node: %d", nodeId)
-	}
-
-// 	conService, err := consensus.NewConsensusService(servers, nodeId)
-// 	if err != nil {
-// 		return nil, errors.Wrap(err, "creating ConsensusService")
-// 	}
-
-// 	err = conService.Start()
-// 	if err != nil {
-// 		return nil, errors.Wrap(err, "starting ConsensusService")
-// 	}
-
 	return &ApiServer{
-		config:     conf,
-		conService: nullptr,
-    pod_ip: pod_ip,
-	}, nil
+		conService: nil,
+    	pod_ip: pod_ip,
+    	node_id: common.IPToNodeId(pod_ip),
+	}
 }
 
 
@@ -105,71 +96,46 @@ func (api *ApiServer) StartConsensus(join bool){
 	for _, pod := range pods.Items {
 		if(pod.Status.PodIP != api.pod_ip && !join){
 			// Send an http join request to the other nodes
-			_, err := http.Get(fmt.Sprintf("http://%s:%d/consensus_join_message", pod.Status.PodIP, api.port))
+			_, err := http.Get(fmt.Sprintf("http://%s:%d/consensus_join_message", pod.Status.PodIP, API_PORT))
 			if(err != nil){
 				panic(err)
 			}
 		}
 		servers[common.IPToNodeId(pod.Status.PodIP)] = &common.ServerConfig{
 			Hostname: pod.Status.PodIP,
-			ApiPort: 3001,
-			ConsensusPort: 3010,
+			ApiPort: API_PORT,
+			ConsensusPort: CONSENSUS_PORT,
 		}
     }
 	//At first, just print something so that we know http requests are working inside kubernetes
 	fmt.Fprintf(os.Stdout, "Pod Trigger Called\n")
 
+
 	// Start the consensus service in the background
-	go consensus.CreateConsensus(api.sendc, api.recvc, servers, common.IPToNodeId(api.pod_ip), join)
+	conService, err := consensus.NewConsensusService(servers, api.node_id)
+	api.conService = conService
+	// if err != nil {
+	// 	return nil, errors.Wrap(err, "creating ConsensusService")
+	// }
+
+	err = conService.Start(join)
+	// if err != nil {
+	// 	return nil, errors.Wrap(err, "starting ConsensusService")
+	// }
 }
 
 func (api *ApiServer) ConsensusTrigger(w http.ResponseWriter, req *http.Request) {
+	fmt.Fprintf(os.Stdout, "ConsensusTrigger\n")
 	api.StartConsensus(false)
 }
 
 func (api *ApiServer) ConsensusJoinMessage(w http.ResponseWriter, req *http.Request){
+	fmt.Fprintf(os.Stdout, "ConsensusJoin\n")
 	api.StartConsensus(true)
 }
 
 
-func (api *ApiServer) CallGetImage() string {
-	// Debug message
-	fmt.Fprintf(os.Stdout, "Getting Image From Raft\n")
-	// Construct the message
-	m := consensus.BackendMessage{Type: consensus.GET_IMAGE}
-	// Send a message through the channel
-	api.sendc <- m
-	var ImageTemplate string = `<!DOCTYPE html>
-								<html lang="en"><head></head>
-								<body><img src="data:image/jpg;base64,{{.Image}}"></body>`
-	imageMsg := <-api.recvc
 
-	if _, err := template.New("image").Parse(ImageTemplate); err != nil {
-		fmt.Fprintf(os.Stdout, "Unable to parse image template.\n")
-		return "Unable to parse image template"
-	} else {
-
-		// Decode the message from the glob
-		dec := gob.NewDecoder(&imageMsg.Data)
-		var img image.RGBA
-		dec.Decode(&img)
-
-		// In-memory buffer to store PNG image
-		// before we base 64 encode it
-		var buff bytes.Buffer
-
-		// The Buffer satisfies the Writer interface so we can use it with Encode
-		// In previous example we encoded to a file, this time to a temp buffer
-		png.Encode(&buff, &img)
-
-		// Encode the bytes in the buffer to a base64 string
-		encodedString := base64.StdEncoding.EncodeToString(buff.Bytes())
-
-		// TODO  wrap the encodedString in a message
-
-		return encodedString
-	}
-}
 func (api *ApiServer) ListenAndServe() {
 	pool := NewPool()
 	go pool.Start()
@@ -188,7 +154,7 @@ func (api *ApiServer) ListenAndServe() {
 	// failure non-fatal until we have some way of running locally from the
 	// same port (i.e. docker)
 	// log.Fatal(http.ListenAndServe(":3010", nil))
-	http.ListenAndServe(fmt.Sprintf(":%d", api.config.ApiPort), nil)
+	http.ListenAndServe(fmt.Sprintf(":%d", common.ApiPort), nil)
 }
 
 func base64Encode(img *image.RGBA) string {

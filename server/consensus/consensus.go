@@ -12,6 +12,7 @@ import (
 	"runtime"
 	"syscall"
 	"time"
+	"os"
 
 	"github.com/lni/dragonboat/v3"
 	"github.com/lni/dragonboat/v3/config"
@@ -108,77 +109,6 @@ func NewConsensusService(servers map[int]*common.ServerConfig, nodeId int) (*Con
 		return nil, errors.Wrapf(dragonboatConfigurationError, "NodeID provided (%d) not present in server map.", nodeId)
 	}
 
-}
-
-func ScanDiscoveryService(servers map[int]*common.ServerConfig, nh *dragonboat.NodeHost){
-	for {
-
-		fmt.Fprintf(os.Stdout, "Scanning Discovery Service\n")
-		
-
-		//Actually scan discovery service
-		config, err := rest.InClusterConfig()
-		if err != nil {
-			panic(err.Error())
-		}
-		clientset, err := kubernetes.NewForConfig(config)
-		if err != nil {
-			panic(err.Error())
-		}
-
-		pods, err := clientset.CoreV1().Pods("dev").List(metav1.ListOptions{})
-		if err != nil {
-			panic(err.Error())
-		}
-
-		for _, pod := range pods.Items {
-			if servers[common.IPToNodeId(pod.Status.PodIP)] == nil {
-				fmt.Fprintf(os.Stdout, "Found pod that's not in cluster\n")
-
-				// Adding pod to server map
-				nodeId := common.IPToNodeId(pod.Status.PodIP)
-				servers[nodeId] = &common.ServerConfig{
-					Hostname: pod.Status.PodIP,
-					ApiPort: 3001,
-					ConsensusPort: 3010,
-				}
-
-				// Adding pod to cluster 
-				request_data, request_err := nh.RequestAddNode(exampleClusterID, uint64(nodeId), fmt.Sprintf("%s:%d", pod.Status.PodIP, common.ApiPort), 0, 1000*time.Millisecond)
-				if(request_err != nil){
-					panic(err)
-				}
-
-				// Wait for response or timeout
-				results := <-request_data.CompletedC
-
-				if(results.Completed()){
-					fmt.Fprintf(os.Stdout, "Pod join success\n")
-					// Send an http join request to the other nodes
-					_, err := http.Get(fmt.Sprintf("http://%s:%d/consensus_join_message", pod.Status.PodIP , common.ApiPort))
-					if(err != nil){
-						panic(err)
-					}
-				} else {
-					fmt.Fprintf(os.Stdout, "Pod join failure\n")
-				}
-
-	
-			}
-			
-	    }
-
-		// Wait for 10 seconds before scanning again
-		time.Sleep(10000 * time.Millisecond)
-
-	}
-}
-func CreateConsensus(recvc chan BackendMessage, sendc chan ConsensusMessage, servers map[int]*common.ServerConfig, nodeId int, join bool) {	
-
-	conf := servers[nodeId]
-	// For more information on the join parameter, see:
-	// https://godoc.org/github.com/lni/dragonboat#NodeHost.StartCluster
-
 	nodeAddr := fmt.Sprintf("%s:%d", conf.Hostname, conf.ConsensusPort)
 
 	// https://github.com/golang/go/issues/17393
@@ -187,7 +117,7 @@ func CreateConsensus(recvc chan BackendMessage, sendc chan ConsensusMessage, ser
 	}
 
 	peers := make(map[uint64]string)
-	if len(servers) > 1 && !join {
+	if len(servers) > 1 {
 		for id, srv := range servers {
 			peers[uint64(id)] = fmt.Sprintf("%s:%d", srv.Hostname, srv.ConsensusPort)
 		}
@@ -205,14 +135,13 @@ func CreateConsensus(recvc chan BackendMessage, sendc chan ConsensusMessage, ser
 	logger.GetLogger("transport").SetLevel(logger.WARNING)
 	logger.GetLogger("grpc").SetLevel(logger.WARNING)
 	rc := config.Config{
-		NodeID:              uint64(nodeId),
-		ClusterID:           ClusterId,
-		ElectionRTT:         10,
-		HeartbeatRTT:        1,
-		CheckQuorum:         true,
-		SnapshotEntries:     10,
-		CompactionOverhead:  5,
-		OrderedConfigChange: false,
+		NodeID:             uint64(nodeId),
+		ClusterID:          ClusterId,
+		ElectionRTT:        10,
+		HeartbeatRTT:       1,
+		CheckQuorum:        true,
+		SnapshotEntries:    10,
+		CompactionOverhead: 5,
 	}
 	log.WithFields(log.Fields{
 		"raft config": rc,
@@ -222,7 +151,8 @@ func CreateConsensus(recvc chan BackendMessage, sendc chan ConsensusMessage, ser
 	}
 
 	datadir := filepath.Join(
-		"owlplace-data",
+		"example-data",
+		"helloworld-data",
 		fmt.Sprintf("node%d", nodeId))
 
 	nhc := config.NodeHostConfig{
@@ -253,6 +183,69 @@ func CreateConsensus(recvc chan BackendMessage, sendc chan ConsensusMessage, ser
 		peers:      peers,
 		raftConfig: rc,
 	}, nil
+}
+
+func ScanDiscoveryService(servers map[int]*common.ServerConfig, nh *dragonboat.NodeHost){
+	for {
+
+		fmt.Fprintf(os.Stdout, "Scanning Discovery Service\n")
+		
+		//Actually scan discovery service
+		config, err := rest.InClusterConfig()
+		if err != nil {
+			panic(err.Error())
+		}
+		clientset, err := kubernetes.NewForConfig(config)
+		if err != nil {
+			panic(err.Error())
+		}
+
+		pods, err := clientset.CoreV1().Pods("dev").List(metav1.ListOptions{})
+		if err != nil {
+			panic(err.Error())
+		}
+
+		for _, pod := range pods.Items {
+			if servers[common.IPToNodeId(pod.Status.PodIP)] == nil {
+				fmt.Fprintf(os.Stdout, "Found pod that's not in cluster\n")
+
+				// Adding pod to server map
+				nodeId := common.IPToNodeId(pod.Status.PodIP)
+				servers[nodeId] = &common.ServerConfig{
+					Hostname: pod.Status.PodIP,
+					ApiPort: 3001,
+					ConsensusPort: 3010,
+				}
+
+				// Adding pod to cluster 
+				request_data, request_err := nh.RequestAddNode(ClusterId, uint64(nodeId), fmt.Sprintf("%s:%d", pod.Status.PodIP, common.ApiPort), 0, 1000*time.Millisecond)
+				if(request_err != nil){
+					panic(err)
+				}
+
+				// Wait for response or timeout
+				results := <-request_data.CompletedC
+
+				if(results.Completed()){
+					fmt.Fprintf(os.Stdout, "Pod join success\n")
+					// Send an http join request to the other nodes
+					_, err := http.Get(fmt.Sprintf("http://%s:%d/consensus_join_message", pod.Status.PodIP , common.ApiPort))
+					if(err != nil){
+						panic(err)
+					}
+				} else {
+					fmt.Fprintf(os.Stdout, "Pod join failure\n")
+				}
+
+	
+			}
+			
+	    }
+
+		// Wait for 10 seconds before scanning again
+		time.Sleep(10000 * time.Millisecond)
+
+	}
 }
 
 func (cs *ConsensusService) SyncGetImage() (*image.RGBA, error) {
@@ -331,22 +324,22 @@ func (cs *ConsensusService) SyncSetLastUserModification(userId string, timestamp
 	return nil
 }
 
-func (cs *ConsensusService) Start() error {
-	// For more information on the join parameter, see:
-	// https://godoc.org/github.com/lni/dragonboat#NodeHost.StartCluster
-	join := false
-
+func (cs *ConsensusService) Start(join bool) error {
 	// Function to provide a state-machine reference to Raft
 	stateMachineProvider := func(clusterId uint64, nodeId uint64) sm.IOnDiskStateMachine {
 		return cs.dkv
 	}
+	peers := make(map[uint64]string)
+	if(!join){
+		peers = cs.peers
+	}
 	log.WithFields(log.Fields{
-		"peers":                cs.peers,
+		"peers":                peers,
 		"join":                 join,
 		"stateMachineProvider": stateMachineProvider,
 		"raft config":          cs.raftConfig,
 	}).Debug("starting on disk cluster")
-	return cs.nh.StartOnDiskCluster(cs.peers, join, stateMachineProvider, cs.raftConfig)
+	return cs.nh.StartOnDiskCluster(peers, join, stateMachineProvider, cs.raftConfig)
 }
 
 // TODO(gabe): figure out how to shutdown a dragonboat node

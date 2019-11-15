@@ -2,9 +2,6 @@ package main
 
 import (
 	"os"
-	"encoding/json"
-	"flag"
-	"io/ioutil"
 	log "github.com/sirupsen/logrus"
 	"github.com/rgreen312/owlplace/server/apiserver"
 )
