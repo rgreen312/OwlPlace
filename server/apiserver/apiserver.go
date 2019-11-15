@@ -33,6 +33,8 @@ type Client struct {
 	Pool *Pool
 }
 
+var cooldown = 300000
+
 func NewApiServer(servers map[int]*common.ServerConfig, nodeId int) *ApiServer {
 
 	apiPort := servers[nodeId].ApiPort
@@ -227,11 +229,11 @@ func (api *ApiServer) CallUpdateUserList(user_id string) []byte {
 			byt = makeCreateUserMessage(403, -1)
 		} else {
 			// Successfully created the user
-			byt = makeCreateUserMessage(200, 300000)
+			byt = makeCreateUserMessage(200, cooldown)
 		}
 	} else {
 		// User already existed
-		byt = makeCreateUserMessage(401, math.Max(300000 - (time.now() - strconv.Atoi(lastMove)), 0))
+		byt = makeCreateUserMessage(401, math.Max(cooldown - (time.Now() - strconv.Atoi(lastMove)), 0))
 	}
 	return byt
 }
@@ -454,32 +456,6 @@ func makeStatusMessage(s int) []byte {
 
 func makeVerificationFailMessage(s int) []byte {
 	msg := VerificationFailMsg{
-		Type: VerificationFail,
-		Status: s,
-	}
-
-	b, err := json.Marshal(msg)
-	if err != nil {
-		log.Println(err)
-	}
-	return b
-}
-
-func makeCreateUserMessage(s int) []byte {
-	msg := CreateUserMsg{
-		Type: CreateUser,
-		Status: s,
-	}
-
-	b, err := json.Marshal(msg)
-	if err != nil {
-		log.Println(err)
-	}
-	return b
-}
-
-func makeVerificationFailMessage(s int) []byte {
-	msg := VerificationFailMsg{
 		Type: Verification,
 		Status: s,
 	}
@@ -495,7 +471,7 @@ func makeCreateUserMessage(s int, c int) []byte {
 	msg := CreateUserMsg{
 		Type: CreateUser,
 		Status: s,
-		Cooldown: c
+		Cooldown: c,
 	}
 
 	b, err := json.Marshal(msg)
