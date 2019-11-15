@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"image"
 	"image/png"
 	"net/http"
 
@@ -69,6 +70,7 @@ func NewApiServer(servers map[int]*common.ServerConfig, nodeId int) (*ApiServer,
 
 func (api *ApiServer) ListenAndServe() {
 	http.HandleFunc("/get_image", api.GetImage)
+	http.HandleFunc("/get/image", api.GetImageJson)
 	http.HandleFunc("/update_pixel", api.UpdatePixel)
 	http.HandleFunc("/ws", api.wsEndpoint)
 
@@ -80,25 +82,7 @@ func (api *ApiServer) ListenAndServe() {
 	http.ListenAndServe(fmt.Sprintf(":%d", api.config.ApiPort), nil)
 }
 
-func (api *ApiServer) GetImage(w http.ResponseWriter, req *http.Request) {
-
-	log.WithFields(log.Fields{
-		"request": req,
-	})
-
-	img, err := api.conService.SyncGetImage()
-	if err != nil {
-		log.Errorf(errors.Wrap(err, "getting image").Error())
-		// TODO: handle error gracefully
-		return
-	}
-
-	tmpl, err := template.New("image").Parse(ImageTemplate)
-	if err != nil {
-		log.Errorf(errors.Wrap(err, "parsing template").Error())
-		return
-	}
-
+func base64Encode(img *image.RGBA) string {
 	// In-memory buffer to store PNG image
 	// before we base 64 encode it
 	var buff bytes.Buffer
@@ -108,11 +92,55 @@ func (api *ApiServer) GetImage(w http.ResponseWriter, req *http.Request) {
 	png.Encode(&buff, img)
 
 	// Encode the bytes in the buffer to a base64 string
-	encodedString := base64.StdEncoding.EncodeToString(buff.Bytes())
+	return base64.StdEncoding.EncodeToString(buff.Bytes())
+}
+
+func (api *ApiServer) GetImageJson(w http.ResponseWriter, req *http.Request) {
+	log.WithFields(log.Fields{
+		"request": req,
+	})
+
+	img, err := api.conService.SyncGetImage()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	js, err := json.Marshal(map[string]string{
+		"data": base64Encode(img),
+	})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(js)
+}
+
+func (api *ApiServer) GetImage(w http.ResponseWriter, req *http.Request) {
+	log.WithFields(log.Fields{
+		"request": req,
+	})
+
+	img, err := api.conService.SyncGetImage()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	encodedString := base64Encode(img)
+
+	tmpl, err := template.New("image").Parse(ImageTemplate)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	data := map[string]interface{}{"Image": encodedString}
 	if err = tmpl.Execute(w, data); err != nil {
-		log.Errorf(errors.Wrap(err, "executing template").Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 }
 
