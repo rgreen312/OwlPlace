@@ -147,13 +147,13 @@ func (api *ApiServer) GetImage(w http.ResponseWriter, req *http.Request) {
 func (api *ApiServer) UpdatePixel(w http.ResponseWriter, req *http.Request) {
 	msg, err := NewDrawPixelMsg(req)
 	if err != nil {
-		// TODO: respond with HTTP error code
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	err = api.conService.SyncUpdatePixel(msg.X, msg.Y, msg.R, msg.G, msg.B, msg.A)
 	if err != nil {
-		// TODO: respond with HTTP error code
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 }
