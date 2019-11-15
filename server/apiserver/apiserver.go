@@ -339,9 +339,10 @@ func (api *ApiServer) serveWs(pool *Pool, w http.ResponseWriter, r *http.Request
 
 	// helpful log statement to show connections
 	log.Println("Client Connected")
-	if err = client.Conn.WriteMessage(1, makeTestingMessage("{\"Hi Client! We just connected :)\"}")); err != nil { // sent upon connection to any clients
-		log.Println(err)
-	}
+	// COMMENTED OUT BC CONCURRENT WRITES
+	// if err = client.Conn.WriteMessage(1, makeTestingMessage("{\"Hi Client! We just connected :)\"}")); err != nil { // sent upon connection to any clients
+	// 	log.Println(err)
+	// }
 	// send image
 	serverString := api.CallGetImage()
 
@@ -351,7 +352,7 @@ func (api *ApiServer) serveWs(pool *Pool, w http.ResponseWriter, r *http.Request
 		Type:         Image,
 		FormatString: serverString,
 	}
-	log.Printf("ImageMsg: %+v\n", msg)
+	// log.Printf("ImageMsg: %+v\n", msg)
 
 	var b []byte
 	b, err = json.Marshal(msg)
@@ -374,13 +375,14 @@ func (c *Client) Read(api *ApiServer) {
 	}()
 
 	for {
-		messageType, p, err := c.Conn.ReadMessage()
+		_, p, err := c.Conn.ReadMessage()
+		fmt.Printf("p: " + string(p) + "\n") // we want the ccpmsg we send to be like this
 		if err != nil {
 			log.Println(err)
 			return
 		}
-		message := Message{Type: messageType, Body: string(p)}
-		fmt.Printf("Message Received: %+v\n", message)
+		// message := Message{Type: messageType, Body: string(p)}
+		// fmt.Printf("Message Received: %+v\n", message)
 		
 		var dat Msg
 
@@ -392,7 +394,6 @@ func (c *Client) Read(api *ApiServer) {
 			log.Printf("client response: %q", p)
 			panic(err)
 		}
-		// fmt.Println(dat)
 		byt := makeTestingMessage("Default Message")
 
 		switch dat.Type {
@@ -401,17 +402,45 @@ func (c *Client) Read(api *ApiServer) {
 			var dpMsg DrawPixelMsg
 			if err := json.Unmarshal(p, &dpMsg); err == nil {
 				fmt.Printf("%+v", dpMsg)
-				//api.CallUpdatePixel(dpMsg.X, dpMsg.Y, dpMsg.R, dpMsg.G, dpMsg.B, dpMsg.UserID)
 				byt = api.CallUpdatePixel(dpMsg.X, dpMsg.Y, dpMsg.R, dpMsg.G, dpMsg.B, dpMsg.UserID)
+	
+				// tell all clients to update their board
+				ccpMsg := ChangeClientPixelMsg {
+					Type: ChangeClientPixel,
+					X: dpMsg.X,
+					Y: dpMsg.Y,
+					R: dpMsg.R,
+					G: dpMsg.G,
+					B: dpMsg.B,
+					UserID: dpMsg.UserID, 
+				}
+				
+				msg, _ := json.Marshal(ccpMsg)
+				fmt.Printf("msg: " + string(msg)) 
+				c.Pool.Broadcast <- ccpMsg
 			} else {
 				fmt.Println("JSON decoding error.")
 			}
+			// pretty sure this is not going to be received 
+		// case ChangeClientPixel:
+		// 	fmt.Println("ChangeClientPixel message received.")
+		// 	var ccpMsg ChangeClientPixelMsg
+		// 	if err := json.Unmarshal(p, &ccpMsg); err == nil {
+				
+		// 		fmt.Printf("%+v", ccpMsg)
+		// 		// send a message to front end to update this pixel
+		// 		if err := c.Conn.WriteMessage(gwebsocket.TextMessage, 
+		// 			makeChangeClientMessage(ccpMsg.X, ccpMsg.Y, ccpMsg.R, ccpMsg.G, ccpMsg.B, ccpMsg.UserID)); err != nil {
+		// 			log.Println(err)
+		// 		}
+		// 	}
+
 		case LoginUser:
 			fmt.Println("CreateUser message received.")
-			var cu_msg LoginUserMsg
-			if err := json.Unmarshal(p, &cu_msg); err == nil {
-				fmt.Printf("%+v", cu_msg)
-				byt = api.CallUpdateUserList(cu_msg.Id)
+			var cuMsg LoginUserMsg
+			if err := json.Unmarshal(p, &cuMsg); err == nil {
+				fmt.Printf("%+v", cuMsg)
+				byt = api.CallUpdateUserList(cuMsg.Id)
 			} else {
 				fmt.Println("JSON decoding error.")
 			}
@@ -419,12 +448,29 @@ func (c *Client) Read(api *ApiServer) {
 			// this is what the case is if the message is recieved from other servers
 			fmt.Printf("Message of type: %d received.\n", dat.Type)
 		}
+		log.Println(byt)
+		// // COMMENTED OUT BC CONCURRENT WRITES write message back to the client sent to signal that you received message
+		// if err := c.Conn.WriteMessage(gwebsocket.TextMessage, byt); err != nil {
+		// 	log.Println(err)
+		// }
 
-		// write message back to the client sent to signal that you received message
-		if err := c.Conn.WriteMessage(gwebsocket.TextMessage, byt); err != nil {
-			log.Println(err)
-		}
 	}
+}
+func makeChangeClientMessage(x int, y int, r int, g int, b int, userID string) []byte {
+	msg := ChangeClientPixelMsg {
+		Type: ChangeClientPixel,
+		X: x,
+		Y: y,   
+		R: r,  
+		G: g,      
+		B: b,      
+		UserID: userID,
+	}
+	bt, err := json.Marshal(msg)
+	if err != nil {
+		log.Println(err)
+	}
+	return bt
 }
 
 func makeTestingMessage(s string) []byte {
