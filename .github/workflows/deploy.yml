@@ -1,0 +1,22 @@
+name: build & test frontend
+
+on: 
+  pull_request:
+    branches: 
+      - master
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - name: install npm deps
+      working-directory: ./client
+      run: npm install
+    - name: build site
+      working-directory: ./client
+      run: npm run build
+    - name: deploy to github pages
+      working-directory: ./client
+      run: npm run deploy
+
