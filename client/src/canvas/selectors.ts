@@ -11,3 +11,12 @@ export const getCurrentPosition = (
   state.canvas.curPosition || undefined;
 
 export const getZoomFactor = (state: State): number => state.canvas.zoomFactor;
+
+export const getInitialImage = (state: State): string | undefined => 
+  state.canvas.initialImage || undefined;
+
+export const getTimeToChange = (state: State): number => 
+  state.canvas.timeToNextChange;
+
+export const canUpdatePixel = (state: State): boolean => 
+  state.canvas.timeToNextChange === 0;

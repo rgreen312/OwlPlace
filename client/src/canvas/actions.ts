@@ -3,16 +3,31 @@
 import { Color } from './types';
 import * as ActionTypes from './actionTypes';
 import { getZoomFactor, getCanvasContext } from './selectors';
+import { getWebSocket } from '../websocket/selectors';
+import { getUserEmail } from '../login/selectors';
+import { connectError, makeUpdateMessage } from '../websocket/actions';
 
 const fetchImageDataStart = () => ({
   type: ActionTypes.FetchImageStart
 });
-
 export type FetchImageDataStart = ReturnType<typeof fetchImageDataStart>;
 
 export const fetchImageData = () => dispatch => {
   dispatch(fetchImageDataStart());
 };
+
+export const setImage = (image: string) => ({
+  type: ActionTypes.FetchImageSuccess,
+  payload: {
+    image
+  }
+});
+export type SetInitialImage = ReturnType<typeof setImage>;
+
+export const setInitialImage = (image: string) => dispatch => {
+  console.log('setting image in state');
+  dispatch(setImage(image));
+}
 
 const registerContext = (ctx: CanvasRenderingContext2D) => ({
   type: ActionTypes.RegisterContext,
@@ -81,4 +96,30 @@ export const updatePixel = (
   newColor: Color,
   x: number,
   y: number
-) => dispatch => {};
+) => (dispatch, getState) => {
+  dispatch({ type: ActionTypes.UpdatePixelSuccess });
+  const socket = getWebSocket(getState());
+  const email = getUserEmail(getState());
+  console.log("This is being called!", newColor, newColor.r, newColor.g, newColor.b)
+  if (socket && email) {
+    socket.send(makeUpdateMessage(email, x, y, newColor.r, newColor.g, newColor.b));
+  } else {
+    dispatch(connectError('Could not connect'))
+  }
+};
+
+export const setTimeRemaining = (time: number) => ({
+  type: ActionTypes.SetTimeRemaining,
+  payload: {
+    time,
+  }
+});
+export type SetTimeRemaining = ReturnType<typeof setTimeRemaining>;
+
+export const setTimeToNextMove = (time: number) => dispatch => {
+  // Don't let time remaining be negative
+  if (time < 0) {
+    dispatch(setTimeRemaining(0));
+  }
+  dispatch(setTimeRemaining(time));
+}

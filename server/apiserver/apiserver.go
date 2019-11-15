@@ -3,25 +3,29 @@ package apiserver
 import (
 	"bytes"
 	"encoding/base64"
-	"encoding/gob"
 	"encoding/json"
 	"fmt"
 	"html/template"
 	"image"
 	"image/png"
-	"log"
 	"net/http"
-	"os"
-	"strconv"
+	"time"
 
-	"github.com/gorilla/websocket"
+	gwebsocket "github.com/gorilla/websocket"
+	log "github.com/sirupsen/logrus"
+
+	"github.com/pkg/errors"
 
 	"github.com/rgreen312/owlplace/server/common"
 	"github.com/rgreen312/owlplace/server/consensus"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+  metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+  "github.com/rgreen312/owlplace/server/websocket"
+  )
+
+const (
+	AlphaMask = 255
 )
 
 type ApiServer struct {
@@ -30,31 +34,54 @@ type ApiServer struct {
 	port  				int
 	pod_ip 				string
 }
+var (
+	configError   = errors.New("invalid configuration error")
+	ImageTemplate = `
+    <!DOCTYPE html> 
+    <html lang="en">
+    <head></head>
+    <body>
+        <img src="data:image/jpg;base64,{{.Image}}">
+    </body>
+    `
+)
+
+type ApiServer struct {
+	config     *common.ServerConfig
+	conService *consensus.ConsensusService
+}
+
+type Client struct {
+	ID   string
+	Conn *gwebsocket.Conn
+	Pool *Pool
+}
+
+var cooldown = 300000
 
 func NewApiServer(pod_ip string) *ApiServer {
 
-	// Make the channels that for api server and consensus module communication
-	sendc := make(chan consensus.BackendMessage)
-	recvc := make(chan consensus.ConsensusMessage)
+	conf, ok := servers[nodeId]
+	if !ok {
+		return nil, errors.Wrapf(configError, "missing entry for node: %d", nodeId)
+	}
+
+// 	conService, err := consensus.NewConsensusService(servers, nodeId)
+// 	if err != nil {
+// 		return nil, errors.Wrap(err, "creating ConsensusService")
+// 	}
+
+// 	err = conService.Start()
+// 	if err != nil {
+// 		return nil, errors.Wrap(err, "starting ConsensusService")
+// 	}
 
 	return &ApiServer{
-		sendc: sendc,
-		recvc: recvc,
-		port:  common.ApiPort,
-		pod_ip: pod_ip,
-	}
+		config:     conf,
+		conService: nullptr,
+    pod_ip: pod_ip,
+	}, nil
 }
-
-func (api *ApiServer) ListenAndServe() {
-	http.HandleFunc("/headers", api.Headers)
-	http.HandleFunc("/update_pixel", api.HTTPUpdatePixel)
-	http.HandleFunc("/consensus_trigger", api.ConsensusTrigger)
-	http.HandleFunc("/consensus_join_message", api.ConsensusJoinMessage)
-	http.HandleFunc("/ws", api.wsEndpoint)
-	http.ListenAndServe(fmt.Sprintf(":%d", api.port), nil)
-}
-
-
 
 
 func (api *ApiServer) StartConsensus(join bool){
@@ -143,154 +170,186 @@ func (api *ApiServer) CallGetImage() string {
 		return encodedString
 	}
 }
+func (api *ApiServer) ListenAndServe() {
+	pool := NewPool()
+	go pool.Start()
+	http.HandleFunc("/get_image", api.HTTPGetImage)
+	http.HandleFunc("/json/image", api.HTTPGetImageJson)
+	http.HandleFunc("/consensus_trigger", api.ConsensusTrigger)
+	http.HandleFunc("/consensus_join_message", api.ConsensusJoinMessage)
+	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
+		api.serveWs(pool, w, r)
+	})
+	http.HandleFunc("/update_pixel", api.HTTPUpdatePixel)
+	http.HandleFunc("/update_user", api.HTTPUpdateUserList)
+
+	// Although there is nothing wrong with this line, it prevents us from
+	// running multiple nodes on a single machine.  Therefore, I am making
+	// failure non-fatal until we have some way of running locally from the
+	// same port (i.e. docker)
+	// log.Fatal(http.ListenAndServe(":3010", nil))
+	http.ListenAndServe(fmt.Sprintf(":%d", api.config.ApiPort), nil)
+}
+
+func base64Encode(img *image.RGBA) string {
+	// In-memory buffer to store PNG image
+	// before we base 64 encode it
+	var buff bytes.Buffer
+
+	// The Buffer satisfies the Writer interface so we can use it with Encode
+	// In previous example we encoded to a file, this time to a temp buffer
+	png.Encode(&buff, img)
+
+	// Encode the bytes in the buffer to a base64 string
+	return base64.StdEncoding.EncodeToString(buff.Bytes())
+}
+
+func (api *ApiServer) HTTPGetImageJson(w http.ResponseWriter, req *http.Request) {
+	log.WithFields(log.Fields{
+		"request": req,
+	})
+
+	img, err := api.conService.SyncGetImage()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	js, err := json.Marshal(map[string]string{
+		"data": base64Encode(img),
+	})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(js)
+}
+
+func (api *ApiServer) HTTPGetImage(w http.ResponseWriter, req *http.Request) {
+	log.WithFields(log.Fields{
+		"request": req,
+	})
+
+	img, err := api.conService.SyncGetImage()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	encodedString := base64Encode(img)
+
+	tmpl, err := template.New("image").Parse(ImageTemplate)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	data := map[string]interface{}{"Image": encodedString}
+	if err = tmpl.Execute(w, data); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
 
 func (api *ApiServer) HTTPUpdatePixel(w http.ResponseWriter, req *http.Request) {
-	// This was previously called UpdatePixel. Its logic has been moved into CallUpdatePixel.
-	// This is only a wrapper to allow for testing and all design logic should be flowing
-	// through the websocket connection.
-	x, _ := strconv.Atoi(req.URL.Query().Get("X"))
-	y, _ := strconv.Atoi(req.URL.Query().Get("Y"))
-	r, _ := strconv.Atoi(req.URL.Query().Get("R"))
-	g, _ := strconv.Atoi(req.URL.Query().Get("G"))
-	b, _ := strconv.Atoi(req.URL.Query().Get("B"))
-	api.CallUpdatePixel(x, y, r, g, b, "RandomHttpUser")
-}
-
-// Call this when telling consensus to updatea pixel.
-func (api *ApiServer) CallUpdatePixel(x int, y int, r int, g int, b int, userID string) []byte {
-	fmt.Println("\nWithin UpdatePixel")
-
-	// TODO verify that the user is able to update a pizel with the User Data Team
-	userVerification := true
-	if !userVerification {
-		// User verification failed
-
-		log.Println(fmt.Sprintf("USER %s failed authentication", userID))
-		// TODO return the appropriate failure message
-		imageMsg := "FAILURE. TODO make this properly formatted"
-
-		// send message back to the client saying it's been updated or if it failed
-		byt := []byte(imageMsg)
-		return byt
-	}
-	// User has now been verified
-
-	var encoded_msg bytes.Buffer
-	enc := gob.NewEncoder(&encoded_msg)
-	msg := consensus.UpdatePixelBackendMessage{
-		X: strconv.Itoa(x),
-		Y: strconv.Itoa(y),
-		R: strconv.Itoa(r),
-		G: strconv.Itoa(g),
-		B: strconv.Itoa(b),
-		A: "255",
-	}
-	log.Printf("UpdatePixelBackendMessage: %+v\n", msg)
-	if err := enc.Encode(msg); err != nil {
-		log.Fatalf("Error encoding struct: %s", err)
+	msg, err := NewDrawPixelMsg(req)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
-	// Send the encoded message to the backend
-	m := consensus.BackendMessage{Type: consensus.UPDATE_PIXEL, Data: encoded_msg}
-
-	// Send BackendMessage
-	api.sendc <- m
-	consensus_response := <-api.recvc
-
-	// format message back to the client saying it's been updated or if it failed.
-	if consensus_response.Type == consensus.SUCCESS {
-		fmt.Fprintf(os.Stdout, "Update Success")
-		byt := makeTestingMessage("Update success")
-		return byt
-	} else {
-		fmt.Fprintf(os.Stdout, "Update Failure")
-		byt := makeTestingMessage("Update failed")
-		return byt
+	err = api.conService.SyncUpdatePixel(msg.X, msg.Y, msg.R, msg.G, msg.B, msg.A)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 }
 
 /*
- * This function takes in a user id and returns a string timestamp for the last time that user updated a pixel
- * If there is an error, this function will return an empty string.
+ * Insert the new user id to the userlist
  */
-func (api *ApiServer) GetLastUserModification(user_id string) (string, bool) {
+func (api *ApiServer) HTTPUpdateUserList(w http.ResponseWriter, req *http.Request) {
+	// Only for testing
+	user_id := req.URL.Query().Get("user_id")
+	if user_id == "" {
+		http.Error(w, errors.New("empty param: user_id").Error(), http.StatusInternalServerError)
+		return
+	}
 
-	// Encode the GetUserDataBackendMessage struct so we can send it in a BackendMessage
-	var encoded_msg bytes.Buffer
-	enc := gob.NewEncoder(&encoded_msg)
-	err := enc.Encode(consensus.GetUserDataBackendMessage{
-		UserId: user_id,
-	})
-
+	timestamp := time.Now()
+	err := api.conService.SyncSetLastUserModification(user_id, timestamp)
 	if err != nil {
-		return "", true
-	}
-
-	// Testing with some dummy data
-	m := consensus.BackendMessage{Type: consensus.GET_LAST_USER_UPDATE, Data: encoded_msg}
-	api.sendc <- m
-	image_msg := <-api.recvc
-	if image_msg.Type == consensus.FAILURE {
-		return "", true
-	} else {
-		dec := gob.NewDecoder(&image_msg.Data)
-		var timestamp string
-		dec.Decode(&timestamp)
-		return timestamp, false
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 }
 
-/*
- * This function takes in a user id and a string timestamp and replaces the user's current last update timestamp with the given timestamp
- * If there is an error, this function will return true. Otherwise the function will return false.
- */
-func (api *ApiServer) SetLastUserModification(user_id string, last_modification string) bool {
-
-	// Encode the SetUserDataBackendMessage struct so we can send it in a BackendMessage
-	var encoded_msg bytes.Buffer
-	enc := gob.NewEncoder(&encoded_msg)
-	err := enc.Encode(consensus.SetUserDataBackendMessage{
-		UserId:    user_id,
-		Timestamp: last_modification,
-	})
-
+func (api *ApiServer) serveWs(pool *Pool, w http.ResponseWriter, r *http.Request) {
+	fmt.Println("WebSocket Endpoint Hit")
+	conn, err := websocket.Upgrade(w, r)
 	if err != nil {
-		return true
+		fmt.Fprintf(w, "%+v\n", err)
 	}
-	// Create the BackendMessage with the encoded data
-	m := consensus.BackendMessage{Type: consensus.SET_LAST_USER_UPDATE, Data: encoded_msg}
-	// Send BackendMessage
-	api.sendc <- m
-	image_msg := <-api.recvc
-	return image_msg.Type != consensus.SUCCESS
+
+	client := &Client{
+		Conn: conn, // this is the same as websocket instance
+		Pool: pool,
+	}
+
+	// helpful log statement to show connections
+	log.Println("Client Connected")
+
+	if err = client.Conn.WriteMessage(1, makeTestingMessage("{\"Hi Client! We just connected :)\"}")); err != nil { // sent upon connection to any clients
+		log.Println(err)
+	}
+
+	img, err := api.conService.SyncGetImage()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	encodedString := base64Encode(img)
+	msg := ImageMsg{
+		Type:         Image,
+		FormatString: encodedString,
+	}
+
+	log.WithFields(log.Fields{
+		"ImageMsg": msg,
+	}).Debug("constructed websocket message")
+
+	var b []byte
+	b, err = json.Marshal(msg)
+	if err != nil {
+		log.Println(err)
+	}
+	if err = client.Conn.WriteMessage(1, b); err != nil {
+		log.Println(err)
+	}
+
+	pool.Register <- client
+	client.Read(api)
 }
 
-func (api *ApiServer) Headers(w http.ResponseWriter, req *http.Request) {
+// reading messages now go in here
+func (c *Client) Read(api *ApiServer) {
+	defer func() {
+		c.Pool.Unregister <- c
+		c.Conn.Close()
+	}()
 
-	for name, headers := range req.Header {
-		for _, h := range headers {
-			fmt.Fprintf(w, "%v: %v\n", name, h)
-		}
-	}
-}
-
-// Upgrader "upgrades" HTTP endpoint to WS endpoint, this requires a Read and Write buffer size
-var upgrader = websocket.Upgrader{} // use default options
-
-// define a reader which will listen for new messages being sent to our WebSocket endpoint
-func (api *ApiServer) reader(conn *websocket.Conn) {
 	for {
-		// read in a message
-		// _ (message type) is an int with value websocket.BinaryMessage or websocket.TextMessage
-		// p is []byte
-		_, p, err := conn.ReadMessage()
+		_, p, err := c.Conn.ReadMessage()
+		fmt.Printf("p: " + string(p) + "\n") // we want the ccpmsg we send to be like this
 		if err != nil {
 			log.Println(err)
 			return
 		}
 
 		var dat Msg
-
 		if err := json.Unmarshal(p, &dat); err != nil {
 			log.Printf("error decoding client response: %v", err)
 			if e, ok := err.(*json.SyntaxError); ok {
@@ -299,86 +358,150 @@ func (api *ApiServer) reader(conn *websocket.Conn) {
 			log.Printf("client response: %q", p)
 			panic(err)
 		}
-		// fmt.Println(dat)
-
 		byt := makeTestingMessage("Default Message")
 
 		switch dat.Type {
 		case DrawPixel:
 			fmt.Println("DrawPixel message received.")
-			var dp_msg DrawPixelMsg
-			if err := json.Unmarshal(p, &dp_msg); err == nil {
-				fmt.Printf("%+v", dp_msg)
-				byt = api.CallUpdatePixel(dp_msg.X, dp_msg.Y, dp_msg.R, dp_msg.G, dp_msg.B, dp_msg.UserID)
+			var dpMsg DrawPixelMsg
+			if err := json.Unmarshal(p, &dpMsg); err == nil {
+				log.WithFields(log.Fields{
+					"message": dpMsg,
+				}).Debug("received ws message")
+
+				// TODO(user team): add user verification here
+				err := api.conService.SyncUpdatePixel(dpMsg.X, dpMsg.Y, dpMsg.R, dpMsg.G, dpMsg.B, AlphaMask)
+				if err != nil {
+					// TODO(backend team): handle error response
+				}
+
+				// tell all clients to update their board
+				ccpMsg := ChangeClientPixelMsg{
+					Type:   ChangeClientPixel,
+					X:      dpMsg.X,
+					Y:      dpMsg.Y,
+					R:      dpMsg.R,
+					G:      dpMsg.G,
+					B:      dpMsg.B,
+					UserID: dpMsg.UserID,
+				}
+
+				msg, _ := json.Marshal(ccpMsg)
+				fmt.Printf("msg: " + string(msg))
+				c.Pool.Broadcast <- ccpMsg
 			} else {
-				fmt.Println("JSON decoding error.")
+				log.WithFields(log.Fields{
+					"err": err,
+				}).Error("unmarshalling JSON")
 			}
+			// pretty sure this is not going to be received
+		// case ChangeClientPixel:
+		// 	fmt.Println("ChangeClientPixel message received.")
+		// 	var ccpMsg ChangeClientPixelMsg
+		// 	if err := json.Unmarshal(p, &ccpMsg); err == nil {
+
+		// 		fmt.Printf("%+v", ccpMsg)
+		// 		// send a message to front end to update this pixel
+		// 		if err := c.Conn.WriteMessage(gwebsocket.TextMessage,
+		// 			makeChangeClientMessage(ccpMsg.X, ccpMsg.Y, ccpMsg.R, ccpMsg.G, ccpMsg.B, ccpMsg.UserID)); err != nil {
+		// 			log.Println(err)
+		// 		}
+		// 	}
+
 		case LoginUser:
 			fmt.Println("CreateUser message received.")
 			var cu_msg LoginUserMsg
 			if err := json.Unmarshal(p, &cu_msg); err == nil {
-				fmt.Printf("%+v", cu_msg)
-				email := cu_msg.Id
-				// byt = api.CallUpdateUserList()
-				byt = []byte("{\"type\": 2, \"Id\": \"" + email + "\"}")
+				log.WithFields(log.Fields{
+					"message": cu_msg,
+				}).Debug("received ws message")
+
+				timestamp := time.Now()
+				err := api.conService.SyncSetLastUserModification(cu_msg.Id, timestamp)
+				if err != nil {
+					// TODO(backend team): handle error response
+				}
+
 			} else {
-				fmt.Println("JSON decoding error.")
+				log.WithFields(log.Fields{
+					"err": err,
+				}).Error("unmarshalling JSON")
 			}
 		default:
-			fmt.Printf("Message of type: %d received.", dat.Type)
+			// this is what the case is if the message is recieved from other servers
+			fmt.Printf("Message of type: %d received.\n", dat.Type)
 		}
+		log.Println(byt)
+		// // COMMENTED OUT BC CONCURRENT WRITES write message back to the client sent to signal that you received message
+		// if err := c.Conn.WriteMessage(gwebsocket.TextMessage, byt); err != nil {
+		// 	log.Println(err)
+		// }
 
-		if err := conn.WriteMessage(websocket.TextMessage, byt); err != nil {
-			log.Println(err)
-		}
 	}
 }
-
-func (api *ApiServer) wsEndpoint(w http.ResponseWriter, r *http.Request) {
-	// checks if incoming request is allowed to connect, otherwise CORS error, currently always true
-	upgrader.CheckOrigin = func(r *http.Request) bool { return true }
-
-	// upgrade this connection to a WebSocket connection
-	ws, err := upgrader.Upgrade(w, r, nil)
+func makeChangeClientMessage(x int, y int, r int, g int, b int, userID string) []byte {
+	msg := ChangeClientPixelMsg{
+		Type:   ChangeClientPixel,
+		X:      x,
+		Y:      y,
+		R:      r,
+		G:      g,
+		B:      b,
+		UserID: userID,
+	}
+	bt, err := json.Marshal(msg)
 	if err != nil {
 		log.Println(err)
 	}
-
-	// helpful log statement to show connections
-	log.Println("Client Connected")
-	if err = ws.WriteMessage(1, []byte("{\"Hi Client! We just connected :)\"}")); err != nil { // sent upon connection to any clients
-		log.Println(err)
-	}
-	// send image
-	serverString := api.CallGetImage()
-
-	// var img_msg bytes.Buffer
-	// img := gob.NewEncoder(&img_msg)
-	msg := ImageMsg{
-		Type:         Image,
-		FormatString: serverString,
-	}
-	log.Printf("ImageMsg: %+v\n", msg)
-	// ws.WriteMessage(ImageMsg)
-	var b []byte
-	b, err = json.Marshal(msg)
-	if err != nil {
-		log.Println(err)
-	}
-	if err = ws.WriteMessage(1, b); err != nil {
-		log.Println(err)
-	}
-	api.reader(ws)
-
+	return bt
 }
 
 func makeTestingMessage(s string) []byte {
 	msg := TestingMsg{
-		Type: Testing,
+		Type: DrawResponse,
 		Msg:  s,
 	}
 
-	// var b []byte
+	b, err := json.Marshal(msg)
+	if err != nil {
+		log.Println(err)
+	}
+	return b
+}
+
+func makeStatusMessage(s int) []byte {
+	msg := DrawResponseMsg{
+		Type:   DrawResponse,
+		Status: s,
+	}
+
+	b, err := json.Marshal(msg)
+	if err != nil {
+		log.Println(err)
+	}
+	return b
+}
+
+func makeVerificationFailMessage(s int) []byte {
+	msg := VerificationFailMsg{
+		Type:   VerificationFail,
+		Status: s,
+	}
+
+	b, err := json.Marshal(msg)
+	if err != nil {
+		log.Println(err)
+	}
+	return b
+}
+
+func makeCreateUserMessage(s int, c int) []byte {
+	msg := CreateUserMsg{
+		Type:     CreateUser,
+		Status:   s,
+		Cooldown: c,
+	}
+
 	b, err := json.Marshal(msg)
 	if err != nil {
 		log.Println(err)

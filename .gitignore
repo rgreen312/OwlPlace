@@ -122,4 +122,14 @@ public
 # DynamoDB Local files
 .dynamodb/
 
-.go-cache/
+
+# go build cache
+.go-cache
+
+# intellij files
+.idea/misc.xml
+.idea/modules.xml
+.idea/OwlPlace.iml
+.idea/.gitignore
+.idea/vcs.xml
+

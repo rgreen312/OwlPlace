@@ -1,11 +1,16 @@
 package common
 
 import (
+
 	"strings"
 	"fmt"
 	"strconv"
+  "time"
 )
 
+const (
+	TimeFormat = time.RFC3339
+)
 
 type ServerConfig struct {
 	Hostname      string `json:"hostname"`

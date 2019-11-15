@@ -1,4 +1,6 @@
 import * as ActionTypes from './actionTypes';
+import { getWebSocket } from '../websocket/selectors';
+import { makeLoginMessage, connectError } from '../websocket/actions';
 
 const loginStart = () => ({
   type: ActionTypes.LoginStart
@@ -20,7 +22,7 @@ const loginError = () => ({
 });
 export type LoginError = ReturnType<typeof loginError>;
 
-export const login = () => async dispatch => {
+export const login = () => async (dispatch, getState) => {
   dispatch(loginStart());
 
   /**
@@ -48,6 +50,14 @@ export const login = () => async dispatch => {
   const profile = googleUser.getBasicProfile();
 
   dispatch(loginSuccess(profile.getName(), profile.getId(), profile.getEmail()));
+
+  const socket = getWebSocket(getState());
+
+  if (socket){
+    socket.send(makeLoginMessage(profile.getEmail()));
+  } else {
+    dispatch(connectError('Unable to connect'));
+  }
 }
 
 export const checkLogin = () => async dispatch => {

@@ -6,10 +6,16 @@ import {
   updateCursorPosition,
   clearCursorPosition,
   setZoomFactor,
-  updatePixel
+  updatePixel,
 } from '../actions';
-import { getZoomFactor, getCurrentPosition } from '../selectors';
+import {
+  getZoomFactor,
+  getCurrentPosition,
+  getInitialImage,
+  canUpdatePixel,
+} from '../selectors';
 import { Color } from '../types';
+import { getIsLoggedIn } from '../../login/selectors';
 
 interface DispatchProps {
   registerContext: (context: CanvasRenderingContext2D) => void;
@@ -24,6 +30,9 @@ interface StateProps {
   zoomFactor: number;
   position: { x: number; y: number } | undefined;
   isLoading: boolean;
+  initialImage?: string;
+  canUpdatePixel: boolean;
+  isLoggedIn: boolean; 
 }
 
 const mapDispatchToProps: DispatchProps = {
@@ -38,7 +47,10 @@ const mapStateToProps = (state): StateProps => ({
   receivedError: receivedError(state),
   zoomFactor: getZoomFactor(state),
   position: getCurrentPosition(state),
-  isLoading: getIsLoadingState(state)
+  isLoading: getIsLoadingState(state),
+  initialImage: getInitialImage(state),
+  canUpdatePixel: canUpdatePixel(state),
+  isLoggedIn: getIsLoggedIn(state)
 });
 
 export default connect(
