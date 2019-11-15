@@ -138,4 +138,5 @@ type VerificationFailMsg struct {
 type CreateUserMsg struct {
 	Type   MsgType `json:"type"`
 	Status int     `json:"status"`
+	Cooldown int   `json:"cooldown`
 }

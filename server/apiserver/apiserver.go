@@ -16,6 +16,9 @@ import (
 
 	"github.com/pkg/errors"
 
+	"math"
+	"strconv"
+  
 	"github.com/rgreen312/owlplace/server/common"
 	"github.com/rgreen312/owlplace/server/consensus"
 	"github.com/rgreen312/owlplace/server/websocket"
@@ -47,6 +50,8 @@ type Client struct {
 	Conn *gwebsocket.Conn
 	Pool *Pool
 }
+
+var cooldown = 300000
 
 func NewApiServer(servers map[int]*common.ServerConfig, nodeId int) (*ApiServer, error) {
 
@@ -404,10 +409,11 @@ func makeVerificationFailMessage(s int) []byte {
 	return b
 }
 
-func makeCreateUserMessage(s int) []byte {
+func makeCreateUserMessage(s int, c int) []byte {
 	msg := CreateUserMsg{
 		Type:   CreateUser,
 		Status: s,
+		Cooldown: c,
 	}
 
 	b, err := json.Marshal(msg)
