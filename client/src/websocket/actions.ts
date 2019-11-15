@@ -1,7 +1,7 @@
 import { HOSTNAME } from '../constants';
 import * as ActionTypes from './actionTypes';
 import { getWebSocket } from './selectors';
-import { Msg, ErrorMsg, ImageMsg, MsgType, VerificationFailMsg, CreateUserMsg } from '../message';
+import { MsgType } from '../message';
 import { setImage } from '../canvas/actions';
 import { getCanvasContext } from '../../src/canvas/selectors';
 const startConnect = () => ({
@@ -93,8 +93,10 @@ export const openWebSocket = () => dispatch => {
         }
         case MsgType.CREATEUSER: {
           let status = json.status
+          let cooldown = json.cooldown
           console.log("Received a CREATEUSER message from the server!");
-          console.log("The status was " + status)
+          console.log("The status was " + status);
+          console.log("The remaining cooldown time for current user is: " + cooldown);
           break;
         }
         default: {

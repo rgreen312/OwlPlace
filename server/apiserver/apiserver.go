@@ -6,7 +6,7 @@ import (
 	"encoding/gob"
 	"encoding/json"
 	"fmt"
-	gwebsocket "github.com/gorilla/websocket"
+	"github.com/gorilla/websocket"
 	"html/template"
 	"image"
 	"image/png"
@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"os"
 	"time"
+	"math"
 	"strconv"
 	"github.com/rgreen312/owlplace/server/common"
 	"github.com/rgreen312/owlplace/server/consensus"
@@ -31,6 +32,8 @@ type Client struct {
 	Conn *gwebsocket.Conn
 	Pool *Pool
 }
+
+var cooldown = 300000
 
 func NewApiServer(servers map[int]*common.ServerConfig, nodeId int) *ApiServer {
 
@@ -61,7 +64,6 @@ func (api *ApiServer) SetupRoutes() {
 	})
 	http.HandleFunc("/update_pixel", api.HTTPUpdatePixel)
 	http.HandleFunc("/update_user", api.HTTPUpdateUserList)
-
 
 	// Although there is nothing wrong with this line, it prevents us from running multiple nodes on a single machine.
 	// Therefore, I am making failure non-fatal until we have some way of running locally from the same port (i.e. docker)
@@ -159,7 +161,6 @@ func (api *ApiServer) HTTPUpdatePixel(w http.ResponseWriter, req *http.Request) 
 func (api *ApiServer) CallUpdatePixel(x int, y int, r int, g int, b int, userID string) []byte {
 	fmt.Println("\nWithin UpdatePixel")
 
-	// TODO verify that the user is able to update a pizel with the User Data Team
 	userVerification := api.validateUser(userID)
 	// If validation failed
 	if userVerification != 200 {
@@ -220,19 +221,19 @@ func (api *ApiServer) HTTPUpdateUserList(w http.ResponseWriter, req *http.Reques
  */
 func (api *ApiServer) CallUpdateUserList(user_id string) []byte {
 	byt := []byte("")
-	_, ifErr := api.GetLastUserModification(user_id)
+	lastMove, ifErr := api.GetLastUserModification(user_id)
 	if (ifErr) {
 		err := api.SetLastUserModification(user_id, "0")
 		if (err) {
 			// Error from SetLastUserModification call
-			byt = makeCreateUserMessage(403)
+			byt = makeCreateUserMessage(403, -1)
 		} else {
 			// Successfully created the user
-			byt = makeCreateUserMessage(200)
+			byt = makeCreateUserMessage(200, cooldown)
 		}
 	} else {
 		// User already existed
-		byt = makeCreateUserMessage(401)
+		byt = makeCreateUserMessage(401, math.Max(cooldown - (time.Now() - strconv.Atoi(lastMove)), 0))
 	}
 	return byt
 }
@@ -512,10 +513,11 @@ func makeVerificationFailMessage(s int) []byte {
 	return b
 }
 
-func makeCreateUserMessage(s int) []byte {
+func makeCreateUserMessage(s int, c int) []byte {
 	msg := CreateUserMsg{
 		Type: CreateUser,
 		Status: s,
+		Cooldown: c,
 	}
 
 	b, err := json.Marshal(msg)
