@@ -8,6 +8,8 @@ export enum MsgType {
     TESTING = 5,
     DRAWRESPONSE = 6,
     CLOSE = 9,
+    VERIFICATIONFAIL = 10,
+    CREATEUSER = 11
 }
 
 export interface Msg {
@@ -43,7 +45,24 @@ export class ChangeClientPixelMsg implements Msg {
         this.y = y;
 
     }
+}
     
+export class VerificationFailMsg implements Msg {
+    type: number = MsgType.VERIFICATIONFAIL;
+    status: number;
+    
+    constructor(status: number) {
+        this.status = status;
+    }
+}
+
+export class CreateUserMsg implements Msg {
+    type: number = MsgType.CREATEUSER;
+    status: number;
+    
+    constructor(status: number) {
+        this.status = status;
+    }
 }
 
 function parseMsg(json : string) : Msg {
