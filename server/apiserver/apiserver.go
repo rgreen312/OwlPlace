@@ -456,7 +456,7 @@ func makeStatusMessage(s int) []byte {
 
 func makeVerificationFailMessage(s int) []byte {
 	msg := VerificationFailMsg{
-		Type: Verification,
+		Type: VerificationFail,
 		Status: s,
 	}
 
