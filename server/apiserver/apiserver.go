@@ -16,9 +16,6 @@ import (
 
 	"github.com/pkg/errors"
 
-	"math"
-	"strconv"
-  
 	"github.com/rgreen312/owlplace/server/common"
 	"github.com/rgreen312/owlplace/server/consensus"
 	"github.com/rgreen312/owlplace/server/websocket"
@@ -214,7 +211,6 @@ func (api *ApiServer) serveWs(pool *Pool, w http.ResponseWriter, r *http.Request
 		log.Println(err)
 	}
 
-
 	img, err := api.conService.SyncGetImage()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -230,7 +226,6 @@ func (api *ApiServer) serveWs(pool *Pool, w http.ResponseWriter, r *http.Request
 	log.WithFields(log.Fields{
 		"ImageMsg": msg,
 	}).Debug("constructed websocket message")
-
 
 	var b []byte
 	b, err = json.Marshal(msg)
@@ -260,11 +255,7 @@ func (c *Client) Read(api *ApiServer) {
 			return
 		}
 
-		message := Message{Type: messageType, Body: string(p)}
-		fmt.Printf("Message Received: %+v\n", message)
-
 		var dat Msg
-
 		if err := json.Unmarshal(p, &dat); err != nil {
 			log.Printf("error decoding client response: %v", err)
 			if e, ok := err.(*json.SyntaxError); ok {
@@ -289,34 +280,35 @@ func (c *Client) Read(api *ApiServer) {
 				if err != nil {
 					// TODO(backend team): handle error response
 				}
+
 				// tell all clients to update their board
-				ccpMsg := ChangeClientPixelMsg {
-					Type: ChangeClientPixel,
-					X: dpMsg.X,
-					Y: dpMsg.Y,
-					R: dpMsg.R,
-					G: dpMsg.G,
-					B: dpMsg.B,
-					UserID: dpMsg.UserID, 
+				ccpMsg := ChangeClientPixelMsg{
+					Type:   ChangeClientPixel,
+					X:      dpMsg.X,
+					Y:      dpMsg.Y,
+					R:      dpMsg.R,
+					G:      dpMsg.G,
+					B:      dpMsg.B,
+					UserID: dpMsg.UserID,
 				}
-				
+
 				msg, _ := json.Marshal(ccpMsg)
-				fmt.Printf("msg: " + string(msg)) 
+				fmt.Printf("msg: " + string(msg))
 				c.Pool.Broadcast <- ccpMsg
 			} else {
 				log.WithFields(log.Fields{
 					"err": err,
 				}).Error("unmarshalling JSON")
 			}
-			// pretty sure this is not going to be received 
+			// pretty sure this is not going to be received
 		// case ChangeClientPixel:
 		// 	fmt.Println("ChangeClientPixel message received.")
 		// 	var ccpMsg ChangeClientPixelMsg
 		// 	if err := json.Unmarshal(p, &ccpMsg); err == nil {
-				
+
 		// 		fmt.Printf("%+v", ccpMsg)
 		// 		// send a message to front end to update this pixel
-		// 		if err := c.Conn.WriteMessage(gwebsocket.TextMessage, 
+		// 		if err := c.Conn.WriteMessage(gwebsocket.TextMessage,
 		// 			makeChangeClientMessage(ccpMsg.X, ccpMsg.Y, ccpMsg.R, ccpMsg.G, ccpMsg.B, ccpMsg.UserID)); err != nil {
 		// 			log.Println(err)
 		// 		}
@@ -354,13 +346,13 @@ func (c *Client) Read(api *ApiServer) {
 	}
 }
 func makeChangeClientMessage(x int, y int, r int, g int, b int, userID string) []byte {
-	msg := ChangeClientPixelMsg {
-		Type: ChangeClientPixel,
-		X: x,
-		Y: y,   
-		R: r,  
-		G: g,      
-		B: b,      
+	msg := ChangeClientPixelMsg{
+		Type:   ChangeClientPixel,
+		X:      x,
+		Y:      y,
+		R:      r,
+		G:      g,
+		B:      b,
 		UserID: userID,
 	}
 	bt, err := json.Marshal(msg)
@@ -411,8 +403,8 @@ func makeVerificationFailMessage(s int) []byte {
 
 func makeCreateUserMessage(s int, c int) []byte {
 	msg := CreateUserMsg{
-		Type:   CreateUser,
-		Status: s,
+		Type:     CreateUser,
+		Status:   s,
 		Cooldown: c,
 	}
 

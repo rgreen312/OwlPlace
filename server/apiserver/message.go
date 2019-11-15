@@ -3,6 +3,7 @@ package apiserver
 import (
 	"net/http"
 	"strconv"
+
 	"github.com/pkg/errors"
 )
 
@@ -10,17 +11,17 @@ type MsgType int8
 
 // Well defined Message types
 const (
-	Error            MsgType = -1
-	Open             MsgType = 0
-	DrawPixel        MsgType = 1
-	LoginUser        MsgType = 2
-	UpdatePixel      MsgType = 3
-	Image            MsgType = 4
-	Testing          MsgType = 5
-	DrawResponse     MsgType = 6
-	Close            MsgType = 9
-	VerificationFail MsgType = 10
-	CreateUser       MsgType = 11
+	Error             MsgType = -1
+	Open              MsgType = 0
+	DrawPixel         MsgType = 1
+	LoginUser         MsgType = 2
+	ChangeClientPixel MsgType = 3
+	Image             MsgType = 4
+	Testing           MsgType = 5
+	DrawResponse      MsgType = 6
+	Close             MsgType = 9
+	VerificationFail  MsgType = 10
+	CreateUser        MsgType = 11
 )
 
 type Msg struct {
@@ -122,7 +123,7 @@ type ImageMsg struct {
 
 type TestingMsg struct {
 	Type MsgType `json:"type"`
-	Msg string  `json:"msg"`
+	Msg  string  `json:"msg"`
 }
 
 type DrawResponseMsg struct {
@@ -136,7 +137,7 @@ type VerificationFailMsg struct {
 }
 
 type CreateUserMsg struct {
-	Type   MsgType `json:"type"`
-	Status int     `json:"status"`
-	Cooldown int   `json:"cooldown`
+	Type     MsgType `json:"type"`
+	Status   int     `json:"status"`
+	Cooldown int     `json:"cooldown`
 }
