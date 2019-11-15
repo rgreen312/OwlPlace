@@ -3,28 +3,43 @@ package apiserver
 import (
 	"bytes"
 	"encoding/base64"
-	"encoding/gob"
 	"encoding/json"
 	"fmt"
-	"github.com/gorilla/websocket"
 	"html/template"
 	"image"
 	"image/png"
-	"log"
 	"net/http"
-	"os"
 	"time"
-	"math"
-	"strconv"
+
+	gwebsocket "github.com/gorilla/websocket"
+	log "github.com/sirupsen/logrus"
+
+	"github.com/pkg/errors"
+
 	"github.com/rgreen312/owlplace/server/common"
 	"github.com/rgreen312/owlplace/server/consensus"
 	"github.com/rgreen312/owlplace/server/websocket"
 )
 
+const (
+	AlphaMask = 255
+)
+
+var (
+	configError   = errors.New("invalid configuration error")
+	ImageTemplate = `
+    <!DOCTYPE html> 
+    <html lang="en">
+    <head></head>
+    <body>
+        <img src="data:image/jpg;base64,{{.Image}}">
+    </body>
+    `
+)
+
 type ApiServer struct {
-	sendc chan consensus.BackendMessage
-	recvc chan consensus.ConsensusMessage
-	port  int
+	config     *common.ServerConfig
+	conService *consensus.ConsensusService
 }
 
 type Client struct {
@@ -35,177 +50,128 @@ type Client struct {
 
 var cooldown = 300000
 
-func NewApiServer(servers map[int]*common.ServerConfig, nodeId int) *ApiServer {
+func NewApiServer(servers map[int]*common.ServerConfig, nodeId int) (*ApiServer, error) {
 
-	apiPort := servers[nodeId].ApiPort
+	conf, ok := servers[nodeId]
+	if !ok {
+		return nil, errors.Wrapf(configError, "missing entry for node: %d", nodeId)
+	}
 
-	// Make the channels that for api server and consensus module communication
-	sendc := make(chan consensus.BackendMessage)
-	recvc := make(chan consensus.ConsensusMessage)
+	conService, err := consensus.NewConsensusService(servers, nodeId)
+	if err != nil {
+		return nil, errors.Wrap(err, "creating ConsensusService")
+	}
 
-	// Start the consensus service in the background
-	go consensus.MainConsensus(sendc, recvc, servers, nodeId)
+	err = conService.Start()
+	if err != nil {
+		return nil, errors.Wrap(err, "starting ConsensusService")
+	}
+
+	log.WithFields(log.Fields{
+		"server config":     conf,
+		"consensus service": conService,
+	}).Debug()
 
 	return &ApiServer{
-		sendc: sendc,
-		recvc: recvc,
-		port:  apiPort,
-	}
+		config:     conf,
+		conService: conService,
+	}, nil
 }
 
-func (api *ApiServer) SetupRoutes() {
+func (api *ApiServer) ListenAndServe() {
 	pool := NewPool()
 	go pool.Start()
-
-	http.HandleFunc("/headers", api.Headers)
 	http.HandleFunc("/get_image", api.HTTPGetImage)
+	http.HandleFunc("/json/image", api.HTTPGetImageJson)
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 		api.serveWs(pool, w, r)
 	})
 	http.HandleFunc("/update_pixel", api.HTTPUpdatePixel)
 	http.HandleFunc("/update_user", api.HTTPUpdateUserList)
 
-	// Although there is nothing wrong with this line, it prevents us from running multiple nodes on a single machine.
-	// Therefore, I am making failure non-fatal until we have some way of running locally from the same port (i.e. docker)
+	// Although there is nothing wrong with this line, it prevents us from
+	// running multiple nodes on a single machine.  Therefore, I am making
+	// failure non-fatal until we have some way of running locally from the
+	// same port (i.e. docker)
 	// log.Fatal(http.ListenAndServe(":3010", nil))
-	http.ListenAndServe(fmt.Sprintf(":%d", api.port), nil)
+	http.ListenAndServe(fmt.Sprintf(":%d", api.config.ApiPort), nil)
+}
+
+func base64Encode(img *image.RGBA) string {
+	// In-memory buffer to store PNG image
+	// before we base 64 encode it
+	var buff bytes.Buffer
+
+	// The Buffer satisfies the Writer interface so we can use it with Encode
+	// In previous example we encoded to a file, this time to a temp buffer
+	png.Encode(&buff, img)
+
+	// Encode the bytes in the buffer to a base64 string
+	return base64.StdEncoding.EncodeToString(buff.Bytes())
+}
+
+func (api *ApiServer) HTTPGetImageJson(w http.ResponseWriter, req *http.Request) {
+	log.WithFields(log.Fields{
+		"request": req,
+	})
+
+	img, err := api.conService.SyncGetImage()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	js, err := json.Marshal(map[string]string{
+		"data": base64Encode(img),
+	})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(js)
 }
 
 func (api *ApiServer) HTTPGetImage(w http.ResponseWriter, req *http.Request) {
-	// This is the method that will be removed. Displays the image on a webpage
+	log.WithFields(log.Fields{
+		"request": req,
+	})
 
-	// Debug message
-	fmt.Fprintf(os.Stdout, "Getting Image From Raft\n")
-	// Construct the message
-	m := consensus.BackendMessage{Type: consensus.GET_IMAGE}
-	// Send a message through the channel
-	api.sendc <- m
-	var ImageTemplate string = `<!DOCTYPE html>
-								<html lang="en"><head></head>
-								<body><img src="data:image/jpg;base64,{{.Image}}"></body>`
-	image_msg := <-api.recvc
-	if tmpl, err := template.New("image").Parse(ImageTemplate); err != nil {
-		fmt.Fprintf(os.Stdout, "Unable to parse image template.\n")
-	} else {
-		// Decode the message from the glob
-		dec := gob.NewDecoder(&image_msg.Data)
-		var img image.RGBA
-		dec.Decode(&img)
-		// In-memory buffer to store PNG image
-		// before we base 64 encode it
-		var buff bytes.Buffer
-		// The Buffer satisfies the Writer interface so we can use it with Encode
-		// In previous example we encoded to a file, this time to a temp buffer
-		png.Encode(&buff, &img)
-		// Encode the bytes in the buffer to a base64 string
-		encodedString := base64.StdEncoding.EncodeToString(buff.Bytes())
-		data := map[string]interface{}{"Image": encodedString}
-		if err = tmpl.Execute(w, data); err != nil {
-			fmt.Fprintf(os.Stdout, "Unable to execute template.\n")
-		}
+	img, err := api.conService.SyncGetImage()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
-}
 
-func (api *ApiServer) CallGetImage() string {
-	// Debug message
-	fmt.Fprintf(os.Stdout, "Getting Image From Raft\n")
-	// Construct the message
-	m := consensus.BackendMessage{Type: consensus.GET_IMAGE}
-	// Send a message through the channel
-	api.sendc <- m
-	var ImageTemplate string = `<!DOCTYPE html>
-								<html lang="en"><head></head>
-								<body><img src="data:image/jpg;base64,{{.Image}}"></body>`
-	imageMsg := <-api.recvc
+	encodedString := base64Encode(img)
 
-	if _, err := template.New("image").Parse(ImageTemplate); err != nil {
-		fmt.Fprintf(os.Stdout, "Unable to parse image template.\n")
-		return "Unable to parse image template"
-	} else {
+	tmpl, err := template.New("image").Parse(ImageTemplate)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
-		// Decode the message from the glob
-		dec := gob.NewDecoder(&imageMsg.Data)
-		var img image.RGBA
-		dec.Decode(&img)
-
-		// In-memory buffer to store PNG image
-		// before we base 64 encode it
-		var buff bytes.Buffer
-
-		// The Buffer satisfies the Writer interface so we can use it with Encode
-		// In previous example we encoded to a file, this time to a temp buffer
-		png.Encode(&buff, &img)
-
-		// Encode the bytes in the buffer to a base64 string
-		encodedString := base64.StdEncoding.EncodeToString(buff.Bytes())
-
-		// TODO  wrap the encodedString in a message
-
-		return encodedString
+	data := map[string]interface{}{"Image": encodedString}
+	if err = tmpl.Execute(w, data); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 }
 
 func (api *ApiServer) HTTPUpdatePixel(w http.ResponseWriter, req *http.Request) {
-	// This was previously called UpdatePixel. Its logic has been moved into CallUpdatePixel.
-	// This is only a wrapper to allow for testing and all design logic should be flowing
-	// through the websocket connection.
-	x, _ := strconv.Atoi(req.URL.Query().Get("X"))
-	y, _ := strconv.Atoi(req.URL.Query().Get("Y"))
-	r, _ := strconv.Atoi(req.URL.Query().Get("R"))
-	g, _ := strconv.Atoi(req.URL.Query().Get("G"))
-	b, _ := strconv.Atoi(req.URL.Query().Get("B"))
-	api.CallUpdatePixel(x, y, r, g, b, "RandomHttpUser")
-}
-
-// Call this when telling consensus to updatea pixel.
-func (api *ApiServer) CallUpdatePixel(x int, y int, r int, g int, b int, userID string) []byte {
-	fmt.Println("\nWithin UpdatePixel")
-
-	userVerification := api.validateUser(userID)
-	// If validation failed
-	if userVerification != 200 {
-		// User verification failed
-		log.Println(fmt.Sprintf("USER %s failed authentication", userID))
-		// send message back to the client indicating verification failure
-		byt := makeVerificationFailMessage(userVerification)
-		return byt
-	}
-	// User has now been verified
-
-	var encoded_msg bytes.Buffer
-	enc := gob.NewEncoder(&encoded_msg)
-	msg := consensus.UpdatePixelBackendMessage{
-		X: strconv.Itoa(x),
-		Y: strconv.Itoa(y),
-		R: strconv.Itoa(r),
-		G: strconv.Itoa(g),
-		B: strconv.Itoa(b),
-		A: "255",
-	}
-	log.Printf("UpdatePixelBackendMessage: %+v\n", msg)
-	if err := enc.Encode(msg); err != nil {
-		log.Fatalf("Error encoding struct: %s", err)
+	msg, err := NewDrawPixelMsg(req)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
-	// Send the encoded message to the backend
-	m := consensus.BackendMessage{Type: consensus.UPDATE_PIXEL, Data: encoded_msg}
-
-	// Send BackendMessage
-	api.sendc <- m
-	consensus_response := <-api.recvc
-
-	// format message back to the client saying it's been updated or if it failed.
-	if consensus_response.Type == consensus.SUCCESS {
-		fmt.Fprintf(os.Stdout, "Update Success\n")
-		byt := makeStatusMessage(200)
-		return byt
-	} else {
-		fmt.Fprintf(os.Stdout, "Update Failure\n")
-		byt := makeStatusMessage(400)
-		return byt
+	err = api.conService.SyncUpdatePixel(msg.X, msg.Y, msg.R, msg.G, msg.B, msg.A)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 }
-
 
 /*
  * Insert the new user id to the userlist
@@ -213,116 +179,16 @@ func (api *ApiServer) CallUpdatePixel(x int, y int, r int, g int, b int, userID 
 func (api *ApiServer) HTTPUpdateUserList(w http.ResponseWriter, req *http.Request) {
 	// Only for testing
 	user_id := req.URL.Query().Get("user_id")
-	api.CallUpdateUserList(user_id)
-}
-
-/*
- * Insert the new user id to the userlist
- */
-func (api *ApiServer) CallUpdateUserList(user_id string) []byte {
-	byt := []byte("")
-	lastMove, ifErr := api.GetLastUserModification(user_id)
-	if (ifErr) {
-		err := api.SetLastUserModification(user_id, "0")
-		if (err) {
-			// Error from SetLastUserModification call
-			byt = makeCreateUserMessage(403, -1)
-		} else {
-			// Successfully created the user
-			byt = makeCreateUserMessage(200, cooldown)
-		}
-	} else {
-		// User already existed
-		byt = makeCreateUserMessage(401, math.Max(cooldown - (time.Now() - strconv.Atoi(lastMove)), 0))
+	if user_id == "" {
+		http.Error(w, errors.New("empty param: user_id").Error(), http.StatusInternalServerError)
+		return
 	}
-	return byt
-}
 
-func (api *ApiServer) validateUser(user_id string) int {
-	now := time.Now().Unix()
-	lastMove, ifErr := api.GetLastUserModification(user_id)
-	// Cannot get this user's last modification
-	if (ifErr) {
-		return 401
-	}
-	lastMoveInt, _ := strconv.Atoi(lastMove)
-	if (int(now) - lastMoveInt > 3000) {
-		err := api.SetLastUserModification(user_id, strconv.Itoa(int(now)))
-		if err {
-			// Error from SetLastUserModification call
-			return 403
-		} else {
-			// Successfully updated the user's last modification
-			return 200
-		}
-	} else {
-		// User cannot make a move yet.
-		return 429
-	}
-}
-
-/*
- * This function takes in a user id and returns a string timestamp for the last time that user updated a pixel
- * If there is an error, this function will return an empty string.
- */
-func (api *ApiServer) GetLastUserModification(user_id string) (string, bool) {
-
-	// Encode the GetUserDataBackendMessage struct so we can send it in a BackendMessage
-	var encoded_msg bytes.Buffer
-	enc := gob.NewEncoder(&encoded_msg)
-	err := enc.Encode(consensus.GetUserDataBackendMessage{
-		UserId: user_id,
-	})
-
+	timestamp := time.Now()
+	err := api.conService.SyncSetLastUserModification(user_id, timestamp)
 	if err != nil {
-		return "", true
-	}
-
-	// Testing with some dummy data
-	m := consensus.BackendMessage{Type: consensus.GET_LAST_USER_UPDATE, Data: encoded_msg}
-	api.sendc <- m
-	image_msg := <-api.recvc
-	if image_msg.Type == consensus.FAILURE {
-		return "", true
-	} else {
-		dec := gob.NewDecoder(&image_msg.Data)
-		var timestamp string
-		dec.Decode(&timestamp)
-		return timestamp, false
-	}
-}
-
-/*
- * This function takes in a user id and a string timestamp and replaces the user's current last update timestamp with the given timestamp
- * If there is an error, this function will return true. Otherwise the function will return false.
- */
-func (api *ApiServer) SetLastUserModification(user_id string, last_modification string) bool {
-
-	// Encode the SetUserDataBackendMessage struct so we can send it in a BackendMessage
-	var encoded_msg bytes.Buffer
-	enc := gob.NewEncoder(&encoded_msg)
-	err := enc.Encode(consensus.SetUserDataBackendMessage{
-		UserId:    user_id,
-		Timestamp: last_modification,
-	})
-
-	if err != nil {
-		return true
-	}
-	// Create the BackendMessage with the encoded data
-	m := consensus.BackendMessage{Type: consensus.SET_LAST_USER_UPDATE, Data: encoded_msg}
-	// Send BackendMessage
-	api.sendc <- m
-	image_msg := <-api.recvc
-	return image_msg.Type != consensus.SUCCESS
-}
-
-func (api *ApiServer) Headers(w http.ResponseWriter, req *http.Request) {
-
-	for name, headers := range req.Header {
-		for _, h := range headers {
-			fmt.Fprintf(w, "%v: %v\n", name, h)
-		}
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 }
 
@@ -340,20 +206,26 @@ func (api *ApiServer) serveWs(pool *Pool, w http.ResponseWriter, r *http.Request
 
 	// helpful log statement to show connections
 	log.Println("Client Connected")
-	// COMMENTED OUT BC CONCURRENT WRITES
-	// if err = client.Conn.WriteMessage(1, makeTestingMessage("{\"Hi Client! We just connected :)\"}")); err != nil { // sent upon connection to any clients
-	// 	log.Println(err)
-	// }
-	// send image
-	serverString := api.CallGetImage()
 
-	// var img_msg bytes.Buffer
-	// img := gob.NewEncoder(&img_msg)
+	if err = client.Conn.WriteMessage(1, makeTestingMessage("{\"Hi Client! We just connected :)\"}")); err != nil { // sent upon connection to any clients
+		log.Println(err)
+	}
+
+	img, err := api.conService.SyncGetImage()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	encodedString := base64Encode(img)
 	msg := ImageMsg{
 		Type:         Image,
-		FormatString: serverString,
+		FormatString: encodedString,
 	}
-	// log.Printf("ImageMsg: %+v\n", msg)
+
+	log.WithFields(log.Fields{
+		"ImageMsg": msg,
+	}).Debug("constructed websocket message")
 
 	var b []byte
 	b, err = json.Marshal(msg)
@@ -382,11 +254,8 @@ func (c *Client) Read(api *ApiServer) {
 			log.Println(err)
 			return
 		}
-		// message := Message{Type: messageType, Body: string(p)}
-		// fmt.Printf("Message Received: %+v\n", message)
-		
-		var dat Msg
 
+		var dat Msg
 		if err := json.Unmarshal(p, &dat); err != nil {
 			log.Printf("error decoding client response: %v", err)
 			if e, ok := err.(*json.SyntaxError); ok {
@@ -402,35 +271,44 @@ func (c *Client) Read(api *ApiServer) {
 			fmt.Println("DrawPixel message received.")
 			var dpMsg DrawPixelMsg
 			if err := json.Unmarshal(p, &dpMsg); err == nil {
-				fmt.Printf("%+v", dpMsg)
-				byt = api.CallUpdatePixel(dpMsg.X, dpMsg.Y, dpMsg.R, dpMsg.G, dpMsg.B, dpMsg.UserID)
-	
-				// tell all clients to update their board
-				ccpMsg := ChangeClientPixelMsg {
-					Type: ChangeClientPixel,
-					X: dpMsg.X,
-					Y: dpMsg.Y,
-					R: dpMsg.R,
-					G: dpMsg.G,
-					B: dpMsg.B,
-					UserID: dpMsg.UserID, 
+				log.WithFields(log.Fields{
+					"message": dpMsg,
+				}).Debug("received ws message")
+
+				// TODO(user team): add user verification here
+				err := api.conService.SyncUpdatePixel(dpMsg.X, dpMsg.Y, dpMsg.R, dpMsg.G, dpMsg.B, AlphaMask)
+				if err != nil {
+					// TODO(backend team): handle error response
 				}
-				
+
+				// tell all clients to update their board
+				ccpMsg := ChangeClientPixelMsg{
+					Type:   ChangeClientPixel,
+					X:      dpMsg.X,
+					Y:      dpMsg.Y,
+					R:      dpMsg.R,
+					G:      dpMsg.G,
+					B:      dpMsg.B,
+					UserID: dpMsg.UserID,
+				}
+
 				msg, _ := json.Marshal(ccpMsg)
-				fmt.Printf("msg: " + string(msg)) 
+				fmt.Printf("msg: " + string(msg))
 				c.Pool.Broadcast <- ccpMsg
 			} else {
-				fmt.Println("JSON decoding error.")
+				log.WithFields(log.Fields{
+					"err": err,
+				}).Error("unmarshalling JSON")
 			}
-			// pretty sure this is not going to be received 
+			// pretty sure this is not going to be received
 		// case ChangeClientPixel:
 		// 	fmt.Println("ChangeClientPixel message received.")
 		// 	var ccpMsg ChangeClientPixelMsg
 		// 	if err := json.Unmarshal(p, &ccpMsg); err == nil {
-				
+
 		// 		fmt.Printf("%+v", ccpMsg)
 		// 		// send a message to front end to update this pixel
-		// 		if err := c.Conn.WriteMessage(gwebsocket.TextMessage, 
+		// 		if err := c.Conn.WriteMessage(gwebsocket.TextMessage,
 		// 			makeChangeClientMessage(ccpMsg.X, ccpMsg.Y, ccpMsg.R, ccpMsg.G, ccpMsg.B, ccpMsg.UserID)); err != nil {
 		// 			log.Println(err)
 		// 		}
@@ -438,12 +316,22 @@ func (c *Client) Read(api *ApiServer) {
 
 		case LoginUser:
 			fmt.Println("CreateUser message received.")
-			var cuMsg LoginUserMsg
-			if err := json.Unmarshal(p, &cuMsg); err == nil {
-				fmt.Printf("%+v", cuMsg)
-				byt = api.CallUpdateUserList(cuMsg.Id)
+			var cu_msg LoginUserMsg
+			if err := json.Unmarshal(p, &cu_msg); err == nil {
+				log.WithFields(log.Fields{
+					"message": cu_msg,
+				}).Debug("received ws message")
+
+				timestamp := time.Now()
+				err := api.conService.SyncSetLastUserModification(cu_msg.Id, timestamp)
+				if err != nil {
+					// TODO(backend team): handle error response
+				}
+
 			} else {
-				fmt.Println("JSON decoding error.")
+				log.WithFields(log.Fields{
+					"err": err,
+				}).Error("unmarshalling JSON")
 			}
 		default:
 			// this is what the case is if the message is recieved from other servers
@@ -458,13 +346,13 @@ func (c *Client) Read(api *ApiServer) {
 	}
 }
 func makeChangeClientMessage(x int, y int, r int, g int, b int, userID string) []byte {
-	msg := ChangeClientPixelMsg {
-		Type: ChangeClientPixel,
-		X: x,
-		Y: y,   
-		R: r,  
-		G: g,      
-		B: b,      
+	msg := ChangeClientPixelMsg{
+		Type:   ChangeClientPixel,
+		X:      x,
+		Y:      y,
+		R:      r,
+		G:      g,
+		B:      b,
 		UserID: userID,
 	}
 	bt, err := json.Marshal(msg)
@@ -502,7 +390,7 @@ func makeStatusMessage(s int) []byte {
 
 func makeVerificationFailMessage(s int) []byte {
 	msg := VerificationFailMsg{
-		Type: VerificationFail,
+		Type:   VerificationFail,
 		Status: s,
 	}
 
@@ -515,8 +403,8 @@ func makeVerificationFailMessage(s int) []byte {
 
 func makeCreateUserMessage(s int, c int) []byte {
 	msg := CreateUserMsg{
-		Type: CreateUser,
-		Status: s,
+		Type:     CreateUser,
+		Status:   s,
 		Cooldown: c,
 	}
 

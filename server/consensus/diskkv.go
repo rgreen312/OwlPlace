@@ -260,8 +260,7 @@ type DiskKV struct {
 }
 
 // NewDiskKV creates a new disk kv test state machine.
-func NewDiskKV(clusterID uint64, nodeID uint64) sm.IOnDiskStateMachine {
-
+func NewDiskKV(clusterID uint64, nodeID uint64) *DiskKV {
 	d := &DiskKV{
 		clusterID: clusterID,
 		nodeID:    nodeID,
