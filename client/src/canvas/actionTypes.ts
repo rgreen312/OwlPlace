@@ -8,3 +8,4 @@ export const RegisterContext = 'canvas/REGISTER_CONTEXT';
 export const UpdatePosition = 'canvas/UPDATE_POSITION';
 export const ClearPosition = 'canvas/CLEAR_POSITION';
 export const SetZoom = 'canvas/SET_ZOOM';
+export const SetTimeRemaining = 'canvas/SET_TIME_REMAINING';

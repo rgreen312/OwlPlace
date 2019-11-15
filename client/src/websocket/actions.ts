@@ -1,13 +1,15 @@
 import { HOSTNAME } from '../constants';
 import * as ActionTypes from './actionTypes';
 import { getWebSocket } from './selectors';
+import { Msg, ErrorMsg, ImageMsg, MsgType, VerificationFailMsg, CreateUserMsg } from '../message';
+import { setImage } from '../canvas/actions';
 
 const startConnect = () => ({
   type: ActionTypes.StartConnect
 });
 export type StartConnect =  ReturnType<typeof startConnect>;
 
-const connectError = (error: string) => ({
+export const connectError = (error: string) => ({
   type: ActionTypes.ConnectError,
   payload: {
     error
@@ -40,18 +42,6 @@ export const openWebSocket = () => dispatch => {
           message: "Hi From the Client! The websocket just opened"
         })
       );
-
-      socket.send(
-        JSON.stringify({
-          type: 1,
-          userId: "AAAAAA",
-          x: 6,
-          y: 9,
-          r: 4,
-          g: 2,
-          b: 0
-        })
-      );
       
     dispatch(connectSuccess(socket));
   };
@@ -67,12 +57,49 @@ export const openWebSocket = () => dispatch => {
 
   socket.onmessage = event => {
     const { data } = event;
+    let json = JSON.parse(data);
+    switch (json.type) {
+        case MsgType.IMAGE: {
+            // let msg = new ImageMsg(data.formatString); //now what?
+            let imageString = json.formatString
+            console.log("Received an IMAGE message from the server!");
+            dispatch(setImage('data:image/png;base64,' + imageString));
+            break;
+        }
+        case MsgType.TESTING: {
+          console.log("Received a TESTING message from the server!");
+          console.log("Message: " + json.msg);
+          break;
+        }
+        case MsgType.DRAWRESPONSE: {
+          let status = json.status
+          console.log("Received a DRAWRESPONSE message from the server!");
+          console.log("The status was " + status)
+          break;
+        }
+        case MsgType.VERIFICATIONFAIL: {
+          let status = json.status
+          console.log("Received a VERIFICATIONFAIL message from the server!");
+          console.log("The status was " + status)
+          break;
+        }
+        case MsgType.CREATEUSER: {
+          let status = json.status
+          console.log("Received a CREATEUSER message from the server!");
+          console.log("The status was " + status)
+          break;
+        }
+        default: {
+            console.log("Received a message from the server of an unknown type, message: " + data);
+            break;
+        }
+    }
     // TODO (Ryan): figure out the best way to handle this... probably need to write some middlewear
-    console.log("Recieved a message from the server, message: " + data);
+
   };
 }
 
-const makeUpdateMessage = (
+export const makeUpdateMessage = (
   id: string,
   x: number,
   y: number,
@@ -91,10 +118,38 @@ const makeUpdateMessage = (
   });
 };
 
+export const makeLoginMessage = (
+  email: string
+) => {
+  return JSON.stringify({
+    type: 2, 
+    email: email
+  })
+}
+
 export const sendUpdateMessage = (id, x, y, r, g, b) => (dispatch, getState) => {
   const socket = getWebSocket(getState());
+  console.log("sending along websocket message")
   if (socket) {
     socket.send(makeUpdateMessage(id, x, y, r, g, b));
+
+    // The follwing should be REMOVED when testing is done/ you want to only do single pixels
+    // let lower = 495;
+    // let upper = 505;
+    // for (let i = lower; i < upper; i++) {
+    //   for (let j = lower; j < upper; j++) {
+    //     console.log("sending..")
+    //     socket.send(makeUpdateMessage(id, i, j, r, g, b));
+    //   }
+    // }
+  }
+}
+
+export const sendLoginMessage = (email) => (dispatch, getState) => {
+  console.log("sending login message for email: " + email)
+  const socket = getWebSocket(getState());
+  if (socket) {
+    socket.send(makeLoginMessage(email));
   }
 }
 
@@ -110,5 +165,3 @@ export const closeWebSocket = () => (dispatch, getState) => {
   }
   dispatch(closeConnection());
 }
-
-// TODO (ryan): create action send different message types

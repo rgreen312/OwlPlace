@@ -1,9 +1,35 @@
-import React, { FC } from 'react';
+import React, { Component } from 'react';
+import { Redirect } from 'react-router-dom';
+import './Error.scss';
 
-const Error: FC = () => (
-  <div className='error-page'>
-    There was an error.
-  </div>
-);
+interface Props {}
+
+interface State {}
+
+class Error extends Component<Props, State> {
+  shouldRedirect = false;
+
+  constructor(props) {
+    super(props);
+  }
+
+  componentDidMount() {
+    window.addEventListener('beforeunload', () => {
+      this.shouldRedirect = true;
+      this.forceUpdate();
+    });
+  }
+
+  render() {
+    return this.shouldRedirect ? (
+      <Redirect to='/' />
+    ) : (
+      <div className='error-page'>
+        <div className='error-title'>Whoops, something went wrong.</div>
+        <p>Hang tight, we're working hard to fix the issue!</p>
+      </div>
+    );
+  }
+}
 
 export default Error;
