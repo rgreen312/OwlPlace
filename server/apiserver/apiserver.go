@@ -9,6 +9,7 @@ import (
 	"image"
 	"image/png"
 	"net/http"
+	"time"
 
 	gwebsocket "github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
@@ -177,17 +178,17 @@ func (api *ApiServer) HTTPUpdatePixel(w http.ResponseWriter, req *http.Request) 
 func (api *ApiServer) HTTPUpdateUserList(w http.ResponseWriter, req *http.Request) {
 	// Only for testing
 	user_id := req.URL.Query().Get("user_id")
-    if user_id == "" {
-        http.Error(w, errors.New("empty param: user_id").Error(), http.StatusInternalServerError)
+	if user_id == "" {
+		http.Error(w, errors.New("empty param: user_id").Error(), http.StatusInternalServerError)
 		return
-    }
+	}
 
-    timestamp := time.Now()
-    err := api.conService.SyncSetLastUserModification(user_id, timestamp)
-    if err != nil {
-        http.Error(w, err.Error(), http.StatusInternalServerError)
+	timestamp := time.Now()
+	err := api.conService.SyncSetLastUserModification(user_id, timestamp)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
-    }
+	}
 }
 
 func (api *ApiServer) serveWs(pool *Pool, w http.ResponseWriter, r *http.Request) {
@@ -219,9 +220,9 @@ func (api *ApiServer) serveWs(pool *Pool, w http.ResponseWriter, r *http.Request
 		Type:         Image,
 		FormatString: encodedString,
 	}
-    log.WithFields(log.Fields{
-        "ImageMsg": msg,
-    }).Debug("constructed websocket message")
+	log.WithFields(log.Fields{
+		"ImageMsg": msg,
+	}).Debug("constructed websocket message")
 
 	var b []byte
 	b, err = json.Marshal(msg)
@@ -270,37 +271,37 @@ func (c *Client) Read(api *ApiServer) {
 			fmt.Println("DrawPixel message received.")
 			var dpMsg DrawPixelMsg
 			if err := json.Unmarshal(p, &dpMsg); err == nil {
-                log.WithFields(log.Fields{
-                    "message": dpMsg,
-                }).Debug("received ws message")
+				log.WithFields(log.Fields{
+					"message": dpMsg,
+				}).Debug("received ws message")
 
 				// TODO(user team): add user verification here
-				err := api.conService.SyncUpdatePixel(dp_msg.X, dp_msg.Y, dp_msg.R, dp_msg.G, dp_msg.B, AlphaMask)
+				err := api.conService.SyncUpdatePixel(dpMsg.X, dpMsg.Y, dpMsg.R, dpMsg.G, dpMsg.B, AlphaMask)
 				if err != nil {
 					// TODO(backend team): handle error response
 				}
 			} else {
-                log.WithFields(log.Fields{
-                    "err": err,
-                }).Error("unmarshalling JSON")
+				log.WithFields(log.Fields{
+					"err": err,
+				}).Error("unmarshalling JSON")
 			}
 		case LoginUser:
 			fmt.Println("CreateUser message received.")
 			var cu_msg LoginUserMsg
 			if err := json.Unmarshal(p, &cu_msg); err == nil {
-                log.WithFields(log.Fields{
-                    "message": cu_msg,
-                }).Debug("received ws message")
+				log.WithFields(log.Fields{
+					"message": cu_msg,
+				}).Debug("received ws message")
 
-                timestamp := time.Now()
-                err := api.conService.SyncSetLastUserModification(user_id, timestamp)
-                if err != nil {
-                    // TODO(backend team): handle error response
-                }
+				timestamp := time.Now()
+				err := api.conService.SyncSetLastUserModification(cu_msg.Id, timestamp)
+				if err != nil {
+					// TODO(backend team): handle error response
+				}
 			} else {
-                log.WithFields(log.Fields{
-                    "err": err,
-                }).Error("unmarshalling JSON")
+				log.WithFields(log.Fields{
+					"err": err,
+				}).Error("unmarshalling JSON")
 			}
 		default:
 			// this is what the case is if the message is recieved from other servers
