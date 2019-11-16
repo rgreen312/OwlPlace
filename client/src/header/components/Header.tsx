@@ -10,6 +10,7 @@ interface Props {
   onLogout: () => void;
   timeToNextChange: number;
   setTimeRemaining: (time: number) => void;
+  cooldown: number | null; 
 }
 
 const Header: FC<Props> = ({
@@ -18,7 +19,8 @@ const Header: FC<Props> = ({
   name,
   onLogout,
   timeToNextChange,
-  setTimeRemaining
+  setTimeRemaining,
+  cooldown
 }) => {
   //@ts-ignore
   window.onGoogleScriptLoad = () => {

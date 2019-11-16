@@ -3,8 +3,9 @@ import * as ActionTypes from './actionTypes';
 import * as CanvasActionTypes from '../canvas/actionTypes';
 import { getWebSocket } from './selectors';
 import { MsgType } from '../message';
-import { setImage } from '../canvas/actions';
+import { setImage, setTimeToNextMove } from '../canvas/actions';
 import { getCanvasContext, getLastMove } from '../../src/canvas/selectors';
+
 const startConnect = () => ({
   type: ActionTypes.StartConnect
 });
@@ -22,14 +23,6 @@ export const loginError = () => ({
   type: ActionTypes.LoginError,
 });
 export type LoginError =  ReturnType<typeof loginError>;
-
-export const loginSuccess = (coolDown: number) => ({
-  type: ActionTypes.LoginSuccess, 
-  payload: {
-    coolDown
-  }
-})
-export type LoginSuccess =  ReturnType<typeof loginSuccess>;
 
 const closeConnection = () => ({
   type: ActionTypes.CloseConnection,
@@ -154,7 +147,7 @@ export const makeUpdateMessage = (
 
 const userCreated = (status: number, cooldown: number) => (dispatch, getState) => {
   if (status != 403) {
-    dispatch(loginSuccess(cooldown)); 
+    dispatch(setTimeToNextMove(cooldown)); 
   } else {
     dispatch(loginError()); 
   }
