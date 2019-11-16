@@ -79,8 +79,9 @@ func NewApiServer(servers map[int]*common.ServerConfig, nodeId int) (*ApiServer,
 }
 
 func (api *ApiServer) ListenAndServe() {
-	pool := NewPool()
+	pool := NewPool(api.conService.broadcast)
 	go pool.Start()
+	
 	http.HandleFunc("/get_image", api.HTTPGetImage)
 	http.HandleFunc("/json/image", api.HTTPGetImageJson)
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {

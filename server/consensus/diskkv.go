@@ -257,14 +257,16 @@ type DiskKV struct {
 	mImage      image.RGBA
 	closed      bool
 	aborted     bool
+	broadcast   chan ChangeClientPixelMsg
 }
 
 // NewDiskKV creates a new disk kv test state machine.
-func NewDiskKV(clusterID uint64, nodeID uint64) *DiskKV {
+func NewDiskKV(clusterID uint64, nodeID uint64, c chan ChangeClientPixelMsg) *DiskKV {
 	d := &DiskKV{
 		clusterID: clusterID,
 		nodeID:    nodeID,
 		mImage:    *image.NewRGBA(image.Rect(0, 0, IMAGE_WIDTH, IMAGE_HEIGHT)),
+		broadcast: c,
 	}
 	return d
 }
@@ -385,6 +387,9 @@ func (d *DiskKV) UpdateInMemoryImage(dataKV *KVData) {
 
 		if xerr == nil && yerr == nil && rerr == nil && gerr == nil && berr == nil && aerr == nil {
 			d.mImage.SetRGBA(int(x), int(y), color.RGBA{R: uint8(r), G: uint8(g), B: uint8(b), A: uint8(a)})
+			d.broadcast <- ChangeClientPixelMsg {
+				X: int(x), Y: int(y), R: int(r), G: int(g), b: int(b)
+			}
 		}
 	}
 }
