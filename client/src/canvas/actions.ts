@@ -92,12 +92,21 @@ export const setZoomFactor = (newFactor: number) => (dispatch, getState) => {
   dispatch(setZoom(newFactor));
 };
 
+const updatePixelStart = (newColor: Color, x: number, y: number) => ({
+  type: ActionTypes.UpdatePixelStart,
+  payload: {
+    color: newColor,
+    position: { x, y }
+  }
+});
+export type UpdatePixelStart = ReturnType<typeof updatePixelStart>;
+
 export const updatePixel = (
   newColor: Color,
   x: number,
   y: number
 ) => (dispatch, getState) => {
-  dispatch({ type: ActionTypes.UpdatePixelSuccess });
+  dispatch(updatePixelStart(newColor, x, y));
   const socket = getWebSocket(getState());
   const email = getUserEmail(getState());
   console.log("This is being called!", newColor, newColor.r, newColor.g, newColor.b)
