@@ -1,5 +1,6 @@
 import { HOSTNAME } from '../constants';
 import * as ActionTypes from './actionTypes';
+import * as CanvasActionTypes from '../canvas/actionTypes';
 import { getWebSocket } from './selectors';
 import { MsgType } from '../message';
 import { setImage } from '../canvas/actions';
@@ -82,7 +83,8 @@ export const openWebSocket = () => (dispatch, getState) => {
         case MsgType.DRAWRESPONSE: {
           let status = json.status
           console.log("Received a DRAWRESPONSE message from the server!");
-          console.log("The status was " + status)
+          console.log("The status was " + status);
+          dispatch({ type: CanvasActionTypes.UpdatePixelSuccess });
           break;
         }
         case MsgType.VERIFICATIONFAIL: {
@@ -95,7 +97,7 @@ export const openWebSocket = () => (dispatch, getState) => {
             const { x, y } = prevMove.position;
             const { r, g, b } = prevMove.color;
             dispatch(setColor(x, y, r, g, b));
-
+            dispatch({ type: CanvasActionTypes.UpdatePixelError });
           }
           break;
         }

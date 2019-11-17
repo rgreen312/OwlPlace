@@ -38,7 +38,8 @@ const initialImage = createReducer<State['initialImage']>(null, {
 })
 const timeToNextChange = createReducer<State['timeToNextChange']>(0, {
   [ActionTypes.SetTimeRemaining]: (state, action: SetTimeRemaining) => action.payload.time,
-  [ActionTypes.UpdatePixelSuccess]: () => TIME_BETWEEN_UPDATES_MS,
+  [ActionTypes.UpdatePixelStart]: () => TIME_BETWEEN_UPDATES_MS,
+  [ActionTypes.UpdatePixelError]: () => 0,
 });
 
 const lastMove = createReducer<State['lastMove']>(null, {
