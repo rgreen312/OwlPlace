@@ -9,7 +9,7 @@ export enum MsgType {
     DRAWRESPONSE = 6,
     CLOSE = 9,
     VERIFICATIONFAIL = 10,
-    CREATEUSER = 11
+    USERLOGIN = 11
 }
 
 export interface Msg {
@@ -56,8 +56,8 @@ export class VerificationFailMsg implements Msg {
     }
 }
 
-export class CreateUserMsg implements Msg {
-    type: number = MsgType.CREATEUSER;
+export class UserLoginMsg implements Msg {
+    type: number = MsgType.USERLOGIN;
     status: number;
     cooldown: number;
     
