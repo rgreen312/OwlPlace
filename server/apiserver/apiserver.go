@@ -79,7 +79,7 @@ func NewApiServer(servers map[int]*common.ServerConfig, nodeId int) (*ApiServer,
 }
 
 func (api *ApiServer) ListenAndServe() {
-	pool := NewPool(api.conService.broadcast)
+	pool := NewPool(api.conService.Broadcast)
 	go pool.Start()
 	
 	http.HandleFunc("/get_image", api.HTTPGetImage)
@@ -283,7 +283,7 @@ func (c *Client) Read(api *ApiServer) {
 				}
 
 				// tell all clients to update their board
-				ccpMsg := ChangeClientPixelMsg{
+				ccpMsg := common.ChangeClientPixelMsg{
 					Type:   ChangeClientPixel,
 					X:      dpMsg.X,
 					Y:      dpMsg.Y,
@@ -303,7 +303,7 @@ func (c *Client) Read(api *ApiServer) {
 			// pretty sure this is not going to be received
 		// case ChangeClientPixel:
 		// 	fmt.Println("ChangeClientPixel message received.")
-		// 	var ccpMsg ChangeClientPixelMsg
+		// 	var ccpMsg common.ChangeClientPixelMsg
 		// 	if err := json.Unmarshal(p, &ccpMsg); err == nil {
 
 		// 		fmt.Printf("%+v", ccpMsg)
@@ -346,7 +346,7 @@ func (c *Client) Read(api *ApiServer) {
 	}
 }
 func makeChangeClientMessage(x int, y int, r int, g int, b int, userID string) []byte {
-	msg := ChangeClientPixelMsg{
+	msg := common.ChangeClientPixelMsg{
 		Type:   ChangeClientPixel,
 		X:      x,
 		Y:      y,

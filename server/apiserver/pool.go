@@ -2,17 +2,17 @@ package apiserver
 
 import (
 	"fmt"
-	"github.com/rgreen312/owlplace/server/consensus"
+	"github.com/rgreen312/owlplace/server/common"
 )
 
 type Pool struct {
 	Register   chan *Client
 	Unregister chan *Client
 	Clients    map[*Client]bool
-	Broadcast  chan ChangeClientPixelMsg
+	Broadcast  chan common.ChangeClientPixelMsg
 }
 
-func NewPool(c chan ChangeClientPixelMsg) *Pool {
+func NewPool(c chan common.ChangeClientPixelMsg) *Pool {
 	return &Pool{
 		Register:   make(chan *Client),
 		Unregister: make(chan *Client),
