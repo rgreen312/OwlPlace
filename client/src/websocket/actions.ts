@@ -1,9 +1,10 @@
 import { HOSTNAME } from '../constants';
 import * as ActionTypes from './actionTypes';
+import * as CanvasActionTypes from '../canvas/actionTypes';
 import { getWebSocket } from './selectors';
 import { MsgType } from '../message';
 import { setImage } from '../canvas/actions';
-import { getCanvasContext } from '../../src/canvas/selectors';
+import { getCanvasContext, getLastMove } from '../../src/canvas/selectors';
 const startConnect = () => ({
   type: ActionTypes.StartConnect
 });
@@ -30,7 +31,7 @@ const connectSuccess = (socket: WebSocket) => ({
 });
 export type ConnectSuccess = ReturnType<typeof connectSuccess>;
 
-export const openWebSocket = () => dispatch => {
+export const openWebSocket = () => (dispatch, getState) => {
   dispatch(startConnect());
 
   const socket = new WebSocket(`ws://${HOSTNAME}/ws`);
@@ -82,13 +83,22 @@ export const openWebSocket = () => dispatch => {
         case MsgType.DRAWRESPONSE: {
           let status = json.status
           console.log("Received a DRAWRESPONSE message from the server!");
-          console.log("The status was " + status)
+          console.log("The status was " + status);
+          dispatch({ type: CanvasActionTypes.UpdatePixelSuccess });
           break;
         }
         case MsgType.VERIFICATIONFAIL: {
           let status = json.status
           console.log("Received a VERIFICATIONFAIL message from the server!");
-          console.log("The status was " + status)
+          console.log("The status was " + status);
+          // Since the update failed, we need to set the color back to before the user made the move
+          const prevMove = getLastMove(getState());
+          if (prevMove) {
+            const { x, y } = prevMove.position;
+            const { r, g, b } = prevMove.color;
+            dispatch(setColor(x, y, r, g, b));
+            dispatch({ type: CanvasActionTypes.UpdatePixelError });
+          }
           break;
         }
         case MsgType.USERLOGIN: {

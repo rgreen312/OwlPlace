@@ -10,6 +10,7 @@ import (
 	"image/png"
 	"math"
 	"net/http"
+	"sync"
 	"strconv"
 	"time"
 
@@ -42,6 +43,7 @@ var (
 type ApiServer struct {
 	config     *common.ServerConfig
 	conService *consensus.ConsensusService
+	Mux        sync.Mutex
 }
 
 type Client struct {
@@ -82,7 +84,7 @@ func NewApiServer(servers map[int]*common.ServerConfig, nodeId int) (*ApiServer,
 
 func (api *ApiServer) ListenAndServe() {
 	pool := NewPool()
-	go pool.Start()
+	go pool.Start(api.Mux)
 	http.HandleFunc("/get_image", api.HTTPGetImage)
 	http.HandleFunc("/json/image", api.HTTPGetImageJson)
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
@@ -309,7 +311,9 @@ func (c *Client) Read(api *ApiServer) {
 
 				msg, _ := json.Marshal(ccpMsg)
 				fmt.Printf("msg: " + string(msg))
+				api.Mux.Lock()
 				c.Pool.Broadcast <- ccpMsg
+				api.Mux.Unlock()
 			} else {
 				log.WithFields(log.Fields{
 					"err": err,
@@ -369,10 +373,12 @@ func (c *Client) Read(api *ApiServer) {
 			fmt.Printf("Message of type: %d received.\n", dat.Type)
 		}
 		log.Println(byt)
-		// // COMMENTED OUT BC CONCURRENT WRITES write message back to the client sent to signal that you received message
-		// if err := c.Conn.WriteMessage(gwebsocket.TextMessage, byt); err != nil {
-		// 	log.Println(err)
-		// }
+
+		api.Mux.Lock()
+		if err := c.Conn.WriteMessage(gwebsocket.TextMessage, byt); err != nil {
+			log.Println(err)
+		}
+		api.Mux.Unlock()
 
 	}
 }
