@@ -75,8 +75,8 @@ const (
 )
 
 var (
-	dragonboatConfigurationError = errors.New("dragonboat configuration")
-	noSuchUser                   = errors.New("no such user")
+	DragonboatConfigurationError = errors.New("dragonboat configuration")
+	NoSuchUser                   = errors.New("no such user")
 )
 
 type IConsensus interface {
@@ -220,7 +220,7 @@ func (cs *ConsensusService) SyncGetLastUserModification(userId string) (*time.Ti
 	}
 	resultString := string(result.([]byte))
 	if resultString == "" {
-		return nil, noSuchUser
+		return nil, NoSuchUser
 	}
 
 	t, err := time.Parse(common.TimeFormat, resultString)
