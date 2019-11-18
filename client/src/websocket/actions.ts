@@ -119,10 +119,6 @@ export const openWebSocket = () => (dispatch, getState) => {
   };
 }
 
-const resetPixelColor = () => {
-
-}
-
 export const makeUpdateMessage = (
   id: string,
   x: number,
