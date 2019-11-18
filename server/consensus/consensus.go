@@ -101,7 +101,7 @@ func NewConsensusService(servers map[int]*common.ServerConfig, nodeId int) (*Con
 
 	conf, ok := servers[nodeId]
 	if !ok {
-		return nil, errors.Wrapf(dragonboatConfigurationError, "NodeID provided (%d) not present in server map.", nodeId)
+		return nil, errors.Wrapf(DragonboatConfigurationError, "NodeID provided (%d) not present in server map.", nodeId)
 	}
 
 	nodeAddr := fmt.Sprintf("%s:%d", conf.Hostname, conf.ConsensusPort)
