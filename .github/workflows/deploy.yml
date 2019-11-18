@@ -16,11 +16,8 @@ jobs:
     - name: build site
       working-directory: ./client
       run: npm run build
-    - name: Deploy to GitHub pages
-      uses: JamesIves/github-pages-deploy-action@releases/v2
+    - name: deploy to github pages
+      working-directory: ./client
+      run: npm run deploy
       env:
-        ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
-        BASE_BRANCH: master # The branch the action should deploy from.
-        BRANCH: gh-pages # The branch the action should deploy to.
-        FOLDER: build # The folder the action should deploy.
-        BUILD_SCRIPT: npm run deploy # The build script the action should run prior to deploying.
+        GITHUB_PAT: ${{ secrets.ACCESS_TOKEN }}
