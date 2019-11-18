@@ -8,10 +8,9 @@ import (
 	"html/template"
 	"image"
 	"image/png"
-	"math"
 	"net/http"
-	"strconv"
 	"time"
+	"sync"
 
 	gwebsocket "github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
@@ -90,7 +89,7 @@ func (api *ApiServer) ListenAndServe() {
 		api.serveWs(pool, w, r)
 	})
 	http.HandleFunc("/update_pixel", api.HTTPUpdatePixel)
-	http.HandleFunc("/update_user", api.HTTPUserLogin)
+	// http.HandleFunc("/update_user", api.HTTPUserLogin)
 
 	// Although there is nothing wrong with this line, it prevents us from
 	// running multiple nodes on a single machine.  Therefore, I am making
@@ -176,33 +175,25 @@ func (api *ApiServer) HTTPUpdatePixel(w http.ResponseWriter, req *http.Request) 
 	}
 }
 
-func (api *ApiServer) HTTPUserLogin(w http.ResponseWriter, req *http.Request) []byte {
-	userID := req.URL.Query().Get("id")
-	//if userID == "" {
-	//	http.Error(w, errors.New("empty param: userID").Error(), http.StatusInternalServerError)
-	//	return
-	//}
-	byt := makeUserLoginResponseMsg(400, -1)
-	lastMove, getErr := api.conService.SyncGetLastUserModification(userID)
-	if getErr == consensus.NoSuchUser {
-		setErr := api.conService.SyncSetLastUserModification(userID, time.Unix(0,0)) // Default Timestamp for New Users
-		if setErr != nil {
-			byt = makeUserLoginResponseMsg(200, 0)
-		}
-	} else if lastMove != nil {
-		timeSinceLastMove := time.Since(*lastMove)
-		if timeSinceLastMove.Milliseconds() >= cooldown.Milliseconds() {
-			byt = makeUserLoginResponseMsg(200, 0)
-		} else {
-			byt = makeUserLoginResponseMsg(200, int(cooldown.Milliseconds() - timeSinceLastMove.Milliseconds()))
-		}
-	}
-	return byt
-	//if err != nil {
-	//	http.Error(w, err.Error(), http.StatusInternalServerError)
-	//	return
-	//}
-}
+// func (api *ApiServer) HTTPUserLogin(w http.ResponseWriter, req *http.Request) []byte {
+// 	userID := req.URL.Query().Get("id")
+// 	byt := makeUserLoginResponseMsg(400, -1)
+// 	lastMove, getErr := api.conService.SyncGetLastUserModification(userID)
+// 	if getErr == consensus.NoSuchUser {
+// 		setErr := api.conService.SyncSetLastUserModification(userID, time.Unix(0,0)) // Default Timestamp for New Users
+// 		if setErr != nil {
+// 			byt = makeUserLoginResponseMsg(200, 0)
+// 		}
+// 	} else if lastMove != nil {
+// 		timeSinceLastMove := time.Since(*lastMove)
+// 		if timeSinceLastMove.Milliseconds() >= cooldown.Milliseconds() {
+// 			byt = makeUserLoginResponseMsg(200, 0)
+// 		} else {
+// 			byt = makeUserLoginResponseMsg(200, int(cooldown.Milliseconds() - timeSinceLastMove.Milliseconds()))
+// 		}
+// 	}
+// 	return byt
+// }
 
 func (api *ApiServer) serveWs(pool *Pool, w http.ResponseWriter, r *http.Request) {
 	fmt.Println("WebSocket Endpoint Hit")
@@ -289,7 +280,37 @@ func (c *Client) Read(api *ApiServer) {
 
 				// TODO(user team): add user verification here
 				// <Start Validate User>
-				lastMove, getErr := api.conService.SyncGetLastUserModification()
+
+				lastMove, getErr := api.conService.SyncGetLastUserModification(dpMsg.UserID)
+				// Cannot get this user's last modification
+				var userVerification int
+				if (getErr != nil) {
+					userVerification = 401
+				}
+				timeSinceLastMove := time.Since(*lastMove)
+				if (timeSinceLastMove.Milliseconds() >= cooldown.Milliseconds()) {
+					err := api.conService.SyncSetLastUserModification(dpMsg.UserID, time.Now())
+					if err == nil {
+						// Successfully updated the user's last modification
+						userVerification = 200	
+					} else {
+						// Error from SetLastUserModification call
+						userVerification = 403
+					}
+				} else {
+					// User cannot make a move yet.
+					userVerification = 429
+				}
+
+				if userVerification != 200 {
+					// User verification failed
+					log.Println(fmt.Sprintf("USER %s failed authentication", dpMsg.UserID))
+					// send message back to the client indicating verification failure
+					byt = makeVerificationFailMessage(userVerification)
+					break
+				}
+
+				// lastMove, getErr := api.conService.SyncGetLastUserModification()
 				// <End Validate User>
 
 				err := api.conService.SyncUpdatePixel(dpMsg.X, dpMsg.Y, dpMsg.R, dpMsg.G, dpMsg.B, AlphaMask)
@@ -346,12 +367,14 @@ func (c *Client) Read(api *ApiServer) {
 				//	http.Error(w, errors.New("empty param: userID").Error(), http.StatusInternalServerError)
 				//	return
 				//}
-				byt := makeUserLoginResponseMsg(400, -1)
+				byt = makeUserLoginResponseMsg(400, -1)
 				lastMove, getErr := api.conService.SyncGetLastUserModification(userID)
 				if getErr == consensus.NoSuchUser {
 					setErr := api.conService.SyncSetLastUserModification(userID, time.Unix(0,0)) // Default Timestamp for New Users
-					if setErr != nil {
+					if setErr == nil {
 						byt = makeUserLoginResponseMsg(200, 0)
+					} else {
+						byt = makeUserLoginResponseMsg(403, 0)
 					}
 				} else if lastMove != nil {
 					timeSinceLastMove := time.Since(*lastMove)
