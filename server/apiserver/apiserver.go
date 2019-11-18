@@ -8,10 +8,8 @@ import (
 	"html/template"
 	"image"
 	"image/png"
-	"math"
 	"net/http"
 	"sync"
-	"strconv"
 	"time"
 
 	gwebsocket "github.com/gorilla/websocket"
@@ -186,7 +184,7 @@ func (api *ApiServer) HTTPUserLogin(w http.ResponseWriter, req *http.Request) []
 	byt := makeUserLoginResponseMsg(400, -1)
 	lastMove, getErr := api.conService.SyncGetLastUserModification(userID)
 	if getErr == consensus.NoSuchUser {
-		setErr := api.conService.SyncSetLastUserModification(userID, time.Unix(0,0)) // Default Timestamp for New Users
+		setErr := api.conService.SyncSetLastUserModification(userID, time.Unix(0, 0)) // Default Timestamp for New Users
 		if setErr != nil {
 			byt = makeUserLoginResponseMsg(200, 0)
 		}
@@ -195,7 +193,7 @@ func (api *ApiServer) HTTPUserLogin(w http.ResponseWriter, req *http.Request) []
 		if timeSinceLastMove.Milliseconds() >= cooldown.Milliseconds() {
 			byt = makeUserLoginResponseMsg(200, 0)
 		} else {
-			byt = makeUserLoginResponseMsg(200, int(cooldown.Milliseconds() - timeSinceLastMove.Milliseconds()))
+			byt = makeUserLoginResponseMsg(200, int(cooldown.Milliseconds()-timeSinceLastMove.Milliseconds()))
 		}
 	}
 	return byt
@@ -350,7 +348,7 @@ func (c *Client) Read(api *ApiServer) {
 				byt := makeUserLoginResponseMsg(400, -1)
 				lastMove, getErr := api.conService.SyncGetLastUserModification(userID)
 				if getErr == consensus.NoSuchUser {
-					setErr := api.conService.SyncSetLastUserModification(userID, time.Unix(0,0)) // Default Timestamp for New Users
+					setErr := api.conService.SyncSetLastUserModification(userID, time.Unix(0, 0)) // Default Timestamp for New Users
 					if setErr != nil {
 						byt = makeUserLoginResponseMsg(200, 0)
 					}
@@ -359,7 +357,7 @@ func (c *Client) Read(api *ApiServer) {
 					if timeSinceLastMove.Milliseconds() >= cooldown.Milliseconds() {
 						byt = makeUserLoginResponseMsg(200, 0)
 					} else {
-						byt = makeUserLoginResponseMsg(200, int(cooldown.Milliseconds() - timeSinceLastMove.Milliseconds()))
+						byt = makeUserLoginResponseMsg(200, int(cooldown.Milliseconds()-timeSinceLastMove.Milliseconds()))
 					}
 				}
 
