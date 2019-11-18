@@ -18,5 +18,6 @@ jobs:
       run: npm run build
     - name: deploy to github pages
       working-directory: ./client
+      run: git config --global user.email "ryan.green0@me.com"
+      run: git config --global user.name "Ryan Green"
       run: npm run deploy
-
