@@ -16,8 +16,12 @@ jobs:
     - name: build site
       working-directory: ./client
       run: npm run build
-    - name: deploy to github pages
+    - name: set git user email
       working-directory: ./client
       run: git config --global user.email "ryan.green0@me.com"
+    - name: set git user name
+      working-directory: ./client
       run: git config --global user.name "Ryan Green"
+    - name: deploy to github pages
+      working-directory: ./client
       run: npm run deploy
