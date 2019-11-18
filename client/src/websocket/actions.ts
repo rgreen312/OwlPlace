@@ -91,7 +91,7 @@ export const openWebSocket = () => dispatch => {
           console.log("The status was " + status)
           break;
         }
-        case MsgType.CREATEUSER: {
+        case MsgType.USERLOGIN: {
           let status = json.status
           let cooldown = json.cooldown
           console.log("Received a CREATEUSER message from the server!");

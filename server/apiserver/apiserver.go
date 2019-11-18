@@ -8,7 +8,9 @@ import (
 	"html/template"
 	"image"
 	"image/png"
+	"math"
 	"net/http"
+	"strconv"
 	"time"
 
 	gwebsocket "github.com/gorilla/websocket"
@@ -48,7 +50,7 @@ type Client struct {
 	Pool *Pool
 }
 
-var cooldown = 300000
+var cooldown, _ = time.ParseDuration("5m")
 
 func NewApiServer(servers map[int]*common.ServerConfig, nodeId int) (*ApiServer, error) {
 
@@ -87,7 +89,7 @@ func (api *ApiServer) ListenAndServe() {
 		api.serveWs(pool, w, r)
 	})
 	http.HandleFunc("/update_pixel", api.HTTPUpdatePixel)
-	http.HandleFunc("/update_user", api.HTTPUpdateUserList)
+	http.HandleFunc("/update_user", api.HTTPUserLogin)
 
 	// Although there is nothing wrong with this line, it prevents us from
 	// running multiple nodes on a single machine.  Therefore, I am making
@@ -173,23 +175,32 @@ func (api *ApiServer) HTTPUpdatePixel(w http.ResponseWriter, req *http.Request) 
 	}
 }
 
-/*
- * Insert the new user id to the userlist
- */
-func (api *ApiServer) HTTPUpdateUserList(w http.ResponseWriter, req *http.Request) {
-	// Only for testing
-	user_id := req.URL.Query().Get("user_id")
-	if user_id == "" {
-		http.Error(w, errors.New("empty param: user_id").Error(), http.StatusInternalServerError)
-		return
+func (api *ApiServer) HTTPUserLogin(w http.ResponseWriter, req *http.Request) []byte {
+	userID := req.URL.Query().Get("id")
+	//if userID == "" {
+	//	http.Error(w, errors.New("empty param: userID").Error(), http.StatusInternalServerError)
+	//	return
+	//}
+	byt := makeUserLoginResponseMsg(400, -1)
+	lastMove, getErr := api.conService.SyncGetLastUserModification(userID)
+	if getErr == consensus.NoSuchUser {
+		setErr := api.conService.SyncSetLastUserModification(userID, time.Unix(0,0)) // Default Timestamp for New Users
+		if setErr != nil {
+			byt = makeUserLoginResponseMsg(200, 0)
+		}
+	} else if lastMove != nil {
+		timeSinceLastMove := time.Since(*lastMove)
+		if timeSinceLastMove.Milliseconds() >= cooldown.Milliseconds() {
+			byt = makeUserLoginResponseMsg(200, 0)
+		} else {
+			byt = makeUserLoginResponseMsg(200, int(cooldown.Milliseconds() - timeSinceLastMove.Milliseconds()))
+		}
 	}
-
-	timestamp := time.Now()
-	err := api.conService.SyncSetLastUserModification(user_id, timestamp)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	return byt
+	//if err != nil {
+	//	http.Error(w, err.Error(), http.StatusInternalServerError)
+	//	return
+	//}
 }
 
 func (api *ApiServer) serveWs(pool *Pool, w http.ResponseWriter, r *http.Request) {
@@ -276,6 +287,10 @@ func (c *Client) Read(api *ApiServer) {
 				}).Debug("received ws message")
 
 				// TODO(user team): add user verification here
+				// <Start Validate User>
+				lastMove, getErr := api.conService.SyncGetLastUserModification()
+				// <End Validate User>
+
 				err := api.conService.SyncUpdatePixel(dpMsg.X, dpMsg.Y, dpMsg.R, dpMsg.G, dpMsg.B, AlphaMask)
 				if err != nil {
 					// TODO(backend team): handle error response
@@ -317,15 +332,31 @@ func (c *Client) Read(api *ApiServer) {
 		case LoginUser:
 			fmt.Println("CreateUser message received.")
 			var cu_msg LoginUserMsg
+			fmt.Println(cu_msg)
 			if err := json.Unmarshal(p, &cu_msg); err == nil {
 				log.WithFields(log.Fields{
 					"message": cu_msg,
 				}).Debug("received ws message")
 
-				timestamp := time.Now()
-				err := api.conService.SyncSetLastUserModification(cu_msg.Id, timestamp)
-				if err != nil {
-					// TODO(backend team): handle error response
+				userID := cu_msg.Id
+				//if userID == "" {
+				//	http.Error(w, errors.New("empty param: userID").Error(), http.StatusInternalServerError)
+				//	return
+				//}
+				byt := makeUserLoginResponseMsg(400, -1)
+				lastMove, getErr := api.conService.SyncGetLastUserModification(userID)
+				if getErr == consensus.NoSuchUser {
+					setErr := api.conService.SyncSetLastUserModification(userID, time.Unix(0,0)) // Default Timestamp for New Users
+					if setErr != nil {
+						byt = makeUserLoginResponseMsg(200, 0)
+					}
+				} else if lastMove != nil {
+					timeSinceLastMove := time.Since(*lastMove)
+					if timeSinceLastMove.Milliseconds() >= cooldown.Milliseconds() {
+						byt = makeUserLoginResponseMsg(200, 0)
+					} else {
+						byt = makeUserLoginResponseMsg(200, int(cooldown.Milliseconds() - timeSinceLastMove.Milliseconds()))
+					}
 				}
 
 			} else {
@@ -401,9 +432,9 @@ func makeVerificationFailMessage(s int) []byte {
 	return b
 }
 
-func makeCreateUserMessage(s int, c int) []byte {
-	msg := CreateUserMsg{
-		Type:     CreateUser,
+func makeUserLoginResponseMsg(s int, c int) []byte {
+	msg := UserLoginResponseMsg{
+		Type:     UserLoginResponse,
 		Status:   s,
 		Cooldown: c,
 	}
