@@ -295,7 +295,6 @@ func (c *Client) Read(api *ApiServer) {
 
 				msg, _ := json.Marshal(ccpMsg)
 				fmt.Printf("msg: " + string(msg))
-				c.Pool.Broadcast <- ccpMsg
 			} else {
 				log.WithFields(log.Fields{
 					"err": err,

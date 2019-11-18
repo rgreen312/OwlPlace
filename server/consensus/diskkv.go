@@ -388,7 +388,7 @@ func (d *DiskKV) UpdateInMemoryImage(dataKV *KVData) {
 		if xerr == nil && yerr == nil && rerr == nil && gerr == nil && berr == nil && aerr == nil {
 			d.mImage.SetRGBA(int(x), int(y), color.RGBA{R: uint8(r), G: uint8(g), B: uint8(b), A: uint8(a)})
 			d.broadcast <- ChangeClientPixelMsg {
-				X: int(x), Y: int(y), R: int(r), G: int(g), b: int(b)
+				X: int(x), Y: int(y), R: int(r), G: int(g), b: int(b),
 			}
 		}
 	}
