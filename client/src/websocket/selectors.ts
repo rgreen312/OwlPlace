@@ -8,5 +8,3 @@ export const receivedError = (state: State): boolean =>
   state.websocket.receivedError;
 export const getIsLoadingState = (state: State): boolean =>
   state.websocket.isLoading;
-export const getCoolDown = (state: State): number | null => 
-  state.websocket.coolDown; 
