@@ -1,6 +1,6 @@
 import { createReducer } from '../createReducer';
 import * as ActionTypes from './actionTypes';
-import { ConnectSuccess } from './actions';
+import { ConnectSuccess, LoginSuccess } from './actions';
 import { combineReducers } from 'redux';
 
 export interface State {
@@ -8,6 +8,7 @@ export interface State {
   isConnected: boolean;
   receivedError: boolean;
   isLoading: boolean;
+  coolDown: number;
 }
 
 const socket = createReducer<State['socket']>(null, {
@@ -39,9 +40,14 @@ const isLoading = createReducer<State['isLoading']>(false, {
   [ActionTypes.ConnectSuccess]: () => false
 });
 
+const coolDown = createReducer<State['coolDown']>(0, {
+  [ActionTypes.LoginSuccess]: (state, action: LoginSuccess) => action.payload.coolDown
+}); 
+
 export default combineReducers({
   socket,
   isConnected,
   receivedError,
-  isLoading
+  isLoading, 
+  coolDown
 });
