@@ -8,7 +8,6 @@ export interface State {
   isConnected: boolean;
   receivedError: boolean;
   isLoading: boolean;
-  coolDown: number | null;
 }
 
 const socket = createReducer<State['socket']>(null, {

@@ -146,7 +146,9 @@ export const makeUpdateMessage = (
 };
 
 const userCreated = (status: number, cooldown: number) => (dispatch, getState) => {
+  console.log("hi friends"); 
   if (status != 403) {
+    console.log("yo we got here"); 
     dispatch(setTimeToNextMove(cooldown)); 
   } else {
     dispatch(loginError()); 
