@@ -1,4 +1,4 @@
-import React, { Component, createRef, RefObject, useState } from 'react';
+import React, { Component, createRef, RefObject } from 'react';
 import ColorPicker from '../../colorPicker/components/colorPicker';
 import { Redirect } from 'react-router-dom';
 import './Canvas.scss';
@@ -275,9 +275,9 @@ class Canvas extends Component<Props, State> {
       colorPickerX,
       colorPickerY,
     } = this.state;
-    //   receivedError ? <Redirect to='/error'/> :
     return (
       <div>
+        {/*   receivedError && <Redirect to='/error'/> */}
         {isLoading && <Spin className='spinner-style' size='large' />}
         <div
           className={classNames({
