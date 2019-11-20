@@ -102,9 +102,9 @@ export const openWebSocket = () => (dispatch, getState) => {
           }
           break;
         }
-        case MsgType.USERLOGIN: {
+        case MsgType.USERLOGINRESPONSE: {
           let status = json.status
-          let cooldown = json.Cooldown
+          let cooldown = json.cooldown
           console.log("Received a USERLOGIN message from the server!");
           console.log("The status was " + status);
           console.log("The remaining cooldown time for current user is: " + cooldown);

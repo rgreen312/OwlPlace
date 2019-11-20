@@ -98,7 +98,7 @@ func NewDrawPixelMsg(req *http.Request) (*DrawPixelMsg, error) {
 
 type LoginUserMsg struct {
 	Type MsgType `json:"type"`
-	Id   string  `json:"id"`
+	Email   string  `json:"email"`
 }
 
 /*
