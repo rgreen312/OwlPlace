@@ -56,7 +56,7 @@ export class VerificationFailMsg implements Msg {
     }
 }
 
-export class UserLoginMsg implements Msg {
+export class UserLoginResponseMsg implements Msg {
     type: number = MsgType.USERLOGIN;
     status: number;
     cooldown: number;
