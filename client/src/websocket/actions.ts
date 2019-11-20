@@ -59,6 +59,7 @@ export const openWebSocket = () => (dispatch, getState) => {
   socket.onmessage = event => {
     const { data } = event;
     let json = JSON.parse(data);
+    console.log("RECEIVED: " + json.type);
     switch (json.type) {
         case MsgType.IMAGE: {
             // let msg = new ImageMsg(data.formatString); //now what?
@@ -101,10 +102,10 @@ export const openWebSocket = () => (dispatch, getState) => {
           }
           break;
         }
-        case MsgType.CREATEUSER: {
+        case MsgType.USERLOGINRESPONSE: {
           let status = json.status
           let cooldown = json.cooldown
-          console.log("Received a CREATEUSER message from the server!");
+          console.log("Received a USERLOGIN message from the server!");
           console.log("The status was " + status);
           console.log("The remaining cooldown time for current user is: " + cooldown);
           break;

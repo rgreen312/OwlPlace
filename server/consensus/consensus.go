@@ -75,8 +75,8 @@ const (
 )
 
 var (
-	dragonboatConfigurationError = errors.New("dragonboat configuration")
-	noSuchUser                   = errors.New("no such user")
+	DragonboatConfigurationError = errors.New("dragonboat configuration")
+	NoSuchUser                   = errors.New("no such user")
 )
 
 type IConsensus interface {
@@ -101,7 +101,7 @@ func NewConsensusService(servers map[int]*common.ServerConfig, nodeId int) (*Con
 
 	conf, ok := servers[nodeId]
 	if !ok {
-		return nil, errors.Wrapf(dragonboatConfigurationError, "NodeID provided (%d) not present in server map.", nodeId)
+		return nil, errors.Wrapf(DragonboatConfigurationError, "NodeID provided (%d) not present in server map.", nodeId)
 	}
 
 	nodeAddr := fmt.Sprintf("%s:%d", conf.Hostname, conf.ConsensusPort)
@@ -220,7 +220,7 @@ func (cs *ConsensusService) SyncGetLastUserModification(userId string) (*time.Ti
 	}
 	resultString := string(result.([]byte))
 	if resultString == "" {
-		return nil, noSuchUser
+		return nil, NoSuchUser
 	}
 
 	t, err := time.Parse(common.TimeFormat, resultString)

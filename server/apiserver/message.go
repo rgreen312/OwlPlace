@@ -21,7 +21,7 @@ const (
 	DrawResponse      MsgType = 6
 	Close             MsgType = 9
 	VerificationFail  MsgType = 10
-	CreateUser        MsgType = 11
+	UserLoginResponse MsgType = 11
 )
 
 type Msg struct {
@@ -98,7 +98,7 @@ func NewDrawPixelMsg(req *http.Request) (*DrawPixelMsg, error) {
 
 type LoginUserMsg struct {
 	Type MsgType `json:"type"`
-	Id   string  `json:"id"`
+	Email   string  `json:"email"`
 }
 
 /*
@@ -136,8 +136,8 @@ type VerificationFailMsg struct {
 	Status int     `json:"status"`
 }
 
-type CreateUserMsg struct {
+type UserLoginResponseMsg struct {
 	Type     MsgType `json:"type"`
 	Status   int     `json:"status"`
-	Cooldown int     `json:"cooldown`
+	Cooldown int     `json:"cooldown"`
 }
