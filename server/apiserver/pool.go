@@ -2,6 +2,7 @@ package apiserver
 
 import (
 	"fmt"
+	"encoding/json"
 	"github.com/rgreen312/owlplace/server/common"
 )
 
@@ -42,6 +43,8 @@ func (pool *Pool) Start() {
 		case message := <-pool.Broadcast:
 			fmt.Println("Sending message to all clients in Pool")
 			for client, _ := range pool.Clients {
+				msg, _ := json.Marshal(message)
+				fmt.Printf("new_msg: " + string(msg))
 				if err := client.Conn.WriteJSON(message); err != nil {
 					fmt.Println(err)
 					return

@@ -220,7 +220,7 @@ func (api *ApiServer) serveWs(pool *Pool, w http.ResponseWriter, r *http.Request
 
 	encodedString := base64Encode(img)
 	msg := ImageMsg{
-		Type:         Image,
+		Type:         common.Image,
 		FormatString: encodedString,
 	}
 
@@ -268,7 +268,7 @@ func (c *Client) Read(api *ApiServer) {
 		byt := makeTestingMessage("Default Message")
 
 		switch dat.Type {
-		case DrawPixel:
+		case common.DrawPixel:
 			fmt.Println("DrawPixel message received.")
 			var dpMsg DrawPixelMsg
 			if err := json.Unmarshal(p, &dpMsg); err == nil {
@@ -282,39 +282,14 @@ func (c *Client) Read(api *ApiServer) {
 					// TODO(backend team): handle error response
 				}
 
-				// tell all clients to update their board
-				ccpMsg := common.ChangeClientPixelMsg{
-					Type:   ChangeClientPixel,
-					X:      dpMsg.X,
-					Y:      dpMsg.Y,
-					R:      dpMsg.R,
-					G:      dpMsg.G,
-					B:      dpMsg.B,
-					UserID: dpMsg.UserID,
-				}
-
-				msg, _ := json.Marshal(ccpMsg)
-				fmt.Printf("msg: " + string(msg))
+				
 			} else {
 				log.WithFields(log.Fields{
 					"err": err,
 				}).Error("unmarshalling JSON")
 			}
-			// pretty sure this is not going to be received
-		// case ChangeClientPixel:
-		// 	fmt.Println("ChangeClientPixel message received.")
-		// 	var ccpMsg common.ChangeClientPixelMsg
-		// 	if err := json.Unmarshal(p, &ccpMsg); err == nil {
 
-		// 		fmt.Printf("%+v", ccpMsg)
-		// 		// send a message to front end to update this pixel
-		// 		if err := c.Conn.WriteMessage(gwebsocket.TextMessage,
-		// 			makeChangeClientMessage(ccpMsg.X, ccpMsg.Y, ccpMsg.R, ccpMsg.G, ccpMsg.B, ccpMsg.UserID)); err != nil {
-		// 			log.Println(err)
-		// 		}
-		// 	}
-
-		case LoginUser:
+		case common.LoginUser:
 			fmt.Println("CreateUser message received.")
 			var cu_msg LoginUserMsg
 			if err := json.Unmarshal(p, &cu_msg); err == nil {
@@ -338,16 +313,13 @@ func (c *Client) Read(api *ApiServer) {
 			fmt.Printf("Message of type: %d received.\n", dat.Type)
 		}
 		log.Println(byt)
-		// // COMMENTED OUT BC CONCURRENT WRITES write message back to the client sent to signal that you received message
-		// if err := c.Conn.WriteMessage(gwebsocket.TextMessage, byt); err != nil {
-		// 	log.Println(err)
-		// }
+
 
 	}
 }
 func makeChangeClientMessage(x int, y int, r int, g int, b int, userID string) []byte {
 	msg := common.ChangeClientPixelMsg{
-		Type:   ChangeClientPixel,
+		Type:   common.ChangeClientPixel,
 		X:      x,
 		Y:      y,
 		R:      r,
@@ -364,7 +336,7 @@ func makeChangeClientMessage(x int, y int, r int, g int, b int, userID string) [
 
 func makeTestingMessage(s string) []byte {
 	msg := TestingMsg{
-		Type: DrawResponse,
+		Type: common.DrawResponse,
 		Msg:  s,
 	}
 
@@ -377,7 +349,7 @@ func makeTestingMessage(s string) []byte {
 
 func makeStatusMessage(s int) []byte {
 	msg := DrawResponseMsg{
-		Type:   DrawResponse,
+		Type:   common.DrawResponse,
 		Status: s,
 	}
 
@@ -390,7 +362,7 @@ func makeStatusMessage(s int) []byte {
 
 func makeVerificationFailMessage(s int) []byte {
 	msg := VerificationFailMsg{
-		Type:   VerificationFail,
+		Type:   common.VerificationFail,
 		Status: s,
 	}
 
@@ -403,7 +375,7 @@ func makeVerificationFailMessage(s int) []byte {
 
 func makeCreateUserMessage(s int, c int) []byte {
 	msg := CreateUserMsg{
-		Type:     CreateUser,
+		Type:     common.CreateUser,
 		Status:   s,
 		Cooldown: c,
 	}

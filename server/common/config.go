@@ -16,6 +16,21 @@ type ServerConfig struct {
 	ConsensusPort int    `json:"consensus_port"`
 }
 
+// Well defined Message types
+const (
+	Error             MsgType = -1
+	Open              MsgType = 0
+	DrawPixel         MsgType = 1
+	LoginUser         MsgType = 2
+	ChangeClientPixel MsgType = 3
+	Image             MsgType = 4
+	Testing           MsgType = 5
+	DrawResponse      MsgType = 6
+	Close             MsgType = 9
+	VerificationFail  MsgType = 10
+	CreateUser        MsgType = 11
+)
+
 
 /*
 	This message type is intended to be sent from

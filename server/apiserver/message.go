@@ -8,21 +8,6 @@ import (
 )
 
 
-// Well defined Message types
-const (
-	Error             common.MsgType = -1
-	Open              common.MsgType = 0
-	DrawPixel         common.MsgType = 1
-	LoginUser         common.MsgType = 2
-	ChangeClientPixel common.MsgType = 3
-	Image             common.MsgType = 4
-	Testing           common.MsgType = 5
-	DrawResponse      common.MsgType = 6
-	Close             common.MsgType = 9
-	VerificationFail  common.MsgType = 10
-	CreateUser        common.MsgType = 11
-)
-
 type Msg struct {
 	Type common.MsgType `json:"type"`
 }
@@ -85,7 +70,7 @@ func NewDrawPixelMsg(req *http.Request) (*DrawPixelMsg, error) {
 
 	// TODO(backend team): add user id parsing
 	return &DrawPixelMsg{
-		Type: DrawPixel,
+		Type: common.DrawPixel,
 		X:    x,
 		Y:    y,
 		R:    r,
