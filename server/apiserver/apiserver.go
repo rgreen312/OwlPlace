@@ -359,9 +359,8 @@ func (c *Client) Read(api *ApiServer) {
 		// 	}
 
 		case LoginUser:
-			fmt.Println("CreateUser message received.")
+			fmt.Println("LoginUser message received.")
 			var cu_msg LoginUserMsg
-			fmt.Println(cu_msg)
 			if err := json.Unmarshal(p, &cu_msg); err == nil {
 				log.WithFields(log.Fields{
 					"message": cu_msg,
@@ -372,7 +371,7 @@ func (c *Client) Read(api *ApiServer) {
 				//	http.Error(w, errors.New("empty param: userID").Error(), http.StatusInternalServerError)
 				//	return
 				//}
-				byt := makeUserLoginResponseMsg(400, -1)
+				byt = makeUserLoginResponseMsg(400, -1)
 				lastMove, getErr := api.conService.SyncGetLastUserModification(userID)
 				if getErr == consensus.NoSuchUser {
 					setErr := api.conService.SyncSetLastUserModification(userID, time.Unix(0,0)) // Default Timestamp for New Users
