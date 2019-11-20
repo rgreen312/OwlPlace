@@ -78,28 +78,33 @@ export const openWebSocket = () => (dispatch, getState) => {
           let x = json.x
           let y = json.y
           // let color = { r: json.r, g: json.g, b: json.b }
-           //change pixel on front end TODO
           dispatch(setColor(x, y, json.r, json.g, json.b))
+          break;
         }
         case MsgType.DRAWRESPONSE: {
           let status = json.status
           console.log("Received a DRAWRESPONSE message from the server!");
           console.log("The status was " + status);
-          dispatch({ type: CanvasActionTypes.UpdatePixelSuccess });
+          if (status === 503) {
+            // If update fails, we reset the pixel to its previous color
+            const prevMove = getLastMove(getState());
+            if (prevMove) {
+              const { x, y } = prevMove.position;
+              const { r, g, b } = prevMove.color;
+              dispatch(setColor(x, y, r, g, b));
+              dispatch({ type: CanvasActionTypes.UpdatePixelError });
+            }
+          } else {
+            dispatch({ type: CanvasActionTypes.UpdatePixelSuccess });
+          }
           break;
         }
         case MsgType.VERIFICATIONFAIL: {
           let status = json.status
           console.log("Received a VERIFICATIONFAIL message from the server!");
           console.log("The status was " + status);
-          // Since the update failed, we need to set the color back to before the user made the move
-          const prevMove = getLastMove(getState());
-          if (prevMove) {
-            const { x, y } = prevMove.position;
-            const { r, g, b } = prevMove.color;
-            dispatch(setColor(x, y, r, g, b));
-            dispatch({ type: CanvasActionTypes.UpdatePixelError });
-          }
+          // If user verification fails, direct to error page
+          dispatch({ type: ActionTypes.ConnectError });
           break;
         }
         case MsgType.USERLOGINRESPONSE: {

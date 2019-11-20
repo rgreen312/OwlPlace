@@ -1,4 +1,4 @@
-import React, { Component, createRef, RefObject, useState } from 'react';
+import React, { Component, createRef, RefObject } from 'react';
 import ColorPicker from '../../colorPicker/components/colorPicker';
 import { Redirect } from 'react-router-dom';
 import './Canvas.scss';
@@ -62,15 +62,6 @@ class Canvas extends Component<Props, State> {
     this.canvasRef.current!.height = 1000;
 
     const context = this.canvasRef.current!.getContext('2d');
-
-    // const image = new Image();
-
-    // image.onload = function() {
-    //   if (context) {
-    //     context.drawImage(image, 0, 0);
-    //   }
-    // };
-    // image.src = this.props.initialImage;
 
     if (context) {
       this.props.registerContext(context);
@@ -275,9 +266,9 @@ class Canvas extends Component<Props, State> {
       colorPickerX,
       colorPickerY,
     } = this.state;
-    //   receivedError ? <Redirect to='/error'/> :
     return (
       <div>
+        {/*   receivedError && <Redirect to='/error'/> */}
         {isLoading && <Spin className='spinner-style' size='large' />}
         <div
           className={classNames({
