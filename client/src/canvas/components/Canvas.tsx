@@ -63,15 +63,6 @@ class Canvas extends Component<Props, State> {
 
     const context = this.canvasRef.current!.getContext('2d');
 
-    // const image = new Image();
-
-    // image.onload = function() {
-    //   if (context) {
-    //     context.drawImage(image, 0, 0);
-    //   }
-    // };
-    // image.src = this.props.initialImage;
-
     if (context) {
       this.props.registerContext(context);
     }
