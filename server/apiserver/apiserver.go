@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"time"
 	"sync"
+	"text/template"
 
 	gwebsocket "github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
@@ -23,6 +24,8 @@ import (
 
 const (
 	AlphaMask = 255
+	fiveMinutes = 5 * 60 * 1000000000
+	cooldown = time.Duration(fiveMinutes)
 )
 
 var (
@@ -49,7 +52,6 @@ type Client struct {
 	Pool *Pool
 }
 
-var cooldown, _ = time.ParseDuration("5m")
 
 func NewApiServer(servers map[int]*common.ServerConfig, nodeId int) (*ApiServer, error) {
 
@@ -82,13 +84,13 @@ func NewApiServer(servers map[int]*common.ServerConfig, nodeId int) (*ApiServer,
 func (api *ApiServer) ListenAndServe() {
 	pool := NewPool()
 	go pool.Start(api.Mux)
-	// http.HandleFunc("/get_image", api.HTTPGetImage)
-	// http.HandleFunc("/json/image", api.HTTPGetImageJson)
+	http.HandleFunc("/get_image", api.HTTPGetImage)
+	http.HandleFunc("/json/image", api.HTTPGetImageJson)
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 		api.serveWs(pool, w, r)
 	})
-	// http.HandleFunc("/update_pixel", api.HTTPUpdatePixel)
-	// http.HandleFunc("/update_user", api.HTTPUserLogin)
+	http.HandleFunc("/update_pixel", api.HTTPUpdatePixel)
+	http.HandleFunc("/update_user", api.HTTPUserLogin)
 
 	// Although there is nothing wrong with this line, it prevents us from
 	// running multiple nodes on a single machine.  Therefore, I am making
@@ -111,96 +113,83 @@ func base64Encode(img *image.RGBA) string {
 	return base64.StdEncoding.EncodeToString(buff.Bytes())
 }
 
-//func (api *ApiServer) HTTPGetImageJson(w http.ResponseWriter, req *http.Request) {
-//	log.WithFields(log.Fields{
-//		"request": req,
-//	})
-//
-//	img, err := api.conService.SyncGetImage()
-//	if err != nil {
-//		http.Error(w, err.Error(), http.StatusInternalServerError)
-//		return
-//	}
-//
-//	js, err := json.Marshal(map[string]string{
-//		"data": base64Encode(img),
-//	})
-//	if err != nil {
-//		http.Error(w, err.Error(), http.StatusInternalServerError)
-//		return
-//	}
-//
-//	w.Header().Set("Content-Type", "application/json")
-//	w.Write(js)
-//}
-//
-//func (api *ApiServer) HTTPGetImage(w http.ResponseWriter, req *http.Request) {
-//	log.WithFields(log.Fields{
-//		"request": req,
-//	})
-//
-//	img, err := api.conService.SyncGetImage()
-//	if err != nil {
-//		http.Error(w, err.Error(), http.StatusInternalServerError)
-//		return
-//	}
-//
-//	encodedString := base64Encode(img)
-//
-//	tmpl, err := template.New("image").Parse(ImageTemplate)
-//	if err != nil {
-//		http.Error(w, err.Error(), http.StatusInternalServerError)
-//		return
-//	}
-//
-//	data := map[string]interface{}{"Image": encodedString}
-//	if err = tmpl.Execute(w, data); err != nil {
-//		http.Error(w, err.Error(), http.StatusInternalServerError)
-//		return
-//	}
-//}
-//
-//func (api *ApiServer) HTTPUpdatePixel(w http.ResponseWriter, req *http.Request) {
-//	msg, err := NewDrawPixelMsg(req)
-//	if err != nil {
-//		http.Error(w, err.Error(), http.StatusInternalServerError)
-//		return
-//	}
-//
-//	err = api.conService.SyncUpdatePixel(msg.X, msg.Y, msg.R, msg.G, msg.B, msg.A)
-//	if err != nil {
-//		http.Error(w, err.Error(), http.StatusInternalServerError)
-//		return
-//	}
-//}
-//
-//func (api *ApiServer) HTTPUserLogin(w http.ResponseWriter, req *http.Request) []byte {
-//	userID := req.URL.Query().Get("id")
-//	//if userID == "" {
-//	//	http.Error(w, errors.New("empty param: userID").Error(), http.StatusInternalServerError)
-//	//	return
-//	//}
-//	byt := makeUserLoginResponseMsg(400, -1)
-//	lastMove, getErr := api.conService.SyncGetLastUserModification(userID)
-//	if getErr == consensus.NoSuchUser {
-//		setErr := api.conService.SyncSetLastUserModification(userID, time.Unix(0,0)) // Default Timestamp for New Users
-//		if setErr != nil {
-//			byt = makeUserLoginResponseMsg(200, 0)
-//		}
-//	} else if lastMove != nil {
-//		timeSinceLastMove := time.Since(*lastMove)
-//		if timeSinceLastMove.Milliseconds() >= cooldown.Milliseconds() {
-//			byt = makeUserLoginResponseMsg(200, 0)
-//		} else {
-//			byt = makeUserLoginResponseMsg(200, int(cooldown.Milliseconds() - timeSinceLastMove.Milliseconds()))
-//		}
-//	}
-//	return byt
-//	//if err != nil {
-//	//	http.Error(w, err.Error(), http.StatusInternalServerError)
-//	//	return
-//	//}
-//}
+func (api *ApiServer) HTTPGetImageJson(w http.ResponseWriter, req *http.Request) {
+	log.WithFields(log.Fields{
+		"request": req,
+	})
+
+	img, err := api.conService.SyncGetImage()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	js, err := json.Marshal(map[string]string{
+		"data": base64Encode(img),
+	})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(js)
+}
+
+func (api *ApiServer) HTTPGetImage(w http.ResponseWriter, req *http.Request) {
+	log.WithFields(log.Fields{
+		"request": req,
+	})
+
+	img, err := api.conService.SyncGetImage()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	encodedString := base64Encode(img)
+
+	tmpl, err := template.New("image").Parse(ImageTemplate)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	data := map[string]interface{}{"Image": encodedString}
+	if err = tmpl.Execute(w, data); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
+func (api *ApiServer) HTTPUpdatePixel(w http.ResponseWriter, req *http.Request) {
+	msg, err := NewDrawPixelMsg(req)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	err = api.conService.SyncUpdatePixel(msg.X, msg.Y, msg.R, msg.G, msg.B, msg.A)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
+func (api *ApiServer) HTTPUserLogin(w http.ResponseWriter, req *http.Request) {
+	user_id := req.URL.Query().Get("user_id")
+	if user_id == "" {
+			http.Error(w, errors.New("empty param: user_id").Error(), http.StatusInternalServerError)
+			return
+	}
+
+	timestamp := time.Now()
+	err := api.conService.SyncSetLastUserModification(user_id, timestamp)
+	if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+	}
+}
 
 func (api *ApiServer) serveWs(pool *Pool, w http.ResponseWriter, r *http.Request) {
 	fmt.Println("WebSocket Endpoint Hit")
@@ -289,9 +278,14 @@ func (c *Client) Read(api *ApiServer) {
 				lastMove, getErr := api.conService.SyncGetLastUserModification(dpMsg.UserID)
 
 				var userVerification int
-				if getErr != nil {
-					// Cannot get this user's last modification
-					userVerification = 401
+				if (getErr != nil) {
+					if getErr == consensus.NoSuchUser {
+						// Invalid user
+						userVerification = 401
+					} else {
+						// Dragonboat error
+						userVerification = 403
+					}
 				}
 				timeSinceLastMove := time.Since(*lastMove)
 				if timeSinceLastMove.Milliseconds() >= cooldown.Milliseconds() {
@@ -300,7 +294,7 @@ func (c *Client) Read(api *ApiServer) {
 						// Successfully updated the user's last modification
 						userVerification = 200	
 					} else {
-						// Error from SetLastUserModification call
+						// Error from SyncSetLastUserModification call
 						userVerification = 403
 					}
 				} else {
@@ -367,10 +361,7 @@ func (c *Client) Read(api *ApiServer) {
 					"message": cu_msg,
 				}).Debug("received ws message")
 				userID := cu_msg.Email
-				//if userID == "" {
-				//	http.Error(w, errors.New("empty param: userID").Error(), http.StatusInternalServerError)
-				//	return
-				//}
+
 				byt = makeUserLoginResponseMsg(400, -1)
 				lastMove, getErr := api.conService.SyncGetLastUserModification(userID)
 				if getErr == consensus.NoSuchUser {
