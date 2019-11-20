@@ -288,12 +288,6 @@ func (c *Client) Read(api *ApiServer) {
 				fmt.Println("<Start Validate User>")
 				lastMove, getErr := api.conService.SyncGetLastUserModification(dpMsg.UserID)
 
-				//fmt.Println("@@@")
-				//fmt.Println(dpMsg.UserID)
-				//fmt.Println(lastMove)
-				//fmt.Println(getErr)
-				//fmt.Println("@@@")
-
 				var userVerification int
 				if getErr != nil {
 					// Cannot get this user's last modification
@@ -372,8 +366,6 @@ func (c *Client) Read(api *ApiServer) {
 				log.WithFields(log.Fields{
 					"message": cu_msg,
 				}).Debug("received ws message")
-				fmt.Println("p =", string(p))
-				fmt.Println("cu_msg =", cu_msg, "Email", cu_msg.Email)
 				userID := cu_msg.Email
 				//if userID == "" {
 				//	http.Error(w, errors.New("empty param: userID").Error(), http.StatusInternalServerError)
@@ -381,20 +373,10 @@ func (c *Client) Read(api *ApiServer) {
 				//}
 				byt = makeUserLoginResponseMsg(400, -1)
 				lastMove, getErr := api.conService.SyncGetLastUserModification(userID)
-				//fmt.Println("!!!")
-				//fmt.Println(lastMove)
-				//fmt.Println(getErr)
-				//fmt.Println("!!!")
 				if getErr == consensus.NoSuchUser {
 					setErr := api.conService.SyncSetLastUserModification(userID, time.Unix(0,0)) // Default Timestamp for New Users
 					if setErr == nil {
 						byt = makeUserLoginResponseMsg(200, 0)
-						//lasttime, getErr1 := api.conService.SyncGetLastUserModification(userID)
-						//fmt.Println("???")
-						//fmt.Println(userID)
-						//fmt.Println(lasttime)
-						//fmt.Println(getErr1)
-						//fmt.Println("???")
 					}
 				} else if lastMove != nil {
 					timeSinceLastMove := time.Since(*lastMove)
@@ -414,7 +396,7 @@ func (c *Client) Read(api *ApiServer) {
 			// this is what the case is if the message is recieved from other servers
 			fmt.Printf("Message of type: %d received.\n", dat.Type)
 		}
-
+		// Check the response message
 		fmt.Println("byt:", string(byt))
 		api.Mux.Lock()
 		if err := c.Conn.WriteMessage(gwebsocket.TextMessage, byt); err != nil {
