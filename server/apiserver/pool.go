@@ -2,6 +2,8 @@ package apiserver
 
 import (
 	"fmt"
+	"encoding/json"
+	"github.com/rgreen312/owlplace/server/common"
 	"sync"
 )
 
@@ -9,15 +11,15 @@ type Pool struct {
 	Register   chan *Client
 	Unregister chan *Client
 	Clients    map[*Client]bool
-	Broadcast  chan ChangeClientPixelMsg
+	Broadcast  chan common.ChangeClientPixelMsg
 }
 
-func NewPool() *Pool {
+func NewPool(c chan common.ChangeClientPixelMsg) *Pool {
 	return &Pool{
 		Register:   make(chan *Client),
 		Unregister: make(chan *Client),
 		Clients:    make(map[*Client]bool),
-		Broadcast:  make(chan ChangeClientPixelMsg),
+		Broadcast:  c,
 	}
 }
 
@@ -46,6 +48,8 @@ func (pool *Pool) Start(Mux sync.Mutex) {
 		case message := <-pool.Broadcast:
 			fmt.Println("Sending message to all clients in Pool")
 			for client, _ := range pool.Clients {
+				msg, _ := json.Marshal(message)
+				fmt.Printf("new_msg: " + string(msg))
 				if err := client.Conn.WriteJSON(message); err != nil {
 					fmt.Println(err)
 					return

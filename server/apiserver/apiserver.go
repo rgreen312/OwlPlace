@@ -49,7 +49,7 @@ type Client struct {
 	Pool *Pool
 }
 
-var cooldown, _ = time.ParseDuration("5m")
+var cooldown, _ = time.ParseDuration("3s")
 
 func NewApiServer(servers map[int]*common.ServerConfig, nodeId int) (*ApiServer, error) {
 
@@ -80,10 +80,9 @@ func NewApiServer(servers map[int]*common.ServerConfig, nodeId int) (*ApiServer,
 }
 
 func (api *ApiServer) ListenAndServe() {
-	pool := NewPool()
+	pool := NewPool(api.conService.Broadcast)
 	go pool.Start(api.Mux)
-	// http.HandleFunc("/get_image", api.HTTPGetImage)
-	// http.HandleFunc("/json/image", api.HTTPGetImageJson)
+
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 		api.serveWs(pool, w, r)
 	})
@@ -229,7 +228,7 @@ func (api *ApiServer) serveWs(pool *Pool, w http.ResponseWriter, r *http.Request
 
 	encodedString := base64Encode(img)
 	msg := ImageMsg{
-		Type:         Image,
+		Type:         common.Image,
 		FormatString: encodedString,
 	}
 
@@ -277,7 +276,7 @@ func (c *Client) Read(api *ApiServer) {
 		byt := makeTestingMessage("Default Message")
 
 		switch dat.Type {
-		case DrawPixel:
+		case common.DrawPixel:
 			fmt.Println("DrawPixel message received.")
 			var dpMsg DrawPixelMsg
 			if err := json.Unmarshal(p, &dpMsg); err == nil {
@@ -287,13 +286,13 @@ func (c *Client) Read(api *ApiServer) {
 
 				fmt.Println("<Start Validate User>")
 				lastMove, getErr := api.conService.SyncGetLastUserModification(dpMsg.UserID)
-
 				var userVerification int
 				if getErr != nil {
 					// Cannot get this user's last modification
 					userVerification = 401
 				}
 				timeSinceLastMove := time.Since(*lastMove)
+
 				if timeSinceLastMove.Milliseconds() >= cooldown.Milliseconds() {
 					err := api.conService.SyncSetLastUserModification(dpMsg.UserID, time.Now())
 					if err == nil {
@@ -324,43 +323,15 @@ func (c *Client) Read(api *ApiServer) {
 					// TODO(backend team): handle error response
 				}
 
-				// tell all clients to update their board
-				ccpMsg := ChangeClientPixelMsg{
-					Type:   ChangeClientPixel,
-					X:      dpMsg.X,
-					Y:      dpMsg.Y,
-					R:      dpMsg.R,
-					G:      dpMsg.G,
-					B:      dpMsg.B,
-					UserID: dpMsg.UserID,
-				}
-
-				msg, _ := json.Marshal(ccpMsg)
-				fmt.Printf("msg: " + string(msg))
-				api.Mux.Lock()
-				c.Pool.Broadcast <- ccpMsg
-				api.Mux.Unlock()
 			} else {
 				log.WithFields(log.Fields{
 					"err": err,
 				}).Error("unmarshalling JSON")
 			}
-			// pretty sure this is not going to be received
-		// case ChangeClientPixel:
-		// 	fmt.Println("ChangeClientPixel message received.")
-		// 	var ccpMsg ChangeClientPixelMsg
-		// 	if err := json.Unmarshal(p, &ccpMsg); err == nil {
+      
+		case common.LoginUser:
+			fmt.Println("CreateUser message received.")
 
-		// 		fmt.Printf("%+v", ccpMsg)
-		// 		// send a message to front end to update this pixel
-		// 		if err := c.Conn.WriteMessage(gwebsocket.TextMessage,
-		// 			makeChangeClientMessage(ccpMsg.X, ccpMsg.Y, ccpMsg.R, ccpMsg.G, ccpMsg.B, ccpMsg.UserID)); err != nil {
-		// 			log.Println(err)
-		// 		}
-		// 	}
-
-		case LoginUser:
-			fmt.Println("LoginUser message received.")
 			var cu_msg LoginUserMsg
 			if err := json.Unmarshal(p, &cu_msg); err == nil {
 				log.WithFields(log.Fields{
@@ -406,8 +377,8 @@ func (c *Client) Read(api *ApiServer) {
 	}
 }
 func makeChangeClientMessage(x int, y int, r int, g int, b int, userID string) []byte {
-	msg := ChangeClientPixelMsg{
-		Type:   ChangeClientPixel,
+	msg := common.ChangeClientPixelMsg{
+		Type:   common.ChangeClientPixel,
 		X:      x,
 		Y:      y,
 		R:      r,
@@ -424,7 +395,7 @@ func makeChangeClientMessage(x int, y int, r int, g int, b int, userID string) [
 
 func makeTestingMessage(s string) []byte {
 	msg := TestingMsg{
-		Type: DrawResponse,
+		Type: common.DrawResponse,
 		Msg:  s,
 	}
 
@@ -437,7 +408,7 @@ func makeTestingMessage(s string) []byte {
 
 func makeStatusMessage(s int) []byte {
 	msg := DrawResponseMsg{
-		Type:   DrawResponse,
+		Type:   common.DrawResponse,
 		Status: s,
 	}
 
@@ -450,7 +421,7 @@ func makeStatusMessage(s int) []byte {
 
 func makeVerificationFailMessage(s int) []byte {
 	msg := VerificationFailMsg{
-		Type:   VerificationFail,
+		Type:   common.VerificationFail,
 		Status: s,
 	}
 
@@ -461,9 +432,10 @@ func makeVerificationFailMessage(s int) []byte {
 	return b
 }
 
+
 func makeUserLoginResponseMsg(s int, c int) []byte {
 	msg := UserLoginResponseMsg{
-		Type:     UserLoginResponse,
+		Type:     common.UserLoginResponse,
 		Status:   s,
 		Cooldown: c,
 	}

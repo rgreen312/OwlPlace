@@ -70,6 +70,7 @@ type UpdatePixelBackendMessage struct {
 	X, Y, R, G, B, A string
 }
 
+
 const (
 	SyncOpTimeout = 3 * time.Second
 )
@@ -92,6 +93,7 @@ type ConsensusService struct {
 	dkv        *DiskKV
 	nodeId     int
 	clusterId  uint64
+	Broadcast  chan common.ChangeClientPixelMsg
 	// TODO: pull this out when we start using the kubernetes discovery
 	// service.
 	peers map[uint64]string
@@ -169,14 +171,16 @@ func NewConsensusService(servers map[int]*common.ServerConfig, nodeId int) (*Con
 		return nil, errors.Wrap(err, "creating dragonboat nodehost")
 	}
 
+	c := make(chan common.ChangeClientPixelMsg)
 	return &ConsensusService{
 		nh:         nh,
-		dkv:        NewDiskKV(ClusterId, uint64(nodeId)),
+		dkv:        NewDiskKV(ClusterId, uint64(nodeId), c),
 		config:     conf,
 		nodeId:     nodeId,
 		clusterId:  ClusterId,
 		peers:      peers,
 		raftConfig: rc,
+		Broadcast:  c,
 	}, nil
 }
 

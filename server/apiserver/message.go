@@ -3,29 +3,13 @@ package apiserver
 import (
 	"net/http"
 	"strconv"
-
 	"github.com/pkg/errors"
+	"github.com/rgreen312/owlplace/server/common"
 )
 
-type MsgType int8
-
-// Well defined Message types
-const (
-	Error             MsgType = -1
-	Open              MsgType = 0
-	DrawPixel         MsgType = 1
-	LoginUser         MsgType = 2
-	ChangeClientPixel MsgType = 3
-	Image             MsgType = 4
-	Testing           MsgType = 5
-	DrawResponse      MsgType = 6
-	Close             MsgType = 9
-	VerificationFail  MsgType = 10
-	UserLoginResponse MsgType = 11
-)
 
 type Msg struct {
-	Type MsgType `json:"type"`
+	Type common.MsgType `json:"type"`
 }
 
 // Message generic message recieved through websocket
@@ -40,7 +24,7 @@ type Message struct {
 	user would like to change a pixel on the canvas.
 */
 type DrawPixelMsg struct {
-	Type   MsgType `json:"type"`
+	Type   common.MsgType `json:"type"`
 	X      int     `json:"x"`
 	Y      int     `json:"y"`
 	R      int     `json:"r"`
@@ -86,7 +70,7 @@ func NewDrawPixelMsg(req *http.Request) (*DrawPixelMsg, error) {
 
 	// TODO(backend team): add user id parsing
 	return &DrawPixelMsg{
-		Type: DrawPixel,
+		Type: common.DrawPixel,
 		X:    x,
 		Y:    y,
 		R:    r,
@@ -97,47 +81,33 @@ func NewDrawPixelMsg(req *http.Request) (*DrawPixelMsg, error) {
 }
 
 type LoginUserMsg struct {
-	Type MsgType `json:"type"`
+	Type common.MsgType `json:"type"`
 	Email   string  `json:"email"`
 }
 
-/*
-	This message type is intended to be sent from
-	the server to the client, notifying the user
-	that a pixel was drawn by another user.
-*/
-type ChangeClientPixelMsg struct {
-	Type   MsgType `json:"type"`
-	X      int     `json:"x"`
-	Y      int     `json:"y"`
-	R      int     `json:"r"`
-	G      int     `json:"g"`
-	B      int     `json:"b"`
-	UserID string  `json:"userID"`
-}
-
 type ImageMsg struct {
-	Type         MsgType `json:"type"`
+	Type         common.MsgType `json:"type"`
 	FormatString string  `json:"formatString"`
 }
 
 type TestingMsg struct {
-	Type MsgType `json:"type"`
+	Type common.MsgType `json:"type"`
 	Msg  string  `json:"msg"`
 }
 
 type DrawResponseMsg struct {
-	Type   MsgType `json:"type"`
+	Type   common.MsgType `json:"type"`
 	Status int     `json:"status"`
 }
 
 type VerificationFailMsg struct {
-	Type   MsgType `json:"type"`
+	Type   common.MsgType `json:"type"`
 	Status int     `json:"status"`
 }
 
+
 type UserLoginResponseMsg struct {
-	Type     MsgType `json:"type"`
+	Type     common.MsgType `json:"type"`
 	Status   int     `json:"status"`
 	Cooldown int     `json:"cooldown"`
 }
