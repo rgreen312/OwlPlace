@@ -82,7 +82,7 @@ func NewDrawPixelMsg(req *http.Request) (*DrawPixelMsg, error) {
 
 type LoginUserMsg struct {
 	Type common.MsgType `json:"type"`
-	Id   string  `json:"id"`
+	Email   string  `json:"email"`
 }
 
 type ImageMsg struct {
@@ -105,8 +105,9 @@ type VerificationFailMsg struct {
 	Status int     `json:"status"`
 }
 
-type CreateUserMsg struct {
+
+type UserLoginResponseMsg struct {
 	Type     common.MsgType `json:"type"`
 	Status   int     `json:"status"`
-	Cooldown int     `json:"cooldown`
+	Cooldown int     `json:"cooldown"`
 }

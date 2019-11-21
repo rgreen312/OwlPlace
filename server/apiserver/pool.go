@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"encoding/json"
 	"github.com/rgreen312/owlplace/server/common"
+	"sync"
 )
 
 type Pool struct {
@@ -22,7 +23,7 @@ func NewPool(c chan common.ChangeClientPixelMsg) *Pool {
 	}
 }
 
-func (pool *Pool) Start() {
+func (pool *Pool) Start(Mux sync.Mutex) {
 	for {
 		select {
 		case client := <-pool.Register:
@@ -30,14 +31,18 @@ func (pool *Pool) Start() {
 			fmt.Println("Size of Connection Pool: ", len(pool.Clients))
 			for client, _ := range pool.Clients {
 				fmt.Println(client)
+				Mux.Lock()
 				client.Conn.WriteJSON(Message{Type: 1, Body: "New User Joined..."})
+				Mux.Unlock()
 			}
 			break
 		case client := <-pool.Unregister:
 			delete(pool.Clients, client)
 			fmt.Println("Size of Connection Pool: ", len(pool.Clients))
 			for client, _ := range pool.Clients {
+				Mux.Lock()
 				client.Conn.WriteJSON(Message{Type: 1, Body: "User Disconnected..."})
+				Mux.Unlock()
 			}
 			break
 		case message := <-pool.Broadcast:
@@ -49,6 +54,7 @@ func (pool *Pool) Start() {
 					fmt.Println(err)
 					return
 				}
+
 			}
 		}
 	}
