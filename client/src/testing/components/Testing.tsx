@@ -1,5 +1,4 @@
 import React, { FC } from 'react';
-import { sendUpdateMessage, sendLoginMessage } from '../../websocket/actions';
 
 interface Props {
   sendUpdateMessage: (id, x, y, r, g, b) => void;

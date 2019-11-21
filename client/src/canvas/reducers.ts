@@ -1,8 +1,8 @@
-import { Color } from './types';
+import { Move } from './types';
 import * as ActionTypes from './actionTypes';
 import { combineReducers } from 'redux';
 import { createReducer } from '../createReducer';
-import { RegisterContext, UpdatePosition, SetZoom, SetInitialImage, SetTimeRemaining} from './actions';
+import { RegisterContext, UpdatePosition, SetZoom, SetInitialImage, SetTimeRemaining, UpdatePixelStart} from './actions';
 import * as WebSocketActionTypes from '../websocket/actionTypes';
 import { DEFAULT_ZOOM, TIME_BETWEEN_UPDATES_MS } from './constants';
 
@@ -12,6 +12,7 @@ export interface State {
   curPosition: { x: number; y: number } | null;
   zoomFactor: number;
   timeToNextChange: number;
+  lastMove: Move | null;
 }
 
 const canvasContext = createReducer<State['canvasContext']>(null, {
@@ -37,7 +38,12 @@ const initialImage = createReducer<State['initialImage']>(null, {
 })
 const timeToNextChange = createReducer<State['timeToNextChange']>(0, {
   [ActionTypes.SetTimeRemaining]: (state, action: SetTimeRemaining) => action.payload.time,
-  [ActionTypes.UpdatePixelSuccess]: () => TIME_BETWEEN_UPDATES_MS,
+  [ActionTypes.UpdatePixelStart]: () => TIME_BETWEEN_UPDATES_MS,
+  [ActionTypes.UpdatePixelError]: () => 0,
+});
+
+const lastMove = createReducer<State['lastMove']>(null, {
+  [ActionTypes.UpdatePixelStart]: (state, action: UpdatePixelStart) => ({ color: action.payload.color, position: action.payload.position }),
 });
 
 export default combineReducers({
@@ -46,4 +52,5 @@ export default combineReducers({
   zoomFactor,
   initialImage,
   timeToNextChange,
+  lastMove
 });

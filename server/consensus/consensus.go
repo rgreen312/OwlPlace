@@ -75,13 +75,14 @@ type UpdatePixelBackendMessage struct {
 	X, Y, R, G, B, A string
 }
 
+
 const (
 	SyncOpTimeout = 3 * time.Second
 )
 
 var (
-	dragonboatConfigurationError = errors.New("dragonboat configuration")
-	noSuchUser                   = errors.New("no such user")
+	DragonboatConfigurationError = errors.New("dragonboat configuration")
+	NoSuchUser                   = errors.New("no such user")
 )
 
 type IConsensus interface {
@@ -97,6 +98,7 @@ type ConsensusService struct {
 	dkv        *DiskKV
 	nodeId     int
 	clusterId  uint64
+	Broadcast  chan common.ChangeClientPixelMsg
 	// TODO: pull this out when we start using the kubernetes discovery
 	// service.
 	peers map[uint64]string
@@ -106,7 +108,7 @@ func NewConsensusService(servers map[int]*common.ServerConfig, nodeId int) (*Con
 
 	conf, ok := servers[nodeId]
 	if !ok {
-		return nil, errors.Wrapf(dragonboatConfigurationError, "NodeID provided (%d) not present in server map.", nodeId)
+		return nil, errors.Wrapf(DragonboatConfigurationError, "NodeID provided (%d) not present in server map.", nodeId)
 	}
 
 	nodeAddr := fmt.Sprintf("%s:%d", conf.Hostname, conf.ConsensusPort)
@@ -174,14 +176,16 @@ func NewConsensusService(servers map[int]*common.ServerConfig, nodeId int) (*Con
 		return nil, errors.Wrap(err, "creating dragonboat nodehost")
 	}
 
+	c := make(chan common.ChangeClientPixelMsg)
 	return &ConsensusService{
 		nh:         nh,
-		dkv:        NewDiskKV(ClusterId, uint64(nodeId)),
+		dkv:        NewDiskKV(ClusterId, uint64(nodeId), c),
 		config:     conf,
 		nodeId:     nodeId,
 		clusterId:  ClusterId,
 		peers:      peers,
 		raftConfig: rc,
+		Broadcast:  c,
 	}, nil
 }
 
@@ -289,7 +293,7 @@ func (cs *ConsensusService) SyncGetLastUserModification(userId string) (*time.Ti
 	}
 	resultString := string(result.([]byte))
 	if resultString == "" {
-		return nil, noSuchUser
+		return nil, NoSuchUser
 	}
 
 	t, err := time.Parse(common.TimeFormat, resultString)

@@ -26,9 +26,9 @@ const Header: FC<Props> = ({
   };
 
   const loginButton = isLoggedIn ? (
-    <div className='name-label'>Hi, {name}</div>
+    <div className='name-label' key='name'>Hi, {name}</div>
   ) : (
-    <Button className='login-button' onClick={onLogin}>
+    <Button className='login-button' onClick={onLogin} key='login'>
       Login
     </Button>
   );
@@ -39,7 +39,7 @@ const Header: FC<Props> = ({
     <Menu>
       <Menu.Item>
         {/*Check the last 5 characters in a string.*/}
-        {location.substring(location.length - 5, location.length) != 'about' ? (
+        {location.substring(location.length - 5, location.length) !== 'about' ? (
           <Link to='/about'>About</Link>
         ) : (
           <Link to='/'>Home</Link>
@@ -48,7 +48,7 @@ const Header: FC<Props> = ({
 
       {isLoggedIn && <Menu.Item onClick={onLogout}>Sign Out</Menu.Item>}
 
-      {window.location.hostname == 'localhost' && <Menu.Item><Link to='/testing'>Testing</Link></Menu.Item>}
+      {window.location.hostname === 'localhost' && <Menu.Item><Link to='/testing'>Testing</Link></Menu.Item>}
     </Menu>
   );
 
@@ -95,7 +95,7 @@ const Header: FC<Props> = ({
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [time]);
+  }, [time, setTimeRemaining]);
 
   const timerComponent = (
     <div className='timer'>

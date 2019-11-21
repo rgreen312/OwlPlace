@@ -1,4 +1,5 @@
 import { State } from '../types';
+import { Move } from './types';
 
 export const getCanvasContext = (
   state: State
@@ -20,3 +21,5 @@ export const getTimeToChange = (state: State): number =>
 
 export const canUpdatePixel = (state: State): boolean => 
   state.canvas.timeToNextChange === 0;
+
+export const getLastMove = (state: State): Move | undefined => state.canvas.lastMove || undefined;

@@ -28,7 +28,8 @@ export const login = () => async (dispatch, getState) => {
   /**
    * The Sign-In client object.
    */
-  let auth2: any;
+   // eslint-disable-next-line
+   let auth2: any;
 
   const googleAPILoaded: Promise<void> = new Promise(resolve => {
     gapi.load('auth2', () => {

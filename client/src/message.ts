@@ -9,7 +9,7 @@ export enum MsgType {
     DRAWRESPONSE = 6,
     CLOSE = 9,
     VERIFICATIONFAIL = 10,
-    CREATEUSER = 11
+    USERLOGINRESPONSE = 11
 }
 
 export interface Msg {
@@ -56,30 +56,13 @@ export class VerificationFailMsg implements Msg {
     }
 }
 
-export class CreateUserMsg implements Msg {
-    type: number = MsgType.CREATEUSER;
+export class UserLoginResponseMsg implements Msg {
+    type: number = MsgType.USERLOGINRESPONSE;
     status: number;
     cooldown: number;
     
     constructor(status: number, cooldown: number) {
         this.status = status;
         this.cooldown = cooldown;
-    }
-}
-
-function parseMsg(json : string) : Msg {
-    let data = JSON.parse(json);
-    switch (data.type) {
-        case MsgType.IMAGE: {
-            return new ImageMsg(data.formatString);
-            break;
-        }
-        case MsgType.CHANGECLIENTPIXEL: {
-            return new ChangeClientPixelMsg(data.r, data.g, data.b, data.x, data.y);
-            break;
-        }
-        default: {
-            return new ErrorMsg();
-        }
     }
 }
