@@ -47,6 +47,7 @@ type ApiServer struct {
 	pod_ip     string
 	node_id     int
 	conService *consensus.ConsensusService
+	pool       *Pool
 	Mux        sync.Mutex
 }
 
@@ -118,6 +119,14 @@ func (api *ApiServer) StartConsensus(join bool){
 	// Start the consensus service in the background
 	conService, err := consensus.NewConsensusService(servers, api.node_id)
 	api.conService = conService
+
+
+	// Now that consensus is active, we can start listening for websocket connections
+	pool := NewPool(api.conService.Broadcast)
+	api.pool = pool
+	go pool.Start(api.Mux)
+
+
 	// if err != nil {
 	// 	return nil, errors.Wrap(err, "creating ConsensusService")
 	// }
@@ -142,14 +151,10 @@ func (api *ApiServer) ConsensusJoinMessage(w http.ResponseWriter, req *http.Requ
 
 func (api *ApiServer) ListenAndServe() {
 
-	pool := NewPool(api.conService.Broadcast)
-	go pool.Start(api.Mux)
-  http.HandleFunc("/consensus_trigger", api.ConsensusTrigger)
+  	http.HandleFunc("/consensus_trigger", api.ConsensusTrigger)
 	http.HandleFunc("/consensus_join_message", api.ConsensusJoinMessage)
 
-	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-		api.serveWs(pool, w, r)
-	})
+	http.HandleFunc("/ws", api.serveWs)
 	// http.HandleFunc("/update_pixel", api.HTTPUpdatePixel)
 	// http.HandleFunc("/update_user", api.HTTPUserLogin)
 
@@ -265,7 +270,7 @@ func base64Encode(img *image.RGBA) string {
 //	//}
 //}
 
-func (api *ApiServer) serveWs(pool *Pool, w http.ResponseWriter, r *http.Request) {
+func (api *ApiServer) serveWs(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("WebSocket Endpoint Hit")
 	conn, err := websocket.Upgrade(w, r)
 	if err != nil {
@@ -274,7 +279,7 @@ func (api *ApiServer) serveWs(pool *Pool, w http.ResponseWriter, r *http.Request
 
 	client := &Client{
 		Conn: conn, // this is the same as websocket instance
-		Pool: pool,
+		Pool: api.pool,
 	}
 
 	// helpful log statement to show connections
@@ -309,7 +314,7 @@ func (api *ApiServer) serveWs(pool *Pool, w http.ResponseWriter, r *http.Request
 		log.Println(err)
 	}
 
-	pool.Register <- client
+	api.pool.Register <- client
 	client.Read(api)
 }
 
