@@ -49,7 +49,7 @@ type Client struct {
 	Pool *Pool
 }
 
-var cooldown, _ = time.ParseDuration("5m")
+var cooldown, _ = time.ParseDuration("3s")
 
 func NewApiServer(servers map[int]*common.ServerConfig, nodeId int) (*ApiServer, error) {
 
@@ -286,13 +286,13 @@ func (c *Client) Read(api *ApiServer) {
 
 				fmt.Println("<Start Validate User>")
 				lastMove, getErr := api.conService.SyncGetLastUserModification(dpMsg.UserID)
-
 				var userVerification int
 				if getErr != nil {
 					// Cannot get this user's last modification
 					userVerification = 401
 				}
 				timeSinceLastMove := time.Since(*lastMove)
+
 				if timeSinceLastMove.Milliseconds() >= cooldown.Milliseconds() {
 					err := api.conService.SyncSetLastUserModification(dpMsg.UserID, time.Now())
 					if err == nil {
