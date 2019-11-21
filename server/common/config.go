@@ -28,7 +28,7 @@ const (
 	DrawResponse      MsgType = 6
 	Close             MsgType = 9
 	VerificationFail  MsgType = 10
-	CreateUser        MsgType = 11
+	UserLoginResponse MsgType = 11
 )
 
 

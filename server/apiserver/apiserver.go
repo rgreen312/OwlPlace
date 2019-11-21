@@ -367,6 +367,13 @@ func (c *Client) Read(api *ApiServer) {
 			// this is what the case is if the message is recieved from other servers
 			fmt.Printf("Message of type: %d received.\n", dat.Type)
 		}
+		// Check the response message
+		fmt.Println("byt:", string(byt))
+		api.Mux.Lock()
+		if err := c.Conn.WriteMessage(gwebsocket.TextMessage, byt); err != nil {
+			log.Println(err)
+		}
+		api.Mux.Unlock()
 	}
 }
 func makeChangeClientMessage(x int, y int, r int, g int, b int, userID string) []byte {
