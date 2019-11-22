@@ -1,13 +1,8 @@
 package wsutil
 
 import (
-	log "github.com/sirupsen/logrus"
-
 	"github.com/rgreen312/owlplace/server/common"
-)
-
-const (
-	defaultPoolSize = 100
+	log "github.com/sirupsen/logrus"
 )
 
 type Pool struct {
@@ -18,64 +13,46 @@ type Pool struct {
 }
 
 func NewPool() *Pool {
-	// We use buffered channels for performance reasons.  An unbuffered
-	// channel is effectively coordinated function invocations, while a
-	// buffered channel allows us to queue several without blocking the calling
-	// thread.
 	return &Pool{
-		Register:   make(chan *Client, defaultPoolSize),
-		Unregister: make(chan *Client, defaultPoolSize),
+		Register:   make(chan *Client),
+		Unregister: make(chan *Client),
 		Clients:    make(map[*Client]bool),
-		Broadcast:  make(chan common.ChangeClientPixelMsg, defaultPoolSize),
+		Broadcast:  make(chan common.ChangeClientPixelMsg),
 	}
 }
 
-func (p *Pool) forEach(consumer func(*Client) error) error {
+func (p *Pool) forEach(consumer func(*Client)) {
 	for client, _ := range p.Clients {
-		if err := consumer(client); err != nil {
-			return err
-		}
+		consumer(client)
 	}
-	return nil
 }
 
-// WriteJson writes a JSON message to all connected websockets.
-func (p *Pool) WriteJSON(v interface{}) error {
-	return nil
-}
-
-// WriteMessage writes a byte array to all connected websockets.
-func (p *Pool) WriteMessage(messageType int, data []byte) error {
-	return nil
-}
-
-func (p *Pool) Start() {
+func (p *Pool) Run() {
 	for {
 		select {
 		case client := <-p.Register:
 			// Add the client to our map of clients
 			p.Clients[client] = true
-			break
 		case client := <-p.Unregister:
 			// Remove the client who requested to leave
 			delete(p.Clients, client)
-			break
 		case message := <-p.Broadcast:
-
 			log.WithFields(log.Fields{
 				"message":    message,
 				"numClients": len(p.Clients),
-			}).Debug("broadcasting message from websocket pool")
+			}).Debug("broadcasting message from ws pool")
 
-			p.forEach(func(c *Client) error {
-				// TODO: responsibly handle errors here.  realistically we need
-				// to determine what the issue is, and if the issue is a stale
-				// connection we should remove this client from our pool.
-				if err := c.WriteJSON(message); err != nil {
-					return err
+			p.forEach(func(c *Client) {
+				select {
+				case c.Send <- message:
+				default:
+					log.WithFields(log.Fields{
+						"message": message,
+						"client":  c,
+					}).Debug("failed to send message to client's channel")
+					close(c.send)
+					delete(h.clients, c)
 				}
-
-				return nil
 			})
 		}
 	}

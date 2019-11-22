@@ -25,15 +25,7 @@ const (
 )
 
 var (
-	configError   = errors.New("invalid configuration error")
-	ImageTemplate = `
-    <!DOCTYPE html> 
-    <html lang="en">
-    <head></head>
-    <body>
-        <img src="data:image/jpg;base64,{{.Image}}">
-    </body>
-    `
+	ConfigurationError = errors.New("invalid apiserver configuration")
 )
 
 type ApiServer struct {
@@ -81,7 +73,9 @@ func (api *ApiServer) ListenAndServe() {
 	go api.pool.Start()
 
 	http.HandleFunc("/json/image", api.HTTPGetImageJson)
-	http.HandleFunc("/ws", api.Upgrade)
+	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
+		wsutil.ServeWs(api.pool, w, r)
+	})
 	http.HandleFunc("/update_pixel", api.HTTPUpdatePixel)
 
 	// Although there is nothing wrong with this line, it prevents us from
@@ -90,23 +84,6 @@ func (api *ApiServer) ListenAndServe() {
 	// same port (i.e. docker)
 	// log.Fatal(http.ListenAndServe(":3010", nil))
 	http.ListenAndServe(fmt.Sprintf(":%d", api.config.ApiPort), nil)
-}
-
-func (api *ApiServer) Upgrade(w http.ResponseWriter, r *http.Request) {
-	conn, err := api.upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
-
-	client := wsutil.NewClient(conn, api.pool)
-
-	// Register the upgraded connection with our pool.
-	api.pool.Register <- client
-
-	// Start communicating with the frontend on the current goroutine.  Note
-	// that these HTTP handlers are in fact spawned on their own routines,
-	// rather than the main goroutine handling new requests.
-	client.Start()
 }
 
 // HTTPGetImageJson provides a synchronous method with which to request the
