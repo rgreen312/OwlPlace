@@ -6,6 +6,8 @@ import (
 
 const (
 	TimeFormat = time.RFC3339
+	Cooldown   = time.Duration(5 * time.Minute)
+	AlphaMask  = 255
 )
 
 type ServerConfig struct {

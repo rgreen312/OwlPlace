@@ -4,11 +4,21 @@ import requests
 import json
 import io
 import base64
+from tqdm import tqdm
 from PIL import Image
+
+def get_image():
+    get_image_url = "http://localhost:3001/json/image"
+    image_response = requests.get(get_image_url)
+    b64_image = json.loads(image_response.content)["data"]
+    image = Image.open(io.BytesIO(base64.b64decode(b64_image)))
+
+    return np.array(image)
+
 
 if __name__ == "__main__":
 
-    size = 1000
+    size = 100
     seed = 1000
 
     # for determinism
@@ -16,11 +26,11 @@ if __name__ == "__main__":
 
     servers = ["localhost:3001", "localhost:3002", "localhost:3003"]
 
-    template = "http://{server}/update_pixel?X={x}&Y={y}&R={r}&G={g}&B={b}"
-    img_truth = np.zeros((size, size, 3))
+    template = "http://{server}/update_pixel?X={x}&Y={y}&R={r}&G={g}&B={b}&A={a}"
+    img_truth = get_image()
 
-    for row in range(size):
-        pixel = [100, 100, 100]
+    for row in tqdm(range(size)):
+        pixel = [100, 100, 100, 255]
         img_truth[row, row] = pixel
         url = template.format(
             server=np.random.choice(servers),
@@ -29,16 +39,8 @@ if __name__ == "__main__":
             r=pixel[0],
             g=pixel[1],
             b=pixel[2],
+            a=pixel[3],
         )
         requests.get(url)
 
-    get_image_url = "http://localhost:3001/json/image"
-    image_response = requests.get(get_image_url)
-    b64_image = json.loads(image_response.content)["data"]
-    image = Image.open(io.BytesIO(base64.b64decode(b64_image)))
-    img_recovered = np.array(image)[:, :, :3]
-
-    print(img_truth.shape)
-    print(img_recovered.shape)
-
-    assert np.allclose(img_truth, img_recovered)
+    assert np.allclose(img_truth, get_image())

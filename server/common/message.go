@@ -1,10 +1,12 @@
-package apiserver
+package common
 
 import (
+	"encoding/json"
 	"net/http"
 	"strconv"
 
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 )
 
 type MsgType int8
@@ -77,14 +79,14 @@ func NewDrawPixelMsg(req *http.Request) (*DrawPixelMsg, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "extracting b")
 	}
-	// TODO(backend team): determine if you'd like to have the alpha mask required
-	//a, err := intExtractor("A")
-	//if err != nil {
-	//return nil, errors.Wrap(err, "extracting a")
-	//}
-	a := 255
 
-	// TODO(backend team): add user id parsing
+	// TODO(backend team): determine if you'd like to have the alpha mask
+	// required
+	a, err := intExtractor("A")
+	if err != nil {
+		a = 255
+	}
+
 	return &DrawPixelMsg{
 		Type: DrawPixel,
 		X:    x,
@@ -97,8 +99,8 @@ func NewDrawPixelMsg(req *http.Request) (*DrawPixelMsg, error) {
 }
 
 type LoginUserMsg struct {
-	Type MsgType `json:"type"`
-	Email   string  `json:"email"`
+	Type  MsgType `json:"type"`
+	Email string  `json:"email"`
 }
 
 /*
@@ -140,4 +142,74 @@ type UserLoginResponseMsg struct {
 	Type     MsgType `json:"type"`
 	Status   int     `json:"status"`
 	Cooldown int     `json:"cooldown"`
+}
+
+func MakeTestingMessage(s string) []byte {
+	msg := TestingMsg{
+		Type: DrawResponse,
+		Msg:  s,
+	}
+
+	b, err := json.Marshal(msg)
+	if err != nil {
+		log.Println(err)
+	}
+	return b
+}
+
+func MakeStatusMessage(s int) []byte {
+	msg := DrawResponseMsg{
+		Type:   DrawResponse,
+		Status: s,
+	}
+
+	b, err := json.Marshal(msg)
+	if err != nil {
+		log.Println(err)
+	}
+	return b
+}
+
+func MakeVerificationFailMessage(s int) []byte {
+	msg := VerificationFailMsg{
+		Type:   VerificationFail,
+		Status: s,
+	}
+
+	b, err := json.Marshal(msg)
+	if err != nil {
+		log.Println(err)
+	}
+	return b
+}
+
+func MakeUserLoginResponseMsg(s int, c int) []byte {
+	msg := UserLoginResponseMsg{
+		Type:     UserLoginResponse,
+		Status:   s,
+		Cooldown: c,
+	}
+
+	b, err := json.Marshal(msg)
+	if err != nil {
+		log.Println(err)
+	}
+	return b
+}
+
+func MakeChangeClientMessage(x int, y int, r int, g int, b int, userID string) []byte {
+	msg := ChangeClientPixelMsg{
+		Type:   ChangeClientPixel,
+		X:      x,
+		Y:      y,
+		R:      r,
+		G:      g,
+		B:      b,
+		UserID: userID,
+	}
+	bt, err := json.Marshal(msg)
+	if err != nil {
+		log.Println(err)
+	}
+	return bt
 }

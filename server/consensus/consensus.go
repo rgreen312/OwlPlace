@@ -81,7 +81,8 @@ var (
 
 type IConsensus interface {
 	SyncGetImage() (*image.RGBA, error)
-	SyncGetLastUserModification(userId string) (time.Time, error)
+	SyncUpdatePixel(x, y, r, g, b, a int) error
+	SyncGetLastUserModification(userId string) (*time.Time, error)
 	SyncSetLastUserModification(userId string, timestamp time.Time) error
 }
 
@@ -218,6 +219,7 @@ func (cs *ConsensusService) SyncGetLastUserModification(userId string) (*time.Ti
 	if err != nil {
 		return nil, errors.Wrap(err, "reading from dragonboat")
 	}
+
 	resultString := string(result.([]byte))
 	if resultString == "" {
 		return nil, NoSuchUser

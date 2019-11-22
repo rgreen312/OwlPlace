@@ -1,0 +1,18 @@
+name: build & test backend
+
+on: [push, pull_request]
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-18.04
+    steps:
+    - uses: actions/checkout@master
+    - name: lint code
+      uses: # something that provides docker or some go lint tools
+      run: make lint
+    - name: build backend image
+      uses: # something that provides docker
+      run: make image
+    - name: run unit tests
+      uses: # something that provides docker
+      run: make test
