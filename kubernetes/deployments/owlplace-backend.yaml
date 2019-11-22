@@ -16,7 +16,7 @@ spec:
         - name: owlplace-backend
           image: "southpawac/owlplace"
           ports:
-            - name: http
+            - name: https
               containerPort: 3001
             - name: tcp
               containerPort: 3010
