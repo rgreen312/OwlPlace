@@ -17,7 +17,40 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-var addr = flag.String("addr", "localhost:8080", "http service address")
+const (
+    msgType = 1
+    r = 100
+    g = 100
+    b = 100
+    a = 255
+    userid = "user@example.com"
+)
+
+var addr = flag.String("addr", "localhost:3001", "service address")
+
+type DrawPixelMsg struct {
+	Type   MsgType `json:"type"`
+	X      int     `json:"x"`
+	Y      int     `json:"y"`
+	R      int     `json:"r"`
+	G      int     `json:"g"`
+	B      int     `json:"b"`
+	A      int     `json:"a"`
+	UserID string  `json:"userID"`
+}
+
+func newMessage(x, y int) *DrawPixelMsg {
+    return &DrawPixelMsg{
+        Type: msgType,
+        X: x,
+        Y: y,
+        R: r,
+        G: g,
+        B: b,
+        A: a,
+        UserID: userid,
+    }
+}
 
 func main() {
 	flag.Parse()
@@ -26,7 +59,7 @@ func main() {
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
 
-	u := url.URL{Scheme: "ws", Host: *addr, Path: "/echo"}
+	u := url.URL{Scheme: "ws", Host: *addr, Path: "/ws"}
 	log.Printf("connecting to %s", u.String())
 
 	c, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
@@ -52,12 +85,24 @@ func main() {
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
 
+    i := 0
+
 	for {
 		select {
 		case <-done:
 			return
 		case t := <-ticker.C:
-			err := c.WriteMessage(websocket.TextMessage, []byte(t.String()))
+            if i > 10 {
+                interrupt <- os.Interrupt
+            }
+            msg := newMessage(i, i)
+            b, err := json.Marshal(msg)
+            if err != nil {
+                log.Println("marshal:", err)
+                continue
+            }
+            log.Println("sent:", b)
+			err := c.WriteMessage(websocket.TextMessage, b)
 			if err != nil {
 				log.Println("write:", err)
 				return

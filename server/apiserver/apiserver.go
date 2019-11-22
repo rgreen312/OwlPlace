@@ -19,11 +19,6 @@ import (
 	"github.com/rgreen312/owlplace/server/wsutil"
 )
 
-const (
-	wsUpgraderReadBufferSize  = 1024
-	wsUpgraderWriteBufferSize = 1024
-)
-
 var (
 	ConfigurationError = errors.New("invalid apiserver configuration")
 )
@@ -39,7 +34,7 @@ func NewApiServer(servers map[int]*common.ServerConfig, nodeId int) (*ApiServer,
 
 	conf, ok := servers[nodeId]
 	if !ok {
-		return nil, errors.Wrapf(configError, "missing entry for node: %d", nodeId)
+		return nil, errors.Wrapf(ConfigurationError, "missing entry for node: %d", nodeId)
 	}
 
 	conService, err := consensus.NewConsensusService(servers, nodeId)
@@ -58,19 +53,14 @@ func NewApiServer(servers map[int]*common.ServerConfig, nodeId int) (*ApiServer,
 	}).Debug()
 
 	return &ApiServer{
-		config: conf,
-		upgrader: &websocket.Upgrader{
-			ReadBufferSize:  wsUpgraderReadBufferSize,
-			WriteBufferSize: wsUpgraderWriteBufferSize,
-			CheckOrigin:     func(r *http.Request) bool { return true },
-		},
+		config:     conf,
 		pool:       wsutil.NewPool(),
 		conService: conService,
 	}, nil
 }
 
 func (api *ApiServer) ListenAndServe() {
-	go api.pool.Start()
+	go api.pool.Run()
 
 	http.HandleFunc("/json/image", api.HTTPGetImageJson)
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {

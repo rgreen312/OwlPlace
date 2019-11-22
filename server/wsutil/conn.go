@@ -2,8 +2,8 @@ package wsutil
 
 import (
 	"encoding/json"
+	"math"
 	"net/http"
-	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -24,19 +24,22 @@ const (
 
 	// Maximum message size allowed from peer.
 	maxMessageSize = 512
+
+	// Read / Write Buffer
+	wsUpgraderReadBufferSize  = 1024
+	wsUpgraderWriteBufferSize = 1024
 )
+const ()
 
 var (
-	newline = []byte{'\n'}
-	space   = []byte{' '}
+	newline  = []byte{'\n'}
+	space    = []byte{' '}
+	upgrader = websocket.Upgrader{
+		ReadBufferSize:  wsUpgraderReadBufferSize,
+		WriteBufferSize: wsUpgraderWriteBufferSize,
+		CheckOrigin:     func(r *http.Request) bool { return true },
+	}
 )
-
-type Client struct {
-	conn *websocket.Conn
-	pool *Pool
-	cons consensus.IConsensus
-	mux  sync.Mutex
-}
 
 // Client is a middleman between the websocket connection and the pool.
 type Client struct {
@@ -84,15 +87,15 @@ func (c *Client) handleDrawPixel(p []byte) {
 		return
 	}
 
-	err := c.cons.SyncUpdatePixel(dpMsg.X, dpMsg.Y, dpMsg.R, dpMsg.G, dpMsg.B, common.AlphaMask)
+	err = c.cons.SyncUpdatePixel(dpMsg.X, dpMsg.Y, dpMsg.R, dpMsg.G, dpMsg.B, common.AlphaMask)
 	if err != nil {
-		// TODO(backend team): handle error response
+		// TODO: handle error response
 		return
 	}
 
 	// This should not be done until after the user is able to successfully
 	// update the canvas.
-	err := c.cons.SyncSetLastUserModification(dpMsg.UserID, time.Now())
+	err = c.cons.SyncSetLastUserModification(dpMsg.UserID, time.Now())
 	if err != nil {
 		// TODO: handle error response, potentially shut down the websocket
 		// connection? the issue here is that we realistically need to get this
@@ -112,7 +115,7 @@ func (c *Client) handleDrawPixel(p []byte) {
 		UserID: dpMsg.UserID,
 	}
 	msg, _ := json.Marshal(ccpMsg)
-	c.pool.Broadcast <- ccpMsg
+	c.pool.Broadcast <- msg
 }
 
 func (c *Client) handleLoginUser(p []byte) {
@@ -133,7 +136,7 @@ func (c *Client) handleLoginUser(p []byte) {
 	lastMove, err := c.cons.SyncGetLastUserModification(userID)
 	if err != nil && err != consensus.NoSuchUser {
 		// TODO: determine how we want to handle this error
-		byt = common.MakeUserLoginResponseMsg(501, 0)
+		byt := common.MakeUserLoginResponseMsg(501, 0)
 		c.Send <- byt
 		return
 	}
@@ -141,10 +144,10 @@ func (c *Client) handleLoginUser(p []byte) {
 	if err == consensus.NoSuchUser {
 		// Set the default timestamp for a new user to the current time less
 		// the cooldown period.  This allows immediate editing.
-		stamp = time.Now().Sub(common.Cooldown)
+		stamp := time.Now().Add(-common.Cooldown)
 		err := c.cons.SyncSetLastUserModification(userID, stamp) // Default Timestamp for New Users
 		if err != nil {
-			byt = common.MakeUserLoginResponseMsg(501, 0)
+			byt := common.MakeUserLoginResponseMsg(501, 0)
 			c.Send <- byt
 			return
 		}
@@ -152,7 +155,9 @@ func (c *Client) handleLoginUser(p []byte) {
 	}
 
 	timeSinceLastMove := time.Since(*lastMove)
-	byt = common.MakeUserLoginResponseMsg(200, Math.Max(0, int(common.Cooldown.Milliseconds()-timeSinceLastMove.Milliseconds())))
+	userCooldown := int(common.Cooldown.Milliseconds() - timeSinceLastMove.Milliseconds())
+	userCooldown = int(math.Max(0, float64(userCooldown)))
+	byt := common.MakeUserLoginResponseMsg(200, userCooldown)
 	c.Send <- byt
 }
 
@@ -272,7 +277,7 @@ func ServeWs(pool *Pool, w http.ResponseWriter, r *http.Request) {
 	client := &Client{
 		pool: pool,
 		conn: conn,
-		send: make(chan []byte, 256),
+		Send: make(chan []byte, 256),
 	}
 	pool.Register <- client
 

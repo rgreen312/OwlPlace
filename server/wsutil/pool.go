@@ -1,7 +1,6 @@
 package wsutil
 
 import (
-	"github.com/rgreen312/owlplace/server/common"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -9,7 +8,7 @@ type Pool struct {
 	Register   chan *Client
 	Unregister chan *Client
 	Clients    map[*Client]bool
-	Broadcast  chan common.ChangeClientPixelMsg
+	Broadcast  chan []byte
 }
 
 func NewPool() *Pool {
@@ -17,7 +16,9 @@ func NewPool() *Pool {
 		Register:   make(chan *Client),
 		Unregister: make(chan *Client),
 		Clients:    make(map[*Client]bool),
-		Broadcast:  make(chan common.ChangeClientPixelMsg),
+		// TODO: determine if it would be better to have a buffered channel
+		// here.
+		Broadcast: make(chan []byte),
 	}
 }
 
@@ -50,8 +51,8 @@ func (p *Pool) Run() {
 						"message": message,
 						"client":  c,
 					}).Debug("failed to send message to client's channel")
-					close(c.send)
-					delete(h.clients, c)
+					close(c.Send)
+					delete(p.Clients, c)
 				}
 			})
 		}
