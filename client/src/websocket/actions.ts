@@ -3,8 +3,9 @@ import * as ActionTypes from './actionTypes';
 import * as CanvasActionTypes from '../canvas/actionTypes';
 import { getWebSocket } from './selectors';
 import { MsgType } from '../message';
-import { setImage } from '../canvas/actions';
+import { setImage, setTimeToNextMove } from '../canvas/actions';
 import { getCanvasContext, getLastMove } from '../../src/canvas/selectors';
+import { getUserEmail } from '../login/selectors';
 const startConnect = () => ({
   type: ActionTypes.StartConnect
 });
@@ -43,6 +44,10 @@ export const openWebSocket = () => (dispatch, getState) => {
           message: "Hi From the Client! The websocket just opened"
         })
       );
+
+      if (getUserEmail(getState()) !== undefined) {
+        socket.send(makeLoginMessage(getUserEmail(getState())!)); 
+      }
       
     dispatch(connectSuccess(socket));
   };
@@ -113,6 +118,7 @@ export const openWebSocket = () => (dispatch, getState) => {
           console.log("Received a USERLOGIN message from the server!");
           console.log("The status was " + status);
           console.log("The remaining cooldown time for current user is: " + cooldown);
+          dispatch(setTimeToNextMove(cooldown));
           break;
         }
         default: {
