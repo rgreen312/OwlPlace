@@ -99,6 +99,15 @@ export const openWebSocket = () => (dispatch, getState) => {
               dispatch(setColor(x, y, r, g, b));
               dispatch({ type: CanvasActionTypes.UpdatePixelError });
             }
+          } else if (status == 429) {
+            // If the user's cooldown hasn't expired yet
+            let remainingTime = json.remainingTime;
+            if (remainingTime > 0) {
+              dispatch(setTimeToNextMove(remainingTime));
+            } else {
+              // this might happen if someone manually makes a status message with code 429...
+              console.log("Received an ill-formatted DRAWRESPONSE cooldown message from the server!");
+            }
           } else {
             dispatch({ type: CanvasActionTypes.UpdatePixelSuccess });
           }

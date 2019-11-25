@@ -90,7 +90,7 @@ func (c *Client) handleDrawPixel(p []byte) {
 		// Here we'd like to send a message to the client indicating that they
 		// need to wait a bit longer before making another change to the
 		// canvas.
-		message := common.MakeVerificationFailMessage(0)
+		message := common.MakeCooldownMessage(int(common.Cooldown.Seconds() - timeSinceLastMove.Seconds()))
 		c.Send <- message
 		return
 	}
