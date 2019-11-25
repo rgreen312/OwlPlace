@@ -94,9 +94,18 @@ func (api *ApiServer) HTTPGetImageJson(w http.ResponseWriter, req *http.Request)
 		return
 	}
 
-	js, err := json.Marshal(map[string]string{
-		"data": base64Encode(img),
-	})
+	encodedString := base64Encode(img)
+	msg := ImageMsg{
+		Type:         common.Image,
+		FormatString: encodedString,
+	}
+
+	log.WithFields(log.Fields{
+		"ImageMsg": msg,
+	}).Debug("constructed websocket message")
+
+	var b []byte
+	b, err = json.Marshal(msg)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

@@ -66,20 +66,3 @@ export class UserLoginResponseMsg implements Msg {
         this.cooldown = cooldown;
     }
 }
-
-function parseMsg(json : string) : Msg {
-    let data = JSON.parse(json);
-    switch (data.type) {
-        case MsgType.IMAGE: {
-            return new ImageMsg(data.formatString);
-            break;
-        }
-        case MsgType.CHANGECLIENTPIXEL: {
-            return new ChangeClientPixelMsg(data.r, data.g, data.b, data.x, data.y);
-            break;
-        }
-        default: {
-            return new ErrorMsg();
-        }
-    }
-}

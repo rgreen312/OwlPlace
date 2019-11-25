@@ -9,10 +9,6 @@ interface State {}
 class Error extends Component<Props, State> {
   shouldRedirect = false;
 
-  constructor(props) {
-    super(props);
-  }
-
   componentDidMount() {
     window.addEventListener('beforeunload', () => {
       this.shouldRedirect = true;

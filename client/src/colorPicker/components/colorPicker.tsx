@@ -1,7 +1,6 @@
 import React, { FC, useState, CSSProperties } from "react";
 import { SketchPicker } from "react-color";
 import { Button } from "antd";
-import { Redirect } from "react-router-dom";
 import './colorPicker.scss';
 import { Color } from "../../canvas/types";
 
