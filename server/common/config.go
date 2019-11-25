@@ -7,7 +7,7 @@ import (
 const (
 	TimeFormat = time.RFC3339
 	//Cooldown   = time.Duration(5 * time.Minute)
-	Cooldown  = time.Duration(5 * time.Second)
+	Cooldown  = time.Duration(15 * time.Second)
 	AlphaMask = 255
 )
 
