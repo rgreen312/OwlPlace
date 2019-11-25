@@ -150,7 +150,7 @@ func (api *ApiServer) ConsensusJoinMessage(w http.ResponseWriter, req *http.Requ
 
 
 func (api *ApiServer) ListenAndServe() {
-
+  	http.HandleFunc("/", api.HealthCheck)
   	http.HandleFunc("/consensus_trigger", api.ConsensusTrigger)
 	http.HandleFunc("/consensus_join_message", api.ConsensusJoinMessage)
 
@@ -269,6 +269,11 @@ func base64Encode(img *image.RGBA) string {
 //	//	return
 //	//}
 //}
+
+
+func (api *ApiServer) HealthCheck(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(200)
+}
 
 func (api *ApiServer) serveWs(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("WebSocket Endpoint Hit")
