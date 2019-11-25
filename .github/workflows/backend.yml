@@ -7,9 +7,5 @@ jobs:
     runs-on: ubuntu-18.04
     steps:
     - uses: actions/checkout@master
-    - name: check
-      uses: grandcolline/golang-github-actions@v1.1.0
-      with:
-        run: imports
     - name: build backend image
       run: make image
