@@ -32,7 +32,6 @@ const (
 	UserLoginResponse MsgType = 11
 )
 
-
 /*
 	This message type is intended to be sent from
 	the server to the client, notifying the user

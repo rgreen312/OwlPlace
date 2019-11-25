@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
@@ -72,7 +73,7 @@ func NewDrawPixelMsg(req *http.Request) (*DrawPixelMsg, error) {
 	}
 
 	return &DrawPixelMsg{
-		Type: common.DrawPixel,
+		Type: DrawPixel,
 		X:    x,
 		Y:    y,
 		R:    r,
@@ -106,7 +107,6 @@ type VerificationFailMsg struct {
 	Type   MsgType `json:"type"`
 	Status int     `json:"status"`
 }
-
 
 type UserLoginResponseMsg struct {
 	Type     MsgType `json:"type"`

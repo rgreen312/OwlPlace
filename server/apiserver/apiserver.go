@@ -37,7 +37,11 @@ func NewApiServer(servers map[int]*common.ServerConfig, nodeId int) (*ApiServer,
 		return nil, errors.Wrapf(ConfigurationError, "missing entry for node: %d", nodeId)
 	}
 
-	cons, err := consensus.NewConsensusService(servers, nodeId)
+	// First we create the pool because we're going to share it's broadcast
+	// channel with the consensus service.
+	pool := wsutil.NewPool()
+
+	cons, err := consensus.NewConsensusService(servers, nodeId, pool.Broadcast)
 	if err != nil {
 		return nil, errors.Wrap(err, "creating ConsensusService")
 	}
@@ -54,7 +58,7 @@ func NewApiServer(servers map[int]*common.ServerConfig, nodeId int) (*ApiServer,
 
 	return &ApiServer{
 		config: conf,
-		pool:   wsutil.NewPool(),
+		pool:   pool,
 		cons:   cons,
 	}, nil
 }
@@ -95,7 +99,7 @@ func (api *ApiServer) HTTPGetImageJson(w http.ResponseWriter, req *http.Request)
 	}
 
 	encodedString := base64Encode(img)
-	msg := ImageMsg{
+	msg := common.ImageMsg{
 		Type:         common.Image,
 		FormatString: encodedString,
 	}
@@ -104,8 +108,7 @@ func (api *ApiServer) HTTPGetImageJson(w http.ResponseWriter, req *http.Request)
 		"ImageMsg": msg,
 	}).Debug("constructed websocket message")
 
-	var b []byte
-	b, err = json.Marshal(msg)
+    js, err := json.Marshal(msg)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
