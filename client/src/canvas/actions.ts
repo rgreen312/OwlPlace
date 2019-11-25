@@ -78,15 +78,9 @@ const setZoom = (f: number) => ({
 });
 export type SetZoom = ReturnType<typeof setZoom>;
 
-export const setZoomFactor = (newFactor: number) => (dispatch, getState) => {
+export const setZoomFactor = (newFactor: number) => dispatch => {
   if (newFactor < 0) {
     return;
-  }
-
-  const state = getState();
-  const ctx = getCanvasContext(state);
-  if (ctx) {
-    ctx.scale(newFactor, newFactor);
   }
 
   dispatch(setZoom(newFactor));

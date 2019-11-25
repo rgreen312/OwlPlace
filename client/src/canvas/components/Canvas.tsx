@@ -238,10 +238,14 @@ class Canvas extends Component<Props, State> {
   }
 
   onColorChange(c: RGBColor) {
+    console.log('in color change')
     const context = this.canvasRef.current!.getContext('2d');
     const x = this.props.position.x - 1;
     const y = this.props.position.y - 1;
+    console.log('position: ', this.props.position, c);
+    console.log('context: ', context)
     context!.fillStyle = `rgb(${c.r}, ${c.g}, ${c.b})`;
+    context!.clearRect(x, y, 1, 1);
     context!.fillRect(x, y, 1, 1);
   }
 
