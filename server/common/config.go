@@ -4,10 +4,11 @@ import (
 	"time"
 )
 
-type MsgType int8
-
 const (
 	TimeFormat = time.RFC3339
+	//Cooldown   = time.Duration(5 * time.Minute)
+	Cooldown  = time.Duration(5 * time.Second)
+	AlphaMask = 255
 )
 
 type ServerConfig struct {
@@ -30,7 +31,6 @@ const (
 	VerificationFail  MsgType = 10
 	UserLoginResponse MsgType = 11
 )
-
 
 /*
 	This message type is intended to be sent from

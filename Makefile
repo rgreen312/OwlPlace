@@ -19,4 +19,10 @@ docker-build:
 image: $(DOCKERFILE)
 	docker build . -f $(DOCKERFILE) --target runtime-image -t $(RUNTIME_IMAGE)
 
-.PHONY: builder image build docker-build
+lint:
+	goimports -d $(PROJECT_DIR)
+
+fix:
+	goimports -w $(PROJECT_DIR)
+
+.PHONY: builder image build docker-build lint fix

@@ -15,7 +15,7 @@ import (
 func mapKeys(m map[int]*common.ServerConfig) []int {
 	keys := make([]int, len(m))
 	ptr := 0
-	for key, _ := range m {
+	for key := range m {
 		keys[ptr] = key
 		ptr++
 	}
@@ -33,7 +33,7 @@ func initLogging() {
 
 func main() {
 	configFile := flag.String("config", "owlplace-docker.json", "Configuration file that contains a list of servers.")
-	nodeId := flag.Int("nodeid", 1, "Index in the configuration file that represents this node.")
+	nodeID := flag.Int("nodeid", 1, "Index in the configuration file that represents this node.")
 
 	flag.Parse()
 
@@ -52,20 +52,20 @@ func main() {
 		log.Fatalf("Error parsing configuration file: %s\n%s", *configFile, err)
 	}
 
-	if _, ok := servers[*nodeId]; !ok {
-		log.Fatalf("Requested nodeId is not found in the configuration file.  Valid nodeIds: %+v", mapKeys(servers))
+	if _, ok := servers[*nodeID]; !ok {
+		log.Fatalf("Requested nodeID is not found in the configuration file.  Valid nodeIDs: %+v", mapKeys(servers))
 	}
 
 	log.WithFields(log.Fields{
 		"server config": servers,
-		"nodeId":        *nodeId,
+		"nodeID":        *nodeID,
 	}).Debug("joining dragonboat cluster")
 
-	server, err := apiserver.NewApiServer(servers, *nodeId)
+	server, err := apiserver.NewApiServer(servers, *nodeID)
 	if err != nil {
 		log.WithFields(log.Fields{
 			"server config": servers,
-			"nodeId":        *nodeId,
+			"nodeID":        *nodeID,
 		}).Fatal(err)
 	}
 	server.ListenAndServe()

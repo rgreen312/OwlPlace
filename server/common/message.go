@@ -1,15 +1,18 @@
-package apiserver
+package common
 
 import (
+	"encoding/json"
 	"net/http"
 	"strconv"
+
 	"github.com/pkg/errors"
-	"github.com/rgreen312/owlplace/server/common"
+	log "github.com/sirupsen/logrus"
 )
 
+type MsgType int8
 
 type Msg struct {
-	Type common.MsgType `json:"type"`
+	Type MsgType `json:"type"`
 }
 
 // Message generic message recieved through websocket
@@ -24,7 +27,7 @@ type Message struct {
 	user would like to change a pixel on the canvas.
 */
 type DrawPixelMsg struct {
-	Type   common.MsgType `json:"type"`
+	Type   MsgType `json:"type"`
 	X      int     `json:"x"`
 	Y      int     `json:"y"`
 	R      int     `json:"r"`
@@ -61,16 +64,16 @@ func NewDrawPixelMsg(req *http.Request) (*DrawPixelMsg, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "extracting b")
 	}
-	// TODO(backend team): determine if you'd like to have the alpha mask required
-	//a, err := intExtractor("A")
-	//if err != nil {
-	//return nil, errors.Wrap(err, "extracting a")
-	//}
-	a := 255
 
-	// TODO(backend team): add user id parsing
+	// TODO(backend team): determine if you'd like to have the alpha mask
+	// required
+	a, err := intExtractor("A")
+	if err != nil {
+		a = 255
+	}
+
 	return &DrawPixelMsg{
-		Type: common.DrawPixel,
+		Type: DrawPixel,
 		X:    x,
 		Y:    y,
 		R:    r,
@@ -81,33 +84,102 @@ func NewDrawPixelMsg(req *http.Request) (*DrawPixelMsg, error) {
 }
 
 type LoginUserMsg struct {
-	Type common.MsgType `json:"type"`
-	Email   string  `json:"email"`
+	Type  MsgType `json:"type"`
+	Email string  `json:"email"`
 }
 
 type ImageMsg struct {
-	Type         common.MsgType `json:"type"`
+	Type         MsgType `json:"type"`
 	FormatString string  `json:"formatString"`
 }
 
 type TestingMsg struct {
-	Type common.MsgType `json:"type"`
+	Type MsgType `json:"type"`
 	Msg  string  `json:"msg"`
 }
 
 type DrawResponseMsg struct {
-	Type   common.MsgType `json:"type"`
+	Type   MsgType `json:"type"`
 	Status int     `json:"status"`
 }
 
 type VerificationFailMsg struct {
-	Type   common.MsgType `json:"type"`
+	Type   MsgType `json:"type"`
 	Status int     `json:"status"`
 }
 
-
 type UserLoginResponseMsg struct {
-	Type     common.MsgType `json:"type"`
+	Type     MsgType `json:"type"`
 	Status   int     `json:"status"`
 	Cooldown int     `json:"cooldown"`
+}
+
+func MakeTestingMessage(s string) []byte {
+	msg := TestingMsg{
+		Type: DrawResponse,
+		Msg:  s,
+	}
+
+	b, err := json.Marshal(msg)
+	if err != nil {
+		log.Println(err)
+	}
+	return b
+}
+
+func MakeStatusMessage(s int) []byte {
+	msg := DrawResponseMsg{
+		Type:   DrawResponse,
+		Status: s,
+	}
+
+	b, err := json.Marshal(msg)
+	if err != nil {
+		log.Println(err)
+	}
+	return b
+}
+
+func MakeVerificationFailMessage(s int) []byte {
+	msg := VerificationFailMsg{
+		Type:   VerificationFail,
+		Status: s,
+	}
+
+	b, err := json.Marshal(msg)
+	if err != nil {
+		log.Println(err)
+	}
+	return b
+}
+
+func MakeUserLoginResponseMsg(s int, c int) []byte {
+	msg := UserLoginResponseMsg{
+		Type:     UserLoginResponse,
+		Status:   s,
+		Cooldown: c,
+	}
+
+	b, err := json.Marshal(msg)
+	if err != nil {
+		log.Println(err)
+	}
+	return b
+}
+
+func MakeChangeClientMessage(x int, y int, r int, g int, b int, userID string) []byte {
+	msg := ChangeClientPixelMsg{
+		Type:   ChangeClientPixel,
+		X:      x,
+		Y:      y,
+		R:      r,
+		G:      g,
+		B:      b,
+		UserID: userID,
+	}
+	bt, err := json.Marshal(msg)
+	if err != nil {
+		log.Println(err)
+	}
+	return bt
 }

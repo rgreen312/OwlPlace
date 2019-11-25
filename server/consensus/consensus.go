@@ -1,7 +1,6 @@
 package consensus
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -22,57 +21,10 @@ import (
 	"github.com/rgreen312/owlplace/server/common"
 )
 
-type RequestType uint64
-
 const (
-	ClusterId uint64 = 128
-)
-
-const (
-	PUT RequestType = iota
-	GET
-)
-
-const (
-	GET_IMAGE            int = 0
-	UPDATE_PIXEL         int = 1
-	ADD_USER             int = 2
-	GET_LAST_USER_UPDATE int = 3
-	SET_LAST_USER_UPDATE int = 4
-	SUCCESS              int = 5
-	FAILURE              int = 6
-)
-
-const (
-	DRAGONBOAT_ERROR int = 0
-	MESSAGE_ERROR    int = 1
-)
-
-type ConsensusMessage struct {
-	Type int
-	Data bytes.Buffer
-}
-
-type BackendMessage struct {
-	Type int
-	Data bytes.Buffer
-}
-
-type GetUserDataBackendMessage struct {
-	UserId string
-}
-
-type SetUserDataBackendMessage struct {
-	UserId, Timestamp string
-}
-
-type UpdatePixelBackendMessage struct {
-	X, Y, R, G, B, A string
-}
-
-
-const (
-	SyncOpTimeout = 3 * time.Second
+	ClusterID     uint64 = 128
+	SyncOpTimeout        = 3 * time.Second
+	logLevel             = logger.ERROR
 )
 
 var (
@@ -82,7 +34,8 @@ var (
 
 type IConsensus interface {
 	SyncGetImage() (*image.RGBA, error)
-	SyncGetLastUserModification(userId string) (time.Time, error)
+	SyncUpdatePixel(x, y, r, g, b, a int) error
+	SyncGetLastUserModification(userId string) (*time.Time, error)
 	SyncSetLastUserModification(userId string, timestamp time.Time) error
 }
 
@@ -93,13 +46,13 @@ type ConsensusService struct {
 	dkv        *DiskKV
 	nodeId     int
 	clusterId  uint64
-	Broadcast  chan common.ChangeClientPixelMsg
+	Broadcast  chan []byte
 	// TODO: pull this out when we start using the kubernetes discovery
 	// service.
 	peers map[uint64]string
 }
 
-func NewConsensusService(servers map[int]*common.ServerConfig, nodeId int) (*ConsensusService, error) {
+func NewConsensusService(servers map[int]*common.ServerConfig, nodeId int, broadcast chan []byte) (*ConsensusService, error) {
 
 	conf, ok := servers[nodeId]
 	if !ok {
@@ -127,13 +80,13 @@ func NewConsensusService(servers map[int]*common.ServerConfig, nodeId int) (*Con
 	}).Debug()
 
 	// dragonboat provides it's own logging utilities.
-	logger.GetLogger("raft").SetLevel(logger.ERROR)
-	logger.GetLogger("rsm").SetLevel(logger.WARNING)
-	logger.GetLogger("transport").SetLevel(logger.WARNING)
-	logger.GetLogger("grpc").SetLevel(logger.WARNING)
+	logger.GetLogger("raft").SetLevel(logLevel)
+	logger.GetLogger("rsm").SetLevel(logLevel)
+	logger.GetLogger("transport").SetLevel(logLevel)
+	logger.GetLogger("grpc").SetLevel(logLevel)
 	rc := config.Config{
 		NodeID:             uint64(nodeId),
-		ClusterID:          ClusterId,
+		ClusterID:          ClusterID,
 		ElectionRTT:        10,
 		HeartbeatRTT:       1,
 		CheckQuorum:        true,
@@ -171,16 +124,15 @@ func NewConsensusService(servers map[int]*common.ServerConfig, nodeId int) (*Con
 		return nil, errors.Wrap(err, "creating dragonboat nodehost")
 	}
 
-	c := make(chan common.ChangeClientPixelMsg)
 	return &ConsensusService{
 		nh:         nh,
-		dkv:        NewDiskKV(ClusterId, uint64(nodeId), c),
+		dkv:        NewDiskKV(ClusterID, uint64(nodeId), broadcast),
 		config:     conf,
 		nodeId:     nodeId,
-		clusterId:  ClusterId,
+		clusterId:  ClusterID,
 		peers:      peers,
 		raftConfig: rc,
-		Broadcast:  c,
+		Broadcast:  broadcast,
 	}, nil
 }
 
@@ -222,6 +174,7 @@ func (cs *ConsensusService) SyncGetLastUserModification(userId string) (*time.Ti
 	if err != nil {
 		return nil, errors.Wrap(err, "reading from dragonboat")
 	}
+
 	resultString := string(result.([]byte))
 	if resultString == "" {
 		return nil, NoSuchUser
