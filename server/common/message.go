@@ -116,7 +116,7 @@ type UserLoginResponseMsg struct {
 
 func MakeTestingMessage(s string) []byte {
 	msg := TestingMsg{
-		Type: DrawResponse,
+		Type: Testing,
 		Msg:  s,
 	}
 
