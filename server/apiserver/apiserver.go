@@ -1,14 +1,9 @@
 package apiserver
 
 import (
-	"bytes"
-	"encoding/base64"
-	"encoding/json"
+	
 	"fmt"
-	"image"
-	"image/png"
 	"net/http"
-
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
 
@@ -65,12 +60,9 @@ func NewApiServer(servers map[int]*common.ServerConfig, nodeId int) (*ApiServer,
 
 func (api *ApiServer) ListenAndServe() {
 	go api.pool.Run()
-
-	http.HandleFunc("/json/image", api.HTTPGetImageJson)
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 		wsutil.ServeWs(api.pool, api.cons, w, r)
 	})
-	http.HandleFunc("/update_pixel", api.HTTPUpdatePixel)
 
 	// Although there is nothing wrong with this line, it prevents us from
 	// running multiple nodes on a single machine.  Therefore, I am making
@@ -80,68 +72,3 @@ func (api *ApiServer) ListenAndServe() {
 	http.ListenAndServe(fmt.Sprintf(":%d", api.config.ApiPort), nil)
 }
 
-// HTTPGetImageJson provides a synchronous method with which to request the
-// canvas.  It returns a JSON object structured as:
-//
-//      {
-//          "data": "... base64 encoded rgba png ..."
-//      }
-//
-func (api *ApiServer) HTTPGetImageJson(w http.ResponseWriter, req *http.Request) {
-	log.WithFields(log.Fields{
-		"request": req,
-	})
-
-	img, err := api.cons.SyncGetImage()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	encodedString := base64Encode(img)
-	msg := common.ImageMsg{
-		Type:         common.Image,
-		FormatString: encodedString,
-	}
-
-	log.WithFields(log.Fields{
-		"ImageMsg": msg,
-	}).Debug("constructed websocket message")
-
-    js, err := json.Marshal(msg)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(js)
-}
-
-func (api *ApiServer) HTTPUpdatePixel(w http.ResponseWriter, req *http.Request) {
-	msg, err := common.NewDrawPixelMsg(req)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	err = api.cons.SyncUpdatePixel(msg.X, msg.Y, msg.R, msg.G, msg.B, msg.A)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-}
-
-// base64Encode returns a base64 string representation of an RGBA image.
-func base64Encode(img *image.RGBA) string {
-	// In-memory buffer to store PNG image
-	// before we base 64 encode it
-	var buff bytes.Buffer
-
-	// The Buffer satisfies the Writer interface so we can use it with Encode
-	// In previous example we encoded to a file, this time to a temp buffer
-	png.Encode(&buff, img)
-
-	// Encode the bytes in the buffer to a base64 string
-	return base64.StdEncoding.EncodeToString(buff.Bytes())
-}

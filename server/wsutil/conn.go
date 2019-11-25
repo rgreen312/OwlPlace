@@ -4,6 +4,10 @@ import (
 	"encoding/json"
 	"math"
 	"net/http"
+	"bytes"
+	"image"
+	"image/png"
+	"encoding/base64"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -40,6 +44,20 @@ var (
 		CheckOrigin:     func(r *http.Request) bool { return true },
 	}
 )
+
+// base64Encode returns a base64 string representation of an RGBA image.
+func base64Encode(img *image.RGBA) string {
+	// In-memory buffer to store PNG image
+	// before we base 64 encode it
+	var buff bytes.Buffer
+
+	// The Buffer satisfies the Writer interface so we can use it with Encode
+	// In previous example we encoded to a file, this time to a temp buffer
+	png.Encode(&buff, img)
+
+	// Encode the bytes in the buffer to a base64 string
+	return base64.StdEncoding.EncodeToString(buff.Bytes())
+}
 
 // Client is a middleman between the websocket connection and the pool.
 type Client struct {
@@ -90,7 +108,7 @@ func (c *Client) handleDrawPixel(p []byte) {
 		// Here we'd like to send a message to the client indicating that they
 		// need to wait a bit longer before making another change to the
 		// canvas.
-		message := common.MakeVerificationFailMessage(0)
+		message := common.MakeStatusMessage(429)
 		c.Send <- message
 		return
 	}
@@ -299,4 +317,28 @@ func ServeWs(pool *Pool, cons consensus.IConsensus, w http.ResponseWriter, r *ht
 	// new goroutines.
 	go client.writePump()
 	go client.readPump()
+
+	// send image message
+	img, err := cons.SyncGetImage()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	encodedString := base64Encode(img)
+	msg := common.ImageMsg{
+		Type:         common.Image,
+		FormatString: encodedString,
+	}
+
+	log.WithFields(log.Fields{
+		"ImageMsg": msg,
+	}).Debug("constructed websocket message")
+
+	var b []byte
+	b, err = json.Marshal(msg)
+	if err != nil {
+		log.Println(err)
+	}
+	client.Send <- b
 }
