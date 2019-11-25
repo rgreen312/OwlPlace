@@ -97,33 +97,38 @@ func (c *Client) handleDrawPixel(p []byte) {
 
 	err = c.cons.SyncUpdatePixel(dpMsg.X, dpMsg.Y, dpMsg.R, dpMsg.G, dpMsg.B, common.AlphaMask)
 	if err != nil {
-		// TODO: handle error response
+        // Here we'd like to indicate a server error to the client.
+		message := common.MakeStatusMessage(503)
+		c.Send <- message
 		return
 	}
 
-	// This should not be done until after the user is able to successfully
-	// update the canvas.
 	err = c.cons.SyncSetLastUserModification(dpMsg.UserID, time.Now())
 	if err != nil {
-		// TODO: handle error response, potentially shut down the websocket
-		// connection? the issue here is that we realistically need to get this
-		// set after allowing the user to update the pixel.  however, it's that
-		// big of a deal, as we don't expect very many errors to appear here.
+        // Here we'd like to indicate a server error to the client.
+		message := common.MakeStatusMessage(503)
+		c.Send <- message
 		return
 	}
 
+    // We don't need to update the clients because the state machine associated
+    // with the consensus module broadcasts this update to the clients. That is
+    // a more logical location to do that.
+    // 
+    // TODO: remove the commented code after we agree on that.
+
 	// Tell all clients to update their board
-	ccpMsg := common.ChangeClientPixelMsg{
-		Type:   common.ChangeClientPixel,
-		X:      dpMsg.X,
-		Y:      dpMsg.Y,
-		R:      dpMsg.R,
-		G:      dpMsg.G,
-		B:      dpMsg.B,
-		UserID: dpMsg.UserID,
-	}
-	msg, _ := json.Marshal(ccpMsg)
-	c.pool.Broadcast <- msg
+	//ccpMsg := common.ChangeClientPixelMsg{
+		//Type:   common.ChangeClientPixel,
+		//X:      dpMsg.X,
+		//Y:      dpMsg.Y,
+		//R:      dpMsg.R,
+		//G:      dpMsg.G,
+		//B:      dpMsg.B,
+		//UserID: dpMsg.UserID,
+	//}
+	//msg, _ := json.Marshal(ccpMsg)
+	//c.pool.Broadcast <- msg
 }
 
 func (c *Client) handleLoginUser(p []byte) {
