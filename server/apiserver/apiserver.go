@@ -24,10 +24,10 @@ var (
 )
 
 type ApiServer struct {
-	config     *common.ServerConfig
-	upgrader   *websocket.Upgrader
-	pool       *wsutil.Pool
-	conService *consensus.ConsensusService
+	config   *common.ServerConfig
+	upgrader *websocket.Upgrader
+	pool     *wsutil.Pool
+	cons     consensus.IConsensus
 }
 
 func NewApiServer(servers map[int]*common.ServerConfig, nodeId int) (*ApiServer, error) {
@@ -37,25 +37,25 @@ func NewApiServer(servers map[int]*common.ServerConfig, nodeId int) (*ApiServer,
 		return nil, errors.Wrapf(ConfigurationError, "missing entry for node: %d", nodeId)
 	}
 
-	conService, err := consensus.NewConsensusService(servers, nodeId)
+	cons, err := consensus.NewConsensusService(servers, nodeId)
 	if err != nil {
 		return nil, errors.Wrap(err, "creating ConsensusService")
 	}
 
-	err = conService.Start()
+	err = cons.Start()
 	if err != nil {
 		return nil, errors.Wrap(err, "starting ConsensusService")
 	}
 
 	log.WithFields(log.Fields{
 		"server config":     conf,
-		"consensus service": conService,
+		"consensus service": cons,
 	}).Debug()
 
 	return &ApiServer{
-		config:     conf,
-		pool:       wsutil.NewPool(),
-		conService: conService,
+		config: conf,
+		pool:   wsutil.NewPool(),
+		cons:   cons,
 	}, nil
 }
 
@@ -64,7 +64,7 @@ func (api *ApiServer) ListenAndServe() {
 
 	http.HandleFunc("/json/image", api.HTTPGetImageJson)
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-		wsutil.ServeWs(api.pool, w, r)
+		wsutil.ServeWs(api.pool, api.cons, w, r)
 	})
 	http.HandleFunc("/update_pixel", api.HTTPUpdatePixel)
 
@@ -88,7 +88,7 @@ func (api *ApiServer) HTTPGetImageJson(w http.ResponseWriter, req *http.Request)
 		"request": req,
 	})
 
-	img, err := api.conService.SyncGetImage()
+	img, err := api.cons.SyncGetImage()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -113,7 +113,7 @@ func (api *ApiServer) HTTPUpdatePixel(w http.ResponseWriter, req *http.Request) 
 		return
 	}
 
-	err = api.conService.SyncUpdatePixel(msg.X, msg.Y, msg.R, msg.G, msg.B, msg.A)
+	err = api.cons.SyncUpdatePixel(msg.X, msg.Y, msg.R, msg.G, msg.B, msg.A)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

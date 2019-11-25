@@ -69,14 +69,22 @@ func (c *Client) handleDrawPixel(p []byte) {
 	}
 
 	lastMove, err := c.cons.SyncGetLastUserModification(dpMsg.UserID)
-	if err != nil && err != consensus.NoSuchUser {
+
+	// Determine if the user should be able to add a pixel to the canvas.  If
+	// the time since their last move is greater than or equal to the cooldown
+	// time then we let them place a pixel.
+	var timeSinceLastMove time.Duration
+	if err == consensus.NoSuchUser {
+		timeSinceLastMove = common.Cooldown
+	} else if err != nil {
 		log.WithFields(log.Fields{
 			"err": err,
 		}).Debug("retrieving user's last modification")
 		return
+	} else {
+		timeSinceLastMove = time.Since(*lastMove)
 	}
 
-	timeSinceLastMove := time.Since(*lastMove)
 	if timeSinceLastMove.Milliseconds() < common.Cooldown.Milliseconds() {
 
 		// Here we'd like to send a message to the client indicating that they
@@ -265,7 +273,7 @@ func (c *Client) writePump() {
 }
 
 // ServeWs handles websocket requests from the peer.
-func ServeWs(pool *Pool, w http.ResponseWriter, r *http.Request) {
+func ServeWs(pool *Pool, cons consensus.IConsensus, w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.WithFields(log.Fields{
@@ -277,6 +285,7 @@ func ServeWs(pool *Pool, w http.ResponseWriter, r *http.Request) {
 	client := &Client{
 		pool: pool,
 		conn: conn,
+		cons: cons,
 		Send: make(chan []byte, 256),
 	}
 	pool.Register <- client
