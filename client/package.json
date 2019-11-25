@@ -2,7 +2,7 @@
   "name": "client",
   "version": "0.1.0",
   "private": true,
-  "homepage": "http://rgreen312.github.io/OwlPlace",
+  "homepage": "http://ryankgreen.com/OwlPlace/",
   "dependencies": {
     "@types/gapi": "0.0.39",
     "@types/gapi.auth2": "0.0.50",

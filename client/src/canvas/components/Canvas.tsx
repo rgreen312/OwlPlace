@@ -242,6 +242,7 @@ class Canvas extends Component<Props, State> {
     const x = this.props.position.x - 1;
     const y = this.props.position.y - 1;
     context!.fillStyle = `rgb(${c.r}, ${c.g}, ${c.b})`;
+    context!.clearRect(x, y, 1, 1);
     context!.fillRect(x, y, 1, 1);
   }
 

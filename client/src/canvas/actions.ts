@@ -78,15 +78,9 @@ const setZoom = (f: number) => ({
 });
 export type SetZoom = ReturnType<typeof setZoom>;
 
-export const setZoomFactor = (newFactor: number) => (dispatch, getState) => {
+export const setZoomFactor = (newFactor: number) => dispatch => {
   if (newFactor < 0) {
     return;
-  }
-
-  const state = getState();
-  const ctx = getCanvasContext(state);
-  if (ctx) {
-    ctx.scale(newFactor, newFactor);
   }
 
   dispatch(setZoom(newFactor));
@@ -109,7 +103,7 @@ export const updatePixel = (
   dispatch(updatePixelStart(newColor, x, y));
   const socket = getWebSocket(getState());
   const email = getUserEmail(getState());
-  console.log("This is being called!", newColor, newColor.r, newColor.g, newColor.b)
+  console.log("This is being called!", newColor.r, newColor.g, newColor.b, x, y)
   if (socket && email) {
     socket.send(makeUpdateMessage(email, x, y, newColor.r, newColor.g, newColor.b));
   } else {
