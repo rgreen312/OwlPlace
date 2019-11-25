@@ -1,6 +1,6 @@
 import * as ActionTypes from './actionTypes';
 import { getWebSocket } from '../websocket/selectors';
-import { makeLoginMessage, connectError } from '../websocket/actions';
+import { makeLoginMessage, connectError, sendLoginMessage } from '../websocket/actions';
 
 const loginStart = () => ({
   type: ActionTypes.LoginStart
@@ -95,6 +95,7 @@ export const checkLogin = () => async dispatch => {
            const googleUser = gapi.auth2.getAuthInstance().currentUser.get();
            const profile = googleUser.getBasicProfile();
            dispatch(loginSuccess(profile.getName(), profile.getName(), profile.getEmail())); 
+           dispatch(sendLoginMessage(makeLoginMessage(profile.getEmail()))); 
          }
        }
      );
