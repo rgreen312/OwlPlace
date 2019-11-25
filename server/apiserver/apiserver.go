@@ -8,8 +8,8 @@ import (
 	"image"
 	"image/png"
 	"net/http"
-	"time"
 	"sync"
+	"time"
 
 	gwebsocket "github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
@@ -216,9 +216,11 @@ func (api *ApiServer) serveWs(pool *Pool, w http.ResponseWriter, r *http.Request
 	// helpful log statement to show connections
 	log.Println("Client Connected")
 
+	api.Mux.Lock()
 	if err = client.Conn.WriteMessage(1, makeTestingMessage("{\"Hi Client! We just connected :)\"}")); err != nil { // sent upon connection to any clients
 		log.Println(err)
 	}
+	api.Mux.Unlock()
 
 	img, err := api.conService.SyncGetImage()
 	if err != nil {
@@ -241,9 +243,15 @@ func (api *ApiServer) serveWs(pool *Pool, w http.ResponseWriter, r *http.Request
 	if err != nil {
 		log.Println(err)
 	}
+
+	log.Println("about to send the grid")
+	api.Mux.Lock()
+	log.Println("inside senfing grid")
 	if err = client.Conn.WriteMessage(1, b); err != nil {
 		log.Println(err)
 	}
+	log.Println("about to unlock.")
+	api.Mux.Unlock()
 
 	pool.Register <- client
 	client.Read(api)
@@ -290,6 +298,10 @@ func (c *Client) Read(api *ApiServer) {
 				if getErr != nil {
 					// Cannot get this user's last modification
 					userVerification = 401
+					fmt.Println(fmt.Sprintf("USER %s failed authentication", dpMsg.UserID))
+					// send message back to the client indicating verification failure
+					byt = makeVerificationFailMessage(userVerification)
+					break
 				}
 				timeSinceLastMove := time.Since(*lastMove)
 
@@ -297,7 +309,7 @@ func (c *Client) Read(api *ApiServer) {
 					err := api.conService.SyncSetLastUserModification(dpMsg.UserID, time.Now())
 					if err == nil {
 						// Successfully updated the user's last modification
-						userVerification = 200	
+						userVerification = 200
 					} else {
 						// Error from SetLastUserModification call
 						userVerification = 403
@@ -328,7 +340,7 @@ func (c *Client) Read(api *ApiServer) {
 					"err": err,
 				}).Error("unmarshalling JSON")
 			}
-      
+
 		case common.LoginUser:
 			fmt.Println("CreateUser message received.")
 
@@ -345,7 +357,7 @@ func (c *Client) Read(api *ApiServer) {
 				byt = makeUserLoginResponseMsg(400, -1)
 				lastMove, getErr := api.conService.SyncGetLastUserModification(userID)
 				if getErr == consensus.NoSuchUser {
-					setErr := api.conService.SyncSetLastUserModification(userID, time.Unix(0,0)) // Default Timestamp for New Users
+					setErr := api.conService.SyncSetLastUserModification(userID, time.Unix(0, 0)) // Default Timestamp for New Users
 					if setErr == nil {
 						byt = makeUserLoginResponseMsg(200, 0)
 					}
@@ -354,7 +366,7 @@ func (c *Client) Read(api *ApiServer) {
 					if timeSinceLastMove.Milliseconds() >= cooldown.Milliseconds() {
 						byt = makeUserLoginResponseMsg(200, 0)
 					} else {
-						byt = makeUserLoginResponseMsg(200, int(cooldown.Milliseconds() - timeSinceLastMove.Milliseconds()))
+						byt = makeUserLoginResponseMsg(200, int(cooldown.Milliseconds()-timeSinceLastMove.Milliseconds()))
 					}
 				}
 
@@ -431,7 +443,6 @@ func makeVerificationFailMessage(s int) []byte {
 	}
 	return b
 }
-
 
 func makeUserLoginResponseMsg(s int, c int) []byte {
 	msg := UserLoginResponseMsg{
