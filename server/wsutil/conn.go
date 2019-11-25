@@ -299,4 +299,28 @@ func ServeWs(pool *Pool, cons consensus.IConsensus, w http.ResponseWriter, r *ht
 	// new goroutines.
 	go client.writePump()
 	go client.readPump()
+
+	// send image message
+	img, err := cons.SyncGetImage()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	encodedString := common.Base64Encode(img)
+	msg := common.ImageMsg{
+		Type:         common.Image,
+		FormatString: encodedString,
+	}
+
+	log.WithFields(log.Fields{
+		"ImageMsg": msg,
+	}).Debug("constructed websocket message")
+
+	var b []byte
+	b, err = json.Marshal(msg)
+	if err != nil {
+		log.Println(err)
+	}
+	client.Send <- b
 }
