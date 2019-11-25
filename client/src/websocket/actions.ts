@@ -45,7 +45,7 @@ export const openWebSocket = () => (dispatch, getState) => {
         })
       );
 
-      if (getUserEmail(getState()) !== undefined) {
+      if (getUserEmail(getState())) {
         socket.send(makeLoginMessage(getUserEmail(getState())!)); 
       }
       
@@ -115,7 +115,7 @@ export const openWebSocket = () => (dispatch, getState) => {
         case MsgType.USERLOGINRESPONSE: {
           let status = json.status
           let cooldown = json.cooldown
-          console.log("Received a USERLOGIN message from the server!");
+          console.log("Received a USERLOGIN message from the server!", json);
           console.log("The status was " + status);
           console.log("The remaining cooldown time for current user is: " + cooldown);
           dispatch(setTimeToNextMove(cooldown));

@@ -144,7 +144,7 @@ class Canvas extends Component<Props, State> {
           const { position } = this.props;
           const imageData = this.canvasRef
             .current!.getContext('2d')!
-            .getImageData(position.x - 1, position.y - 1, 1, 1);
+            .getImageData(xNew - 1, yNew - 1, 1, 1);
 
           this.setState({
             previousColor: {
