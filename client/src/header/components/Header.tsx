@@ -83,10 +83,10 @@ const Header: FC<Props> = ({
     if (time <= 0) {
       clearInterval(interval);
       setTimeRemaining(0);
-      notification.success({
-        message: 'Place another pixel',
-        description: 'You can now update another pixel on the canvas.'
-      });
+    //   notification.success({
+    //     message: 'Place another pixel',
+    //     description: 'You can now update another pixel on the canvas.'
+    //   });
       return;
     }
 
