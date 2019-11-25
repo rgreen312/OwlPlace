@@ -3,7 +3,7 @@ name: build & test backend
 on: [push, pull_request]
 
 jobs:
-  build-deploy:
+  build-backend:
     runs-on: ubuntu-18.04
     steps:
     - uses: actions/checkout@master
