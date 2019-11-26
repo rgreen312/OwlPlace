@@ -17,6 +17,10 @@ func initLogging() {
 }
 
 func main() {
+	// Initialize logrus
+	initLogging()
+
+	// Start server
 	server, _ := apiserver.NewApiServer(os.Getenv("MY_POD_IP"))
 	server.ListenAndServe()
 }

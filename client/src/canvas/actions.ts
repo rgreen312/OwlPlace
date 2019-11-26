@@ -104,7 +104,9 @@ export const updatePixel = (
   const socket = getWebSocket(getState());
   const email = getUserEmail(getState());
   console.log("This is being called!", newColor.r, newColor.g, newColor.b, x, y)
+  console.log(getState())
   if (socket && email) {
+    console.log("Socket sending!")
     socket.send(makeUpdateMessage(email, x, y, newColor.r, newColor.g, newColor.b));
   } else {
     dispatch(connectError('Could not connect'))
