@@ -2,6 +2,9 @@ package common
 
 import (
 	"time"
+	"strings"
+	"fmt"
+	"strconv"
 )
 
 const (
@@ -9,13 +12,9 @@ const (
 	//Cooldown   = time.Duration(5 * time.Minute)
 	Cooldown  = time.Duration(15 * time.Second)
 	AlphaMask = 255
+	ApiPort = 3001
+	ConsensusPort = 3010
 )
-
-type ServerConfig struct {
-	Hostname      string `json:"hostname"`
-	ApiPort       int    `json:"api_port"`
-	ConsensusPort int    `json:"consensus_port"`
-}
 
 // Well defined Message types
 const (
@@ -31,6 +30,15 @@ const (
 	VerificationFail  MsgType = 10
 	UserLoginResponse MsgType = 11
 )
+
+
+func IPToNodeId(ip_address string) uint64 {
+	// This function maps ip addresses to node-ids
+	components := strings.Split(ip_address, ".")
+	combined := fmt.Sprintf("%03s%03s", components[2], components[3])
+	node_id, _ := strconv.Atoi(combined)
+	return uint64(node_id)
+}
 
 /*
 	This message type is intended to be sent from
