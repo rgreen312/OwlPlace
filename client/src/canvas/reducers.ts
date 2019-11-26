@@ -5,6 +5,7 @@ import { createReducer } from '../createReducer';
 import { RegisterContext, UpdatePosition, SetZoom, SetInitialImage, SetTimeRemaining, UpdatePixelStart} from './actions';
 import * as WebSocketActionTypes from '../websocket/actionTypes';
 import { DEFAULT_ZOOM, TIME_BETWEEN_UPDATES_MS } from './constants';
+import * as LoginActionTypes from '../login/actionTypes';
 
 export interface State {
   canvasContext: CanvasRenderingContext2D | null;
@@ -40,6 +41,7 @@ const timeToNextChange = createReducer<State['timeToNextChange']>(0, {
   [ActionTypes.SetTimeRemaining]: (state, action: SetTimeRemaining) => action.payload.time,
   [ActionTypes.UpdatePixelStart]: () => TIME_BETWEEN_UPDATES_MS,
   [ActionTypes.UpdatePixelError]: () => 0,
+  [LoginActionTypes.SignOut]: () => 0,
 });
 
 const lastMove = createReducer<State['lastMove']>(null, {

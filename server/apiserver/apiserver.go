@@ -1,12 +1,9 @@
 package apiserver
 
 import (
-	"bytes"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"image"
-	"image/png"
+
 	"net/http"
 	"os"
 
@@ -146,7 +143,7 @@ func (api *ApiServer) HTTPGetImageJson(w http.ResponseWriter, req *http.Request)
 		return
 	}
 
-	encodedString := base64Encode(img)
+	encodedString := common.Base64Encode(img)
 	msg := common.ImageMsg{
 		Type:         common.Image,
 		FormatString: encodedString,
@@ -180,16 +177,4 @@ func (api *ApiServer) HTTPUpdatePixel(w http.ResponseWriter, req *http.Request) 
 	}
 }
 
-// base64Encode returns a base64 string representation of an RGBA image.
-func base64Encode(img *image.RGBA) string {
-	// In-memory buffer to store PNG image
-	// before we base 64 encode it
-	var buff bytes.Buffer
 
-	// The Buffer satisfies the Writer interface so we can use it with Encode
-	// In previous example we encoded to a file, this time to a temp buffer
-	png.Encode(&buff, img)
-
-	// Encode the bytes in the buffer to a base64 string
-	return base64.StdEncoding.EncodeToString(buff.Bytes())
-}
