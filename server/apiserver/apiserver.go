@@ -102,17 +102,17 @@ func (api *ApiServer) ConsensusJoinMessage(w http.ResponseWriter, req *http.Requ
 }
 
 func (api *ApiServer) HealthCheck(w http.ResponseWriter, req *http.Request){
-	fmt.Fprintf(os.Stdout, "HealthCheck\n")
 	w.WriteHeader(200)
 }
 
+func (api *ApiServer) ServeWs(w http.ResponseWriter, req *http.Request){
+	wsutil.ServeWs(api.pool, api.cons, w, req)
+}
 
 func (api *ApiServer) ListenAndServe() {
 	http.HandleFunc("/", api.HealthCheck)
 	http.HandleFunc("/json/image", api.HTTPGetImageJson)
-	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-		wsutil.ServeWs(api.pool, api.cons, w, r)
-	})
+	http.HandleFunc("/ws", api.ServeWs)
 	http.HandleFunc("/update_pixel", api.HTTPUpdatePixel)
 	http.HandleFunc("/consensus_trigger", api.ConsensusTrigger)
 	http.HandleFunc("/consensus_join_message", api.ConsensusJoinMessage)
