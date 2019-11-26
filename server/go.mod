@@ -9,5 +9,7 @@ require (
 	github.com/lni/goutils v1.0.2
 	github.com/pkg/errors v0.8.1
 	github.com/sirupsen/logrus v1.4.2
+	k8s.io/apimachinery v0.0.0-20191004115801-a2eda9f80ab8
+	k8s.io/client-go v0.0.0-20191016111102-bec269661e48
 	github.com/tecbot/gorocksdb v0.0.0-20190930194452-65a88f08537a
 )
