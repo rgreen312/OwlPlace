@@ -97,7 +97,7 @@ func (c *Client) handleDrawPixel(p []byte) {
 
 	err = c.cons.SyncUpdatePixel(dpMsg.X, dpMsg.Y, dpMsg.R, dpMsg.G, dpMsg.B, common.AlphaMask)
 	if err != nil {
-        // Here we'd like to indicate a server error to the client.
+		// Here we'd like to indicate a server error to the client.
 		message := common.MakeStatusMessage(503)
 		c.Send <- message
 		return
@@ -105,27 +105,27 @@ func (c *Client) handleDrawPixel(p []byte) {
 
 	err = c.cons.SyncSetLastUserModification(dpMsg.UserID, time.Now())
 	if err != nil {
-        // Here we'd like to indicate a server error to the client.
+		// Here we'd like to indicate a server error to the client.
 		message := common.MakeStatusMessage(503)
 		c.Send <- message
 		return
 	}
 
-    // We don't need to update the clients because the state machine associated
-    // with the consensus module broadcasts this update to the clients. That is
-    // a more logical location to do that.
-    // 
-    // TODO: remove the commented code after we agree on that.
+	// We don't need to update the clients because the state machine associated
+	// with the consensus module broadcasts this update to the clients. That is
+	// a more logical location to do that.
+	//
+	// TODO: remove the commented code after we agree on that.
 
 	// Tell all clients to update their board
 	//ccpMsg := common.ChangeClientPixelMsg{
-		//Type:   common.ChangeClientPixel,
-		//X:      dpMsg.X,
-		//Y:      dpMsg.Y,
-		//R:      dpMsg.R,
-		//G:      dpMsg.G,
-		//B:      dpMsg.B,
-		//UserID: dpMsg.UserID,
+	//Type:   common.ChangeClientPixel,
+	//X:      dpMsg.X,
+	//Y:      dpMsg.Y,
+	//R:      dpMsg.R,
+	//G:      dpMsg.G,
+	//B:      dpMsg.B,
+	//UserID: dpMsg.UserID,
 	//}
 	//msg, _ := json.Marshal(ccpMsg)
 	//c.pool.Broadcast <- msg

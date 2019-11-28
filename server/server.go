@@ -2,10 +2,10 @@ package main
 
 import (
 	"os"
-	log "github.com/sirupsen/logrus"
-	"github.com/rgreen312/owlplace/server/apiserver"
-)
 
+	"github.com/rgreen312/owlplace/server/apiserver"
+	log "github.com/sirupsen/logrus"
+)
 
 func initLogging() {
 	// Output to stdout instead of the default stderr
@@ -21,6 +21,9 @@ func main() {
 	initLogging()
 
 	// Start server
-	server, _ := apiserver.NewApiServer(os.Getenv("MY_POD_IP"))
+	server, err := apiserver.NewApiServer(os.Getenv("MY_POD_IP"))
+	if err != nil {
+		log.Fatal(err)
+	}
 	server.ListenAndServe()
 }
