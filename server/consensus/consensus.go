@@ -5,13 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"image"
+	"os"
 	"os/signal"
 	"path/filepath"
 	"runtime"
 	"syscall"
 	"time"
-	"os"
-	"net/http"
 
 	"github.com/lni/dragonboat/v3"
 	"github.com/lni/dragonboat/v3/config"
@@ -38,6 +37,7 @@ var (
 )
 
 type IConsensus interface {
+	Start(join bool) error
 	SyncGetImage() (*image.RGBA, error)
 	SyncUpdatePixel(x, y, r, g, b, a int) error
 	SyncGetLastUserModification(userId string) (*time.Time, error)
@@ -171,66 +171,97 @@ func (cs *ConsensusService) SyncUpdatePixel(x, y, r, g, b, a int) error {
 	return nil
 }
 
-func ScanDiscoveryService(servers map[uint64]string, nh *dragonboat.NodeHost){
+func (cs *ConsensusService) ScanDiscoveryService() {
 	for {
 
 		fmt.Fprintf(os.Stdout, "Scanning Discovery Service\n")
-		
+
 		//Actually scan discovery service
 		config, err := rest.InClusterConfig()
 		if err != nil {
-			panic(err.Error())
+			log.WithFields(log.Fields{
+				"err": err,
+			}).Error("retrieving cluster config")
+			continue
 		}
 		clientset, err := kubernetes.NewForConfig(config)
 		if err != nil {
-			panic(err.Error())
+			log.WithFields(log.Fields{
+				"err": err,
+			}).Error("creating API handle")
+			continue
 		}
 
 		pods, err := clientset.CoreV1().Pods("dev").List(metav1.ListOptions{})
 		if err != nil {
-			panic(err.Error())
+			log.WithFields(log.Fields{
+				"err": err,
+			}).Error("listing dev pods")
+			continue
 		}
 
 		for _, pod := range pods.Items {
-			if _, ok := servers[common.IPToNodeId(pod.Status.PodIP)]; !ok {
+			if _, ok := cs.peers[common.IPToNodeId(pod.Status.PodIP)]; !ok {
 
-				fmt.Fprintf(os.Stdout, "Found pod that's not in cluster\n")
-
-				// Adding pod to server map
+				// Adding pod to cluster
 				nodeId := common.IPToNodeId(pod.Status.PodIP)
-				servers[nodeId] = pod.Status.PodIP
-
-				// Adding pod to cluster 
-				request_data, request_err := nh.RequestAddNode(ClusterID, uint64(nodeId), fmt.Sprintf("%s:%d", pod.Status.PodIP, common.ConsensusPort), 0, 1000*time.Millisecond)
-				if(request_err != nil){
-					panic(request_err)
+				request_data, request_err := cs.nh.RequestAddNode(ClusterID, uint64(nodeId), fmt.Sprintf("%s:%d", pod.Status.PodIP, common.ConsensusPort), 0, 1000*time.Millisecond)
+				if request_err != nil {
+					log.WithFields(log.Fields{
+						"new nodeID": nodeId,
+						"new PodIP":  pod.Status.PodIP,
+						"err":        request_err,
+						"ClusterID":  ClusterID,
+					}).Debug("adding node to cluster")
 				}
+
+				// add new pod to server map
+				cs.peers[nodeId] = pod.Status.PodIP
 
 				// Wait for response or timeout
 				results := <-request_data.CompletedC
 
-				if(results.Completed()){
+				if results.Completed() {
+
+					log.WithFields(log.Fields{
+						"new nodeID": nodeId,
+						"new PodIP":  pod.Status.PodIP,
+						"ClusterID":  ClusterID,
+					}).Debug("successfully added node to cluster")
+
 					fmt.Fprintf(os.Stdout, "Pod join success\n")
+					// TODO: I don't think we want to do this here.  Dragonboat
+					// should properly handle adding this node to the other
+					// servers.  Addl. the code that gets called in
+					// consensus_join_message ends up just starting the
+					// consensus service again, which is not what we want to
+					// do.
 					// Send an http join request to the other nodes
-					_, err := http.Get(fmt.Sprintf("http://%s:%d/consensus_join_message", pod.Status.PodIP , common.ApiPort))
-					if(err != nil){
-						panic(err)
-					}
+					//_, err := http.Get(fmt.Sprintf("http://%s:%d/consensus_join_message", pod.Status.PodIP, common.ApiPort))
+					//if err != nil {
+					//panic(err)
+					//}
 				} else {
-					fmt.Fprintf(os.Stdout, "Pod join failure\n")
+					log.WithFields(log.Fields{
+						"new nodeID": nodeId,
+						"new PodIP":  pod.Status.PodIP,
+						"ClusterID":  ClusterID,
+						"result":     results.GetResult(),
+					}).Error("failed to add node to cluster")
 				}
 
-	
 			}
-			
-	    }
 
+		}
+
+		// TODO: this should be replaced with a ticker and a go-routine.  See:
+		//  https://gobyexample.com/tickers
+		// This way we don't have to busy wait!
 		// Wait for 10 seconds before scanning again
 		time.Sleep(10000 * time.Millisecond)
 
 	}
 }
-
 
 func (cs *ConsensusService) SyncGetLastUserModification(userId string) (*time.Time, error) {
 
@@ -285,7 +316,7 @@ func (cs *ConsensusService) Start(join bool) error {
 	}
 
 	peers := make(map[uint64]string)
-	if(!join){
+	if !join {
 		peers = cs.peers
 	}
 
@@ -296,7 +327,7 @@ func (cs *ConsensusService) Start(join bool) error {
 		"raft config":          cs.raftConfig,
 	}).Debug("starting on disk cluster")
 	err := cs.nh.StartOnDiskCluster(peers, join, stateMachineProvider, cs.raftConfig)
-	go ScanDiscoveryService(cs.peers, cs.nh)
+	go cs.ScanDiscoveryService()
 	return err
 }
 
