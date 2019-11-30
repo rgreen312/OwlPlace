@@ -6,6 +6,6 @@ jobs:
   build-backend:
     runs-on: ubuntu-18.04
     steps:
-    - uses: actions/checkout@master
+    - uses: actions/checkout@v1.0.0
     - name: build backend image
       run: make image

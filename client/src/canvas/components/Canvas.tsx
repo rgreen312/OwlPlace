@@ -1,6 +1,6 @@
 import React, { Component, createRef, RefObject } from 'react';
 import ColorPicker from '../../colorPicker/components/colorPicker';
-import { Redirect } from 'react-router-dom';
+//import { Redirect } from 'react-router-dom';
 import './Canvas.scss';
 import { Icon, Spin, notification } from 'antd';
 import { ZOOM_CHANGE_FACTOR } from '../constants';
@@ -8,7 +8,7 @@ import { Color, RGBColor } from 'react-color';
 import classNames from 'classnames';
 
 interface Props {
-  receivedError: boolean;
+  //receivedError: boolean;
   isLoading: boolean;
   registerContext: (context: CanvasRenderingContext2D) => void;
   updatePosition: (x: number, y: number) => void;
@@ -259,7 +259,8 @@ class Canvas extends Component<Props, State> {
   }
 
   render() {
-    const { receivedError, zoomFactor, setZoomFactor, isLoading } = this.props;
+    //const { receivedError, zoomFactor, setZoomFactor, isLoading } = this.props;
+    const { zoomFactor, setZoomFactor, isLoading } = this.props;
     const {
       translateX,
       translateY,
