@@ -1,6 +1,6 @@
 name: build & test backend
 
-on: [push, pull_request]
+on: pull_request
 
 jobs:
   build-backend:
