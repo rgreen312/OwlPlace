@@ -147,8 +147,9 @@ type TestingMsg struct {
 }
 
 type DrawResponseMsg struct {
-	Type   MsgType `json:"type"`
-	Status int     `json:"status"`
+	Type          MsgType `json:"type"`
+	Status        int     `json:"status"`
+	RemainingTime int     `json:"remainingTime"`
 }
 
 type VerificationFailMsg struct {
@@ -175,10 +176,25 @@ func MakeTestingMessage(s string) []byte {
 	return b
 }
 
-func MakeStatusMessage(s int) []byte {
+func MakeStatusMessage(s int, remaining int) []byte {
 	msg := DrawResponseMsg{
-		Type:   DrawResponse,
-		Status: s,
+		Type:          DrawResponse,
+		Status:        s,
+		RemainingTime: remaining,
+	}
+
+	b, err := json.Marshal(msg)
+	if err != nil {
+		log.Println(err)
+	}
+	return b
+}
+
+func MakeCooldownMessage(time int) []byte {
+	msg := DrawResponseMsg{
+		Type:          DrawResponse,
+		Status:        429,
+		RemainingTime: time,
 	}
 
 	b, err := json.Marshal(msg)
