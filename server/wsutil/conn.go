@@ -29,7 +29,6 @@ const (
 	wsUpgraderReadBufferSize  = 1024
 	wsUpgraderWriteBufferSize = 1024
 )
-const ()
 
 var (
 	newline  = []byte{'\n'}
@@ -98,7 +97,7 @@ func (c *Client) handleDrawPixel(p []byte) {
 	err = c.cons.SyncUpdatePixel(dpMsg.X, dpMsg.Y, dpMsg.R, dpMsg.G, dpMsg.B, common.AlphaMask)
 	if err != nil {
 		// Here we'd like to indicate a server error to the client.
-		message := common.MakeStatusMessage(503)
+		message := common.MakeStatusMessage(503, int(timeSinceLastMove.Seconds()))
 		c.Send <- message
 		return
 	}
@@ -106,7 +105,7 @@ func (c *Client) handleDrawPixel(p []byte) {
 	err = c.cons.SyncSetLastUserModification(dpMsg.UserID, time.Now())
 	if err != nil {
 		// Here we'd like to indicate a server error to the client.
-		message := common.MakeStatusMessage(503)
+		message := common.MakeStatusMessage(503, int(common.Cooldown.Seconds()))
 		c.Send <- message
 		return
 	}

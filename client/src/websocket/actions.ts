@@ -101,9 +101,8 @@ export const openWebSocket = () => (dispatch, getState) => {
             }
           } else if (status == 429) {
             // If the user's cooldown hasn't expired yet
-            let remainingTime = json.remainingTime;
-            if (remainingTime > 0) {
-              dispatch(setTimeToNextMove(remainingTime));
+            if (json.remainingTime > 0) {
+              dispatch(setTimeToNextMove(json.remainingTime));
             } else {
               // this might happen if someone manually makes a status message with code 429...
               console.log("Received an ill-formatted DRAWRESPONSE cooldown message from the server!");
