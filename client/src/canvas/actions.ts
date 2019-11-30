@@ -2,7 +2,7 @@
 // import { HOSTNAME } from '../constants';
 import { Color } from './types';
 import * as ActionTypes from './actionTypes';
-import { getZoomFactor, getCanvasContext } from './selectors';
+import { getZoomFactor } from './selectors';
 import { getWebSocket } from '../websocket/selectors';
 import { getUserEmail } from '../login/selectors';
 import { connectError, makeUpdateMessage } from '../websocket/actions';

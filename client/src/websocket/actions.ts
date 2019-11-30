@@ -99,7 +99,7 @@ export const openWebSocket = () => (dispatch, getState) => {
               dispatch(setColor(x, y, r, g, b));
               dispatch({ type: CanvasActionTypes.UpdatePixelError });
             }
-          } else if (status == 429) {
+          } else if (status === 429) {
             // If the user's cooldown hasn't expired yet
             if (json.remainingTime > 0) {
               dispatch(setTimeToNextMove(json.remainingTime));

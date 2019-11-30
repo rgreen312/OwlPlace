@@ -1,6 +1,6 @@
 import * as ActionTypes from './actionTypes';
 import { getWebSocket } from '../websocket/selectors';
-import { makeLoginMessage, connectError, sendLoginMessage } from '../websocket/actions';
+import { makeLoginMessage, connectError } from '../websocket/actions';
 
 const loginStart = () => ({
   type: ActionTypes.LoginStart
