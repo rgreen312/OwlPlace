@@ -61,7 +61,7 @@ export const login = () => async (dispatch, getState) => {
   }
 }
 
-export const checkLogin = () => async dispatch => {
+export const checkLogin = () => async (dispatch, getState) => {
   dispatch(loginStart());
 
   /**
@@ -95,7 +95,12 @@ export const checkLogin = () => async dispatch => {
            const googleUser = gapi.auth2.getAuthInstance().currentUser.get();
            const profile = googleUser.getBasicProfile();
            dispatch(loginSuccess(profile.getName(), profile.getName(), profile.getEmail())); 
-           dispatch(sendLoginMessage(makeLoginMessage(profile.getEmail()))); 
+
+           const socket = getWebSocket(getState());
+
+           if (socket) {
+             socket.send(makeLoginMessage(profile.getEmail()));
+           }
          }
        }
      );

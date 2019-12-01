@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: owlplace-backend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: owlplace-backend
+  template:
+    metadata:
+      labels:
+        app: owlplace-backend
+    spec:
+      containers:
+        - name: owlplace-backend
+          image: "southpawac/owlplace"
+          ports:
+            - name: https
+              containerPort: 3001
+            - name: tcp
+              containerPort: 3010
+          env:
+            - name: MY_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: MY_POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: MY_POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP

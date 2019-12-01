@@ -47,8 +47,6 @@ const Header: FC<Props> = ({
       </Menu.Item>
 
       {isLoggedIn && <Menu.Item onClick={onLogout}>Sign Out</Menu.Item>}
-
-      {window.location.hostname === 'localhost' && <Menu.Item><Link to='/testing'>Testing</Link></Menu.Item>}
     </Menu>
   );
 
