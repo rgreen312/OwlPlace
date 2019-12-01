@@ -49,6 +49,13 @@ export const openWebSocket = () => (dispatch, getState) => {
         socket.send(makeLoginMessage(getUserEmail(getState())!)); 
       }
       
+      setInterval(() => {
+        socket.send(JSON.stringify({
+          type: -1,
+          message: 'heartbeat'
+        }))
+      }, 3000)
+      
     dispatch(connectSuccess(socket));
   };
 
