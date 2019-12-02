@@ -1,17 +1,5 @@
 {
-    "1": {
-        "hostname": "backend1",
-        "api_port": 3000,
-        "consensus_port": 63000
-    },
-    "2": {
-        "hostname": "backend2",
-        "api_port": 3000,
-        "consensus_port": 63000
-    },
-    "3": {
-        "hostname": "backend3",
-        "api_port": 3000,
-        "consensus_port": 63000
-    }
+    "1": "backend1:3010",
+    "2": "backend2:3010",
+    "3": "backend3:3010"
 }

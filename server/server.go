@@ -1,10 +1,19 @@
 package main
 
 import (
+	"flag"
 	"os"
+	"strconv"
 
 	"github.com/rgreen312/owlplace/server/apiserver"
+	"github.com/rgreen312/owlplace/server/consensus"
 	log "github.com/sirupsen/logrus"
+)
+
+const (
+	NAMESPACE        = "dev"
+	OWLPLACE_NODEID  = "OWLPLACE_NODEID"
+	OWLPLACE_ADDRESS = "OWLPLACE_ADDRESS"
 )
 
 func initLogging() {
@@ -17,13 +26,44 @@ func initLogging() {
 }
 
 func main() {
+	membershipFile := flag.String("members", "", "Membership file containing a list of servers belonging to the cluster.")
+	flag.Parse()
+
 	// Initialize logrus
 	initLogging()
 
-	// Start server
-	server, err := apiserver.NewApiServer(os.Getenv("MY_POD_IP"))
+	// Recover nodeID and service address through environment variables:
+	stringNodeID := os.Getenv(OWLPLACE_NODEID)
+	nodeID, err := strconv.Atoi(stringNodeID)
+	if err != nil {
+		log.Fatalf("Invalid nodeID: '%s', provide via environment variable '%s'", stringNodeID, OWLPLACE_NODEID)
+	}
+	address := os.Getenv(OWLPLACE_ADDRESS)
+	if address == "" {
+		log.Fatalf("Provide owlplace address via environment variable '%s'", OWLPLACE_ADDRESS)
+	}
+
+	var membershipProvider consensus.MembershipProvider
+
+	// This indicates we'd like to use k8s as a discovery service.
+	if *membershipFile == "" {
+		membershipProvider, err = consensus.NewKubernetesMembershipProvider(NAMESPACE)
+	} else {
+		membershipProvider, err = consensus.StaticMembershipFromFile(*membershipFile)
+	}
+
 	if err != nil {
 		log.Fatal(err)
 	}
-	server.ListenAndServe()
+
+	// Start server
+	server, err := apiserver.NewApiServer(uint64(nodeID), address, membershipProvider)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = server.ListenAndServe()
+	if err != nil {
+		log.Fatal(err)
+	}
 }

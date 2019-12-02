@@ -70,5 +70,4 @@ COPY --from=builder /usr/local/rocksdb/include/rocksdb /usr/include/rocksdb
 COPY --from=compile-image /app/server /bin/server
 
 ENV NODEID 0
-ENV CONFIG /usr/share/owlplace.json
-CMD "/bin/server" "-nodeid" "$NODEID" "-config" "$CONFIG"
+CMD "/bin/server"

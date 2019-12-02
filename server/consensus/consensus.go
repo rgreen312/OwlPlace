@@ -5,10 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"image"
-	"os"
+	"net/http"
 	"os/signal"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"syscall"
 	"time"
 
@@ -20,9 +21,6 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/rgreen312/owlplace/server/common"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 )
 
 const (
@@ -46,43 +44,33 @@ type IConsensus interface {
 
 type ConsensusService struct {
 	nh         *dragonboat.NodeHost
-	config     string
 	raftConfig config.Config
 	dkv        *DiskKV
 	nodeId     uint64
 	clusterId  uint64
 	Broadcast  chan []byte
-	// TODO: pull this out when we start using the kubernetes discovery
-	// service.
-	peers map[uint64]string
+	mp         MembershipProvider
+    discoveryTicker *time.Ticker
+    discoveryCloser chan bool
 }
 
-func NewConsensusService(servers map[uint64]string, nodeId uint64, broadcast chan []byte) (*ConsensusService, error) {
+func NewConsensusService(mp MembershipProvider, nodeId uint64, broadcast chan []byte) (*ConsensusService, error) {
 
-	conf, ok := servers[nodeId]
+	// Retrieve current cluster membership.
+	servers, err := mp.GetMembership()
+	if err != nil {
+		return nil, errors.Wrap(err, "retrieving cluster membership")
+	}
+
+	nodeAddr, ok := servers[nodeId]
 	if !ok {
 		return nil, errors.Wrapf(DragonboatConfigurationError, "NodeID provided (%d) not present in server map.", nodeId)
 	}
-
-	nodeAddr := fmt.Sprintf("%s:%d", conf, common.ConsensusPort)
 
 	// https://github.com/golang/go/issues/17393
 	if runtime.GOOS == "darwin" {
 		signal.Ignore(syscall.Signal(0xd))
 	}
-
-	peers := make(map[uint64]string)
-	if len(servers) > 1 {
-		for id, srv := range servers {
-			peers[uint64(id)] = fmt.Sprintf("%s:%d", srv, common.ConsensusPort)
-		}
-	}
-
-	log.WithFields(log.Fields{
-		"node address": nodeAddr,
-		"node id":      nodeId,
-		"peers":        peers,
-	}).Debug()
 
 	// dragonboat provides it's own logging utilities.
 	logger.GetLogger("raft").SetLevel(logLevel)
@@ -132,10 +120,8 @@ func NewConsensusService(servers map[uint64]string, nodeId uint64, broadcast cha
 	return &ConsensusService{
 		nh:         nh,
 		dkv:        NewDiskKV(ClusterID, uint64(nodeId), broadcast),
-		config:     conf,
 		nodeId:     nodeId,
 		clusterId:  ClusterID,
-		peers:      peers,
 		raftConfig: rc,
 		Broadcast:  broadcast,
 	}, nil
@@ -171,96 +157,85 @@ func (cs *ConsensusService) SyncUpdatePixel(x, y, r, g, b, a int) error {
 	return nil
 }
 
-func (cs *ConsensusService) ScanDiscoveryService() {
-	for {
+func (cs *ConsensusService) scanDiscoveryService() {
+    cs.discoveryTicker := time.NewTicker(10000 * time.Millisecond)
+    cs.discoveryCloser := make(chan bool)
+    go func() {
+        for {
+            select {
+            case <-cs.discoveryCloser:
+                return
+            case t := <-ticker.C:
+                log.Debug("scanning discovery service")
 
-		fmt.Fprintf(os.Stdout, "Scanning Discovery Service\n")
+                desiredMembers, err := cs.mp.GetMembership()
+                if err != nil {
+                    // TODO: handle error
+                    continue
+                }
 
-		//Actually scan discovery service
-		config, err := rest.InClusterConfig()
-		if err != nil {
-			log.WithFields(log.Fields{
-				"err": err,
-			}).Error("retrieving cluster config")
-			continue
-		}
-		clientset, err := kubernetes.NewForConfig(config)
-		if err != nil {
-			log.WithFields(log.Fields{
-				"err": err,
-			}).Error("creating API handle")
-			continue
-		}
+                actualMembership, err := cs.nh.SyncGetClusterMembership(context.Background(), ClusterID)
+                if err != nil {
+                    // TODO: handle error
+                    continue
+                }
+                actualMembers := actualMembership.Nodes
 
-		pods, err := clientset.CoreV1().Pods("dev").List(metav1.ListOptions{})
-		if err != nil {
-			log.WithFields(log.Fields{
-				"err": err,
-			}).Error("listing dev pods")
-			continue
-		}
+                for nodeID, address := range desiredMembers {
+                    if _, ok := actualMembers[nodeID]; ok {
+                        // TODO: should we check to make sure the address is the same?
+                        // otherwise, we can simply continue here as we only want to
+                        // add new nodes here.
+                        continue
+                    }
 
-		for _, pod := range pods.Items {
-			if _, ok := cs.peers[common.IPToNodeId(pod.Status.PodIP)]; !ok {
+                    err := cs.requestAddNode(nodeID, address)
+                    if err != nil {
+                        // TODO: handle this error
+                        continue
+                    }
 
-				// Adding pod to cluster
-				nodeId := common.IPToNodeId(pod.Status.PodIP)
-				request_data, request_err := cs.nh.RequestAddNode(ClusterID, uint64(nodeId), fmt.Sprintf("%s:%d", pod.Status.PodIP, common.ConsensusPort), 0, 1000*time.Millisecond)
-				if request_err != nil {
-					log.WithFields(log.Fields{
-						"new nodeID": nodeId,
-						"new PodIP":  pod.Status.PodIP,
-						"err":        request_err,
-						"ClusterID":  ClusterID,
-					}).Debug("adding node to cluster")
-				}
+                }
+            }
+        }
+    }()
+}
 
-				// add new pod to server map
-				cs.peers[nodeId] = pod.Status.PodIP
-
-				// Wait for response or timeout
-				results := <-request_data.CompletedC
-
-				if results.Completed() {
-
-					log.WithFields(log.Fields{
-						"new nodeID": nodeId,
-						"new PodIP":  pod.Status.PodIP,
-						"ClusterID":  ClusterID,
-					}).Debug("successfully added node to cluster")
-
-					fmt.Fprintf(os.Stdout, "Pod join success\n")
-					// TODO: I don't think we want to do this here.  Dragonboat
-					// should properly handle adding this node to the other
-					// servers.  Addl. the code that gets called in
-					// consensus_join_message ends up just starting the
-					// consensus service again, which is not what we want to
-					// do.
-					// Send an http join request to the other nodes
-					//_, err := http.Get(fmt.Sprintf("http://%s:%d/consensus_join_message", pod.Status.PodIP, common.ApiPort))
-					//if err != nil {
-					//panic(err)
-					//}
-				} else {
-					log.WithFields(log.Fields{
-						"new nodeID": nodeId,
-						"new PodIP":  pod.Status.PodIP,
-						"ClusterID":  ClusterID,
-						"result":     results.GetResult(),
-					}).Error("failed to add node to cluster")
-				}
-
-			}
-
-		}
-
-		// TODO: this should be replaced with a ticker and a go-routine.  See:
-		//  https://gobyexample.com/tickers
-		// This way we don't have to busy wait!
-		// Wait for 10 seconds before scanning again
-		time.Sleep(10000 * time.Millisecond)
-
+func (cs *ConsensusService) requestAddNode(nodeID uint64, address string) error {
+	requestData, err := cs.nh.RequestAddNode(ClusterID, uint64(nodeID), address, 0, 1*time.Second)
+	if err != nil {
+		log.WithFields(log.Fields{
+			"nodeID":  nodeID,
+			"address": address,
+			"err":     err,
+		}).Debug("adding node to cluster")
+		return errors.Wrapf(err, "adding node (ID=%d) to cluster", nodeID)
 	}
+
+	// Wait for response or timeout
+	results := <-requestData.CompletedC
+
+	if !results.Completed() {
+		log.WithFields(log.Fields{
+			"nodeID":  nodeID,
+			"address": address,
+			"result":  results.GetResult(),
+		}).Error("failed to add node to cluster")
+
+		return errors.Wrapf(errors.New("failed to add node to cluster"), "request results: %+v", results.GetResult())
+	}
+
+	_, err = http.Get(fmt.Sprintf("http://%s:%d/consensus_join_message", strings.Split(address, ":")[0], common.ApiPort))
+	if err != nil {
+		return errors.Wrap(err, "sending consensus join message")
+	}
+
+	log.WithFields(log.Fields{
+		"nodeID":  nodeID,
+		"address": address,
+	}).Debug("successfully added node to cluster")
+
+	return nil
 }
 
 func (cs *ConsensusService) SyncGetLastUserModification(userId string) (*time.Time, error) {
@@ -315,23 +290,31 @@ func (cs *ConsensusService) Start(join bool) error {
 		return cs.dkv
 	}
 
-	peers := make(map[uint64]string)
+	var initialMembers map[uint64]string
+	var err error
 	if !join {
-		peers = cs.peers
+		initialMembers, err = cs.mp.GetMembership()
+		if err != nil {
+			return errors.Wrap(err, "retrieving initial cluster members")
+		}
+	} else {
+		initialMembers = make(map[uint64]string)
 	}
 
 	log.WithFields(log.Fields{
-		"peers":                cs.peers,
+		"initialMembers":       initialMembers,
 		"join":                 join,
 		"stateMachineProvider": stateMachineProvider,
 		"raft config":          cs.raftConfig,
 	}).Debug("starting on disk cluster")
-	err := cs.nh.StartOnDiskCluster(peers, join, stateMachineProvider, cs.raftConfig)
-	go cs.ScanDiscoveryService()
+	err = cs.nh.StartOnDiskCluster(initialMembers, join, stateMachineProvider, cs.raftConfig)
+	go cs.scanDiscoveryService()
 	return err
 }
 
 // TODO(gabe): figure out how to shutdown a dragonboat node
 func (cs *ConsensusService) Stop() error {
+    // shut down the goroutine responsible for scanning k8s for new pods
+    cs.discoveryCloser <- true
 	return nil
 }

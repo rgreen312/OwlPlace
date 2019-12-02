@@ -13,10 +13,6 @@ import (
 	"github.com/rgreen312/owlplace/server/common"
 	"github.com/rgreen312/owlplace/server/consensus"
 	"github.com/rgreen312/owlplace/server/wsutil"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 )
 
 var (
@@ -24,109 +20,102 @@ var (
 )
 
 type ApiServer struct {
-	pod_ip  string
-	node_id uint64
-	pool    *wsutil.Pool
-	cons    consensus.IConsensus
+	nodeID   uint64
+	nodeAddr string
+	pool     *wsutil.Pool
+	mp       consensus.MembershipProvider
+	cons     consensus.IConsensus
 }
 
-func NewApiServer(pod_ip string) (*ApiServer, error) {
+func NewApiServer(nodeID uint64, nodeAddr string, mp consensus.MembershipProvider) (*ApiServer, error) {
 	// First we create the pool because we're going to share it's broadcast
 	// channel with the consensus service.
 	pool := wsutil.NewPool()
 	go pool.Run()
 
-	nodeID := common.IPToNodeId(pod_ip)
-	log.WithFields(log.Fields{
-		"pod ip":  pod_ip,
-		"node id": nodeID,
-	})
-
 	return &ApiServer{
-		pod_ip:  pod_ip,
-		node_id: nodeID,
-		pool:    pool,
+		nodeID:   nodeID,
+		nodeAddr: nodeAddr,
+		pool:     pool,
+		mp:       mp,
 	}, nil
 }
 
-func (api *ApiServer) ListenAndServe() {
+func (api *ApiServer) ListenAndServe() error {
+
+	log.WithFields(log.Fields{
+		"api address": fmt.Sprintf("%s:%d", api.nodeAddr, common.ApiPort),
+		"nodeID":      api.nodeID,
+	}).Info("owlplace is listening for a trigger to form a dragonboat cluster")
+
 	http.HandleFunc("/", api.HealthCheck)
 	http.HandleFunc("/json/image", api.HTTPGetImageJson)
 	http.HandleFunc("/ws", api.ServeWs)
 	http.HandleFunc("/update_pixel", api.HTTPUpdatePixel)
-	http.HandleFunc("/consensus_trigger", func(w http.ResponseWriter, req *http.Request) {
-		api.httpConsensusTrigger(false, w, req)
-	})
-	http.HandleFunc("/consensus_join_message", func(w http.ResponseWriter, req *http.Request) {
-		api.httpConsensusTrigger(true, w, req)
-	})
+	http.HandleFunc("/consensus_trigger", api.startConsensus)
+	http.HandleFunc("/consensus_join_message", api.joinConsensus)
 
-	// Although there is nothing wrong with this line, it prevents us from
-	// running multiple nodes on a single machine.  Therefore, I am making
-	// failure non-fatal until we have some way of running locally from the
-	// same port (i.e. docker)
-	// log.Fatal(http.ListenAndServe(":3010", nil))
-	http.ListenAndServe(fmt.Sprintf(":%d", common.ApiPort), nil)
+	return http.ListenAndServe(fmt.Sprintf(":%d", common.ApiPort), nil)
+}
+
+// joinCluster is an HTTP endpoint which indicates that there is an existing
+// Dragonboat cluster which can be joined.  This endpoint should not be called
+// manually, but rather triggered by the member which receives a consensus
+// trigger.
+func (api *ApiServer) joinConsensus(w http.ResponseWriter, req *http.Request) {
+	// Start the consensus service in the background
+	var err error
+	api.cons, err = consensus.NewConsensusService(api.mp, api.nodeID, api.pool.Broadcast)
+	if err != nil {
+		http.Error(w, errors.Wrap(err, "creating the ConsensusService").Error(), http.StatusInternalServerError)
+	}
+
+	joinExistingCluster := true
+	err = api.cons.Start(joinExistingCluster)
+	if err != nil {
+		http.Error(w, errors.Wrap(err, "starting the ConsensusService").Error(), http.StatusInternalServerError)
+	}
+
+	// Otherwise, indicate a successful join.
+	w.WriteHeader(200)
 }
 
 // startConsensus attempts to start the consensus module with a list of peers
 // collected from k8s.
-func (api *ApiServer) startConsensus(join bool) error {
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		return errors.Wrap(err, "retrieving cluster config")
-	}
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return errors.Wrap(err, "creating API handle")
-	}
-
-	pods, err := clientset.CoreV1().Pods("dev").List(metav1.ListOptions{})
-	if err != nil {
-		return errors.Wrap(err, "listing dev pods")
-	}
-
-	log.WithFields(log.Fields{
-		"numPods": len(pods.Items),
-	}).Debug("finding cluster peers")
-
-	servers := make(map[uint64]string)
-	for _, pod := range pods.Items {
-		if pod.Status.PodIP != api.pod_ip && !join {
-			// Send an http join request to the other nodes
-			_, err := http.Get(fmt.Sprintf("http://%s:%d/consensus_join_message", pod.Status.PodIP, common.ApiPort))
-			if err != nil {
-				return errors.Wrapf(err, "sending join request to server: %s:%d", pod.Status.PodIP, common.ApiPort)
-			}
-		}
-		servers[common.IPToNodeId(pod.Status.PodIP)] = pod.Status.PodIP
-
-	}
+func (api *ApiServer) startConsensus(w http.ResponseWriter, req *http.Request) {
 
 	// Start the consensus service in the background
-	api.cons, err = consensus.NewConsensusService(servers, api.node_id, api.pool.Broadcast)
+	var err error
+	api.cons, err = consensus.NewConsensusService(api.mp, api.nodeID, api.pool.Broadcast)
 	if err != nil {
-		return errors.Wrap(err, "creating the ConsensusService")
+		http.Error(w, errors.Wrap(err, "creating the ConsensusService").Error(), http.StatusInternalServerError)
+        return
 	}
 
-	err = api.cons.Start(join)
+	// This parameter indicates that we're not joining an existing cluster, but
+	// forming a new one.
+	joinExistingCluster := false
+	err = api.cons.Start(joinExistingCluster)
 	if err != nil {
-		return errors.Wrap(err, "starting ConsensusService")
+		http.Error(w, errors.Wrap(err, "starting the ConsensusService").Error(), http.StatusInternalServerError)
+        return
 	}
 
-	return nil
-}
+	// Send a join request to the remaining members.
+	servers, err := api.mp.GetMembership()
 
-func (api *ApiServer) httpConsensusTrigger(join bool, w http.ResponseWriter, req *http.Request) {
-	log.WithFields(log.Fields{
-		"pod ip": api.pod_ip,
-		"join":   join,
-	}).Debug("ConsensusTrigger request received")
-
-	err := api.startConsensus(join)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	// servers contains a mapping from nodeID to a full consensus URI, e.g.
+	// domain:consensusPort.  We wish to make an HTTP request against the API
+	// port.
+	for _, conAddress := range servers {
+		apiAddress := common.ReplacePort(conAddress, common.ApiPort)
+		// Send an HTTP join request to the other nodes
+		_, err := http.Get(fmt.Sprintf("http://%s/consensus_join_message", apiAddress))
+		if err != nil {
+			// TODO: handle error.  I think we should collect all errors here
+			// and then report failure using http.Error as demonstrated above.
+			continue
+		}
 	}
 }
 
