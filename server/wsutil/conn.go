@@ -215,8 +215,7 @@ func (c *Client) readPump() {
 	for {
 		_, p, err := c.conn.ReadMessage()
 		if err != nil {
-			// If the error we receive is NOT in the list of expected codes
-			// (CloseGoingAway/CloseAbnormalClosure), report the error.
+			// (CloseGozngAway/CloseAbnormalClosure), report the error.
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				log.WithFields(log.Fields{
 					"err": err,

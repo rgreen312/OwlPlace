@@ -34,10 +34,11 @@ type ApiServer struct {
 }
 
 func NewApiServer(pod_ip string) (*ApiServer, error) {
+	nodeid, err := common.IPToNodeId(pod_ip)
 	return &ApiServer{
 		pod_ip: pod_ip,
-		node_id: common.IPToNodeId(pod_ip),
-	}, nil
+		node_id: nodeid,
+	}, err
 }
 
 
@@ -63,12 +64,12 @@ func (api *ApiServer) StartConsensus(join bool){
 		if(pod.Status.PodIP != api.pod_ip && !join){
 			// Send an http join request to the other nodes
 			_, err := http.Get(fmt.Sprintf("http://%s:%d/consensus_join_message", pod.Status.PodIP, common.ApiPort))
-			if(err != nil){
+			if(err != nil) {
 				panic(err)
 			}
 		}
-		servers[common.IPToNodeId(pod.Status.PodIP)] = pod.Status.PodIP
-			
+		nodeid, _ := common.IPToNodeId(pod.Status.PodIP)
+		servers[nodeid] = pod.Status.PodIP
     }
 	//At first, just print something so that we know http requests are working inside kubernetes
 	fmt.Fprintf(os.Stdout, "Pod Trigger Called\n")

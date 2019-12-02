@@ -192,12 +192,15 @@ func ScanDiscoveryService(servers map[uint64]string, nh *dragonboat.NodeHost){
 		}
 
 		for _, pod := range pods.Items {
-			if _, ok := servers[common.IPToNodeId(pod.Status.PodIP)]; !ok {
+			nodeId, err := common.IPToNodeId(pod.Status.PodIP)
+			if(err != nil){
+				continue
+			}
+			if _, ok := servers[nodeId]; !ok {
 
 				fmt.Fprintf(os.Stdout, "Found pod that's not in cluster\n")
 
 				// Adding pod to server map
-				nodeId := common.IPToNodeId(pod.Status.PodIP)
 				servers[nodeId] = pod.Status.PodIP
 
 				// Adding pod to cluster 
@@ -218,11 +221,8 @@ func ScanDiscoveryService(servers map[uint64]string, nh *dragonboat.NodeHost){
 					}
 				} else {
 					fmt.Fprintf(os.Stdout, "Pod join failure\n")
-				}
-
-	
-			}
-			
+				}	
+			}	
 	    }
 
 		// Wait for 10 seconds before scanning again

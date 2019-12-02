@@ -5,6 +5,7 @@ import (
 	"strings"
 	"fmt"
 	"strconv"
+	"os"
 )
 
 const (
@@ -32,12 +33,16 @@ const (
 )
 
 
-func IPToNodeId(ip_address string) uint64 {
+func IPToNodeId(ip_address string) (uint64, error) {
 	// This function maps ip addresses to node-ids
 	components := strings.Split(ip_address, ".")
-	combined := fmt.Sprintf("%03s%03s", components[2], components[3])
-	node_id, _ := strconv.Atoi(combined)
-	return uint64(node_id)
+	if(len(components) == 4){
+		combined := fmt.Sprintf("%03s%03s", components[2], components[3])
+		node_id, _ := strconv.Atoi(combined)
+		return uint64(node_id), nil
+	} else {
+		return 0, os.ErrExist
+	}
 }
 
 /*
