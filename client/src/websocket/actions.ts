@@ -7,28 +7,28 @@ import { setImage, setTimeToNextMove } from '../canvas/actions';
 import { getCanvasContext, getLastMove } from '../../src/canvas/selectors';
 import { getUserEmail } from '../login/selectors';
 const startConnect = () => ({
-  type: ActionTypes.StartConnect
+  type: ActionTypes.StartConnect,
 });
-export type StartConnect =  ReturnType<typeof startConnect>;
+export type StartConnect = ReturnType<typeof startConnect>;
 
 export const connectError = (error: string) => ({
   type: ActionTypes.ConnectError,
   payload: {
-    error
-  }
+    error,
+  },
 });
-export type ConnectError =  ReturnType<typeof connectError>;
+export type ConnectError = ReturnType<typeof connectError>;
 
 const closeConnection = () => ({
   type: ActionTypes.CloseConnection,
 });
-export type CloseConnection =  ReturnType<typeof closeConnection>;
+export type CloseConnection = ReturnType<typeof closeConnection>;
 
 const connectSuccess = (socket: WebSocket) => ({
   type: ActionTypes.ConnectSuccess,
   payload: {
-    socket
-  }
+    socket,
+  },
 });
 export type ConnectSuccess = ReturnType<typeof connectSuccess>;
 
@@ -36,32 +36,38 @@ export const openWebSocket = () => (dispatch, getState) => {
   dispatch(startConnect());
 
   const socket = new WebSocket(`ws://${HOSTNAME}/ws`);
-    // open message is 0
-    socket.onopen = () => {
+  // open message is 0
+  socket.onopen = () => {
+    console.log('websocket opened');
+    socket.send(
+      JSON.stringify({
+        type: MsgType.OPEN,
+        message: 'Hi From the Client! The websocket just opened',
+      })
+    );
+
+    if (getUserEmail(getState())) {
+      socket.send(makeLoginMessage(getUserEmail(getState())!));
+    }
+
+    setInterval(() => {
       socket.send(
         JSON.stringify({
-          type: 0,
-          message: "Hi From the Client! The websocket just opened"
+          type: -1,
+          message: 'heartbeat',
         })
       );
+    }, 3000);
 
-      if (getUserEmail(getState())) {
-        socket.send(makeLoginMessage(getUserEmail(getState())!)); 
-      }
-      
-      setInterval(() => {
-        socket.send(JSON.stringify({
-          type: -1,
-          message: 'heartbeat'
-        }))
-      }, 3000)
-      
     dispatch(connectSuccess(socket));
   };
 
   // close message is 9
   socket.onclose = event => {
     dispatch(closeConnection());
+    setTimeout(function() {
+      openWebSocket()(dispatch, getState);
+    }, 1000);
   };
 
   socket.onerror = error => {
@@ -71,71 +77,77 @@ export const openWebSocket = () => (dispatch, getState) => {
   socket.onmessage = event => {
     const { data } = event;
     let json = JSON.parse(data);
-    console.log("RECEIVED: " + json.type);
+    console.log('RECEIVED: ' + json.type);
     switch (json.type) {
-        case MsgType.IMAGE: {
-            // let msg = new ImageMsg(data.formatString); //now what?
-            let imageString = json.formatString
-            console.log("Received an IMAGE message from the server!");
-            dispatch(setImage('data:image/png;base64,' + imageString));
-            break;
-        }
-        case MsgType.TESTING: {
-          console.log("Received a TESTING message from the server!");
-          console.log("Message: " + json.msg);
-          break;
-        }
-        case MsgType.CHANGECLIENTPIXEL: {
-          console.log("Received a CHANGECLIENTPIXEL message from the server!");
-          let x = json.x
-          let y = json.y
-          // let color = { r: json.r, g: json.g, b: json.b }
-          dispatch(setColor(x, y, json.r, json.g, json.b))
-          break;
-        }
-        case MsgType.DRAWRESPONSE: {
-          let status = json.status
-          console.log("Received a DRAWRESPONSE message from the server!");
-          console.log("The status was " + status);
-          if (status === 503) {
-            // If update fails, we reset the pixel to its previous color
-            const prevMove = getLastMove(getState());
-            if (prevMove) {
-              const { x, y } = prevMove.position;
-              const { r, g, b } = prevMove.color;
-              dispatch(setColor(x, y, r, g, b));
-              dispatch({ type: CanvasActionTypes.UpdatePixelError });
-            }
-          } else {
-            dispatch({ type: CanvasActionTypes.UpdatePixelSuccess });
+      case MsgType.IMAGE: {
+        // let msg = new ImageMsg(data.formatString); //now what?
+        let imageString = json.formatString;
+        console.log('Received an IMAGE message from the server!');
+        dispatch(setImage('data:image/png;base64,' + imageString));
+        break;
+      }
+      case MsgType.TESTING: {
+        console.log('Received a TESTING message from the server!');
+        console.log('Message: ' + json.msg);
+        break;
+      }
+      case MsgType.CHANGECLIENTPIXEL: {
+        console.log('Received a CHANGECLIENTPIXEL message from the server!');
+        let x = json.x;
+        let y = json.y;
+        // let color = { r: json.r, g: json.g, b: json.b }
+        dispatch(setColor(x, y, json.r, json.g, json.b));
+        break;
+      }
+      case MsgType.DRAWRESPONSE: {
+        let status = json.status;
+        console.log('Received a DRAWRESPONSE message from the server!');
+        console.log('The status was ' + status);
+        if (status === 503) {
+          // If update fails, we reset the pixel to its previous color
+          const prevMove = getLastMove(getState());
+          if (prevMove) {
+            const { x, y } = prevMove.position;
+            const { r, g, b } = prevMove.color;
+            dispatch(setColor(x, y, r, g, b));
+            dispatch({ type: CanvasActionTypes.UpdatePixelError });
           }
-          break;
+        } else {
+          dispatch({ type: CanvasActionTypes.UpdatePixelSuccess });
         }
-        case MsgType.VERIFICATIONFAIL: {
-          let status = json.status
-          console.log("Received a VERIFICATIONFAIL message from the server!");
-          console.log("The status was " + status);
-          // If user verification fails, direct to error page
-          dispatch({ type: ActionTypes.ConnectError });
-          break;
-        }
-        case MsgType.USERLOGINRESPONSE: {
-          let status = json.status
-          let cooldown = json.cooldown
-          console.log("The status was " + status);
-          console.log("The remaining cooldown time for current user is: " + cooldown);
-          dispatch(setTimeToNextMove(cooldown));
-          break;
-        }
-        default: {
-            console.log("Received a message from the server of an unknown type, message: " + data + " type: " + json.type) ;
-            break;
-        }
+        break;
+      }
+      case MsgType.VERIFICATIONFAIL: {
+        let status = json.status;
+        console.log('Received a VERIFICATIONFAIL message from the server!');
+        console.log('The status was ' + status);
+        // If user verification fails, direct to error page
+        dispatch({ type: ActionTypes.ConnectError });
+        break;
+      }
+      case MsgType.USERLOGINRESPONSE: {
+        let status = json.status;
+        let cooldown = json.cooldown;
+        console.log('The status was ' + status);
+        console.log(
+          'The remaining cooldown time for current user is: ' + cooldown
+        );
+        dispatch(setTimeToNextMove(cooldown));
+        break;
+      }
+      default: {
+        console.log(
+          'Received a message from the server of an unknown type, message: ' +
+            data +
+            ' type: ' +
+            json.type
+        );
+        break;
+      }
     }
     // TODO (Ryan): figure out the best way to handle this... probably need to write some middlewear
-
   };
-}
+};
 
 export const makeUpdateMessage = (
   id: string,
@@ -152,32 +164,36 @@ export const makeUpdateMessage = (
     y: y,
     r: r,
     g: g,
-    b: b
+    b: b,
   });
 };
 
-const setColor = (x: number, y: number, r: number, g: number, b: number) => (dispatch, getState) => {
-  console.log("inside set color in actions.ts")
+const setColor = (x: number, y: number, r: number, g: number, b: number) => (
+  dispatch,
+  getState
+) => {
+  console.log('inside set color in actions.ts');
   const state = getState();
   const ctx = getCanvasContext(state);
   if (ctx) {
-    ctx!.fillStyle = 'rgb('+ r + ',' + g + ',' + b + ')';
-    ctx!.fillRect(x , y , 1, 1);
+    ctx!.fillStyle = 'rgb(' + r + ',' + g + ',' + b + ')';
+    ctx!.fillRect(x, y, 1, 1);
   }
-}
+};
 
-export const makeLoginMessage = (
-  email: string
-) => {
+export const makeLoginMessage = (email: string) => {
   return JSON.stringify({
-    type: 2, 
-    email: email
-  })
-}
+    type: 2,
+    email: email,
+  });
+};
 
-export const sendUpdateMessage = (id, x, y, r, g, b) => (dispatch, getState) => {
+export const sendUpdateMessage = (id, x, y, r, g, b) => (
+  dispatch,
+  getState
+) => {
   const socket = getWebSocket(getState());
-  console.log("sending along websocket message")
+  console.log('sending along websocket message');
   if (socket) {
     socket.send(makeUpdateMessage(id, x, y, r, g, b));
 
@@ -191,15 +207,15 @@ export const sendUpdateMessage = (id, x, y, r, g, b) => (dispatch, getState) => 
     //   }
     // }
   }
-}
+};
 
-export const sendLoginMessage = (email) => (dispatch, getState) => {
-  console.log("sending login message for email: " + email)
+export const sendLoginMessage = email => (dispatch, getState) => {
+  console.log('sending login message for email: ' + email);
   const socket = getWebSocket(getState());
   if (socket) {
     socket.send(makeLoginMessage(email));
   }
-}
+};
 
 export const closeWebSocket = () => (dispatch, getState) => {
   const socket = getWebSocket(getState());
@@ -207,9 +223,9 @@ export const closeWebSocket = () => (dispatch, getState) => {
     socket.send(
       JSON.stringify({
         type: 9,
-        message: "Client Closed!"
+        message: 'Client Closed!',
       })
     );
   }
   dispatch(closeConnection());
-}
+};
