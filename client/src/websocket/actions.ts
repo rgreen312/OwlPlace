@@ -124,38 +124,35 @@ export const openWebSocket = () => (dispatch, getState) => {
             dispatch({ type: CanvasActionTypes.UpdatePixelSuccess });
 
           }
-        } else {
-          dispatch({ type: CanvasActionTypes.UpdatePixelSuccess });
+          break;
         }
-        break;
-      }
-      case MsgType.VERIFICATIONFAIL: {
-        let status = json.status;
-        console.log('Received a VERIFICATIONFAIL message from the server!');
-        console.log('The status was ' + status);
-        // If user verification fails, direct to error page
-        dispatch({ type: ActionTypes.ConnectError });
-        break;
-      }
-      case MsgType.USERLOGINRESPONSE: {
-        let status = json.status;
-        let cooldown = json.cooldown;
-        console.log('The status was ' + status);
-        console.log(
-          'The remaining cooldown time for current user is: ' + cooldown
-        );
-        dispatch(setTimeToNextMove(cooldown));
-        break;
-      }
-      default: {
-        console.log(
-          'Received a message from the server of an unknown type, message: ' +
-            data +
-            ' type: ' +
-            json.type
-        );
-        break;
-      }
+        case MsgType.VERIFICATIONFAIL: {
+          let status = json.status;
+          console.log('Received a VERIFICATIONFAIL message from the server!');
+          console.log('The status was ' + status);
+          // If user verification fails, direct to error page
+          dispatch({ type: ActionTypes.ConnectError });
+          break;
+        }
+        case MsgType.USERLOGINRESPONSE: {
+          let status = json.status;
+          let cooldown = json.cooldown;
+          console.log('The status was ' + status);
+          console.log(
+            'The remaining cooldown time for current user is: ' + cooldown
+          );
+          dispatch(setTimeToNextMove(cooldown));
+          break;
+        }
+        default: {
+          console.log(
+            'Received a message from the server of an unknown type, message: ' +
+              data +
+              ' type: ' +
+              json.type
+          );
+          break;
+        }
     }
     // TODO (Ryan): figure out the best way to handle this... probably need to write some middlewear
   };
