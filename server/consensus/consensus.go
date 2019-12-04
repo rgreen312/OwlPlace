@@ -200,17 +200,20 @@ func (cs *ConsensusService) ScanDiscoveryService() {
 			continue
 		}
 
+
+
+
 		for _, pod := range pods.Items {
 			nodeId, err := common.IPToNodeId(pod.Status.PodIP)
 			if(err != nil){
 				continue
 			}
-			if _, ok := servers[nodeId]; !ok {
+			if _, ok := cs.peers[nodeId]; !ok {
 
 				fmt.Fprintf(os.Stdout, "Found pod that's not in cluster\n")
 
 				// Adding pod to server map
-				servers[nodeId] = pod.Status.PodIP
+				cs.peers[nodeId] = pod.Status.PodIP
 
 				// Adding pod to cluster 
 				request_data, request_err := nh.RequestAddNode(ClusterID, uint64(nodeId), fmt.Sprintf("%s:%d", pod.Status.PodIP, common.ConsensusPort), 0, 1000*time.Millisecond)
