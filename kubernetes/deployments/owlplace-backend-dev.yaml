@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: owlplace-backend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: owlplace-backend
+  template:
+    metadata:
+      labels:
+        app: owlplace-backend
+    spec:
+      containers:
+
+        - name: owlplace-backend
+          image: "gcr.io/owlplace/owlplace"
+          ports:
+            - name: https
+              containerPort: 3001
+            - name: tcp
+              containerPort: 3010
+          env:
+            - name: MY_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: MY_POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: OWLPLACE_ADDRESS
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          resources:
+            requests:
+              memory: "2048Mi"
+              cpu: "200m"
+            limits:
+              memory: "2048Mi"
+              cpu: "200m"

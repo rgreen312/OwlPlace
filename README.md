@@ -11,11 +11,15 @@ have RocksDB installed you should be able to simply build the backend using a
 typical `go build`.  Alternatively, we have a make target available that builds a
 docker image: `make image`. 
 
+
+pushing and pulling image:
+https://cloud.google.com/container-registry/docs/pushing-and-pulling
+
 ## running
 
-There are two methods of running a set of owlplace servers together locally.
+There are a few methods of running a set of owlplace servers together.
 
-### docker compose
+### locally with docker compose
 
 Build the service image.
 ```
@@ -33,7 +37,7 @@ Send a trigger to one of the backend services.
 curl localhost:3001/consensus_trigger
 ```
 
-### minikube
+### locally with minikube
 
 You can test Kubernetes locally using
 [minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/)
@@ -43,24 +47,19 @@ You can test Kubernetes locally using
 3.) Run the following commands
 
 **Create Container**
+
 ```
-docker build . -f Dockerfile.server -t <username>/owlplace
-docker push <username>/owlplace
+make image
 ```
 
 **Initial Configuration**
 ```
-kubectl create -f kubernetes/namespaces/dev.yaml
-kubectl config set-context dev --namespace=dev --cluster=minikube --user=minikube
-kubectl config use-context dev
-kubectl create -f kubernetes/roles/pods-reader.yaml
-kubectl create clusterrolebinding service-reader-pod-dev-2 --clusterrole=service-reader-dev-2 --serviceaccount=dev:default
+make minikube-setup
 ```
 
 **Run the Deployment**
 ```
-kubectl create -f kubernetes/deployments/owlplace-backend.yaml
-kubectl expose deployment owlplace-backend --type=LoadBalancer
+make minikube-deploy
 kubectl get services
 ```
 
@@ -69,9 +68,11 @@ The last command will give you output that looks similar to the following
 NAME               TYPE           CLUSTER-IP     EXTERNAL-IP   PORT(S)          AGE
 owlplace-backend   LoadBalancer   10.99.205.94   <pending>     3001:32596/TCP   16m
 ```
-The only thing that matters here is the `32596` because that is the local port the forwards to our application.
 
-**Get your minikube ip address**
+The only thing that matters here is the `32596` because that is the local port
+the forwards to our application.
+
+**minikube IP address**
 ```
 minikube ip
 ```
@@ -79,6 +80,7 @@ minikube ip
 You will see the external IP address is pending for a while.
 
 **Start the cluster**
+
 ```
 curl -k <minikube ip>:<forward port>/consensus_trigger
 ```
@@ -88,6 +90,19 @@ curl -k <minikube ip>:<forward port>/consensus_trigger
 kubectl delete service,deployment owlplace-backend
 ```
 
-## deploying to k8s
+## deploying to a test cluster on gke
 
-TODO: add information on deploying to the production cluster
+Since our application is packaged with kubernetes, we can create a test cluster
+using GKE as well.
+
+```
+make gke-create
+```
+
+```
+make gke-setup
+```
+
+```
+make gke-deploy
+```

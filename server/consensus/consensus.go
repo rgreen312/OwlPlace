@@ -24,10 +24,10 @@ import (
 )
 
 const (
-	ClusterID     uint64 = 128
-	SyncOpTimeout        = 3 * time.Second
-	logLevel             = logger.ERROR
-    intervalDiscoveryServiceScan = 60 * time.Second
+	ClusterID                    uint64 = 128
+	SyncOpTimeout                       = 3 * time.Second
+	logLevel                            = logger.ERROR
+	intervalDiscoveryServiceScan        = 60 * time.Second
 )
 
 var (

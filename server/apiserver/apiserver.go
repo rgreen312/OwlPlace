@@ -109,11 +109,10 @@ func (api *ApiServer) HTTPGetImageJson(w http.ResponseWriter, req *http.Request)
 		return
 	}
 
-
 	encodedString := common.Base64Encode(img)
-    msg := map[string]string{
-        "data": encodedString,
-    }
+	msg := map[string]string{
+		"data": encodedString,
+	}
 
 	js, err := json.Marshal(msg)
 	if err != nil {

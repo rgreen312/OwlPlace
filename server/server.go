@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/rgreen312/owlplace/server/apiserver"
+	"github.com/rgreen312/owlplace/server/common"
 	"github.com/rgreen312/owlplace/server/consensus"
 	log "github.com/sirupsen/logrus"
 )
@@ -32,26 +33,33 @@ func main() {
 	// Initialize logrus
 	initLogging()
 
-	// Recover nodeID and service address through environment variables:
-	stringNodeID := os.Getenv(OWLPLACE_NODEID)
-	nodeID, err := strconv.Atoi(stringNodeID)
-	if err != nil {
-		log.Fatalf("Invalid nodeID: '%s', provide via environment variable '%s'", stringNodeID, OWLPLACE_NODEID)
-	}
+	// Recover service address through environment variables:
 	address := os.Getenv(OWLPLACE_ADDRESS)
 	if address == "" {
 		log.Fatalf("Provide owlplace address via environment variable '%s'", OWLPLACE_ADDRESS)
 	}
 
 	var membershipProvider consensus.MembershipProvider
+	var nodeID uint64
+	var err error
 
 	// This indicates we'd like to use k8s as a discovery service.
 	if *membershipFile == "" {
+		nodeID, err = common.IPToNodeId(address)
+        if err != nil {
+            log.Fatalf("Error constructing nodeID from address: '%s'\nerr: %s", address, err.Error())
+        }
 		membershipProvider, err = consensus.NewKubernetesMembershipProvider(NAMESPACE)
 	} else {
+		// Recover nodeID and service address through environment variables:
+		stringNodeID := os.Getenv(OWLPLACE_NODEID)
+        nodeIDInt, err := strconv.Atoi(stringNodeID)
+		nodeID = uint64(nodeIDInt)
+		if err != nil {
+			log.Fatalf("Invalid nodeID: '%s', provide via environment variable '%s'", stringNodeID, OWLPLACE_NODEID)
+		}
 		membershipProvider, err = consensus.StaticMembershipFromFile(*membershipFile)
 	}
-
 	if err != nil {
 		log.Fatal(err)
 	}
