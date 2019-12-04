@@ -33,6 +33,61 @@ Send a trigger to one of the backend services.
 curl localhost:3001/consensus_trigger
 ```
 
-### kubernetes
+### minikube
 
-**TODO**
+You can test Kubernetes locally using
+[minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/)
+
+1.) Install minikube
+2.) Start minikube
+3.) Run the following commands
+
+**Create Container**
+```
+docker build . -f Dockerfile.server -t <username>/owlplace
+docker push <username>/owlplace
+```
+
+**Initial Configuration**
+```
+kubectl create -f kubernetes/namespaces/dev.yaml
+kubectl config set-context dev --namespace=dev --cluster=minikube --user=minikube
+kubectl config use-context dev
+kubectl create -f kubernetes/roles/pods-reader.yaml
+kubectl create clusterrolebinding service-reader-pod-dev-2 --clusterrole=service-reader-dev-2 --serviceaccount=dev:default
+```
+
+**Run the Deployment**
+```
+kubectl create -f kubernetes/deployments/owlplace-backend.yaml
+kubectl expose deployment owlplace-backend --type=LoadBalancer
+kubectl get services
+```
+
+The last command will give you output that looks similar to the following
+```
+NAME               TYPE           CLUSTER-IP     EXTERNAL-IP   PORT(S)          AGE
+owlplace-backend   LoadBalancer   10.99.205.94   <pending>     3001:32596/TCP   16m
+```
+The only thing that matters here is the `32596` because that is the local port the forwards to our application.
+
+**Get your minikube ip address**
+```
+minikube ip
+```
+
+You will see the external IP address is pending for a while.
+
+**Start the cluster**
+```
+curl -k <minikube ip>:<forward port>/consensus_trigger
+```
+
+**Destroy the deployment**
+```
+kubectl delete service,deployment owlplace-backend
+```
+
+## deploying to k8s
+
+TODO: add information on deploying to the production cluster
