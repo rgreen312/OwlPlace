@@ -36,7 +36,7 @@ func NewApiServer(pod_ip string) (*ApiServer, error) {
 	pool := wsutil.NewPool()
 	go pool.Run()
 
-	nodeID := common.IPToNodeId(pod_ip)
+	nodeID, err := common.IPToNodeId(pod_ip)
 	log.WithFields(log.Fields{
 		"pod ip":  pod_ip,
 		"node id": nodeID,
@@ -46,7 +46,7 @@ func NewApiServer(pod_ip string) (*ApiServer, error) {
 		pod_ip:  pod_ip,
 		node_id: nodeID,
 		pool:    pool,
-	}, nil
+	}, err
 }
 
 func (api *ApiServer) ListenAndServe() {
@@ -99,8 +99,8 @@ func (api *ApiServer) startConsensus(join bool) error {
 				return errors.Wrapf(err, "sending join request to server: %s:%d", pod.Status.PodIP, common.ApiPort)
 			}
 		}
-		servers[common.IPToNodeId(pod.Status.PodIP)] = pod.Status.PodIP
-
+	  nodeid, _ := common.IPToNodeId(pod.Status.PodIP)
+		servers[nodeid] = pod.Status.PodIP
 	}
 
 	// Start the consensus service in the background

@@ -200,13 +200,24 @@ func (cs *ConsensusService) ScanDiscoveryService() {
 			continue
 		}
 
-		for _, pod := range pods.Items {
-			if _, ok := cs.peers[common.IPToNodeId(pod.Status.PodIP)]; !ok {
 
-				// Adding pod to cluster
-				nodeId := common.IPToNodeId(pod.Status.PodIP)
+
+
+		for _, pod := range pods.Items {
+			nodeId, err := common.IPToNodeId(pod.Status.PodIP)
+			if(err != nil){
+				continue
+			}
+			if _, ok := cs.peers[nodeId]; !ok {
+
+				fmt.Fprintf(os.Stdout, "Found pod that's not in cluster\n")
+
+				// Adding pod to server map
+				cs.peers[nodeId] = pod.Status.PodIP
+
+				// Adding pod to cluster 
 				request_data, request_err := cs.nh.RequestAddNode(ClusterID, uint64(nodeId), fmt.Sprintf("%s:%d", pod.Status.PodIP, common.ConsensusPort), 0, 1000*time.Millisecond)
-				if request_err != nil {
+				if(request_err != nil){
 					log.WithFields(log.Fields{
 						"new nodeID": nodeId,
 						"new PodIP":  pod.Status.PodIP,
@@ -242,6 +253,7 @@ func (cs *ConsensusService) ScanDiscoveryService() {
 					//panic(err)
 					//}
 				} else {
+
 					log.WithFields(log.Fields{
 						"new nodeID": nodeId,
 						"new PodIP":  pod.Status.PodIP,
@@ -251,7 +263,6 @@ func (cs *ConsensusService) ScanDiscoveryService() {
 				}
 
 			}
-
 		}
 
 		// TODO: this should be replaced with a ticker and a go-routine.  See:
