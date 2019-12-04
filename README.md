@@ -1,17 +1,38 @@
-# OwlPlace
+# owlplace
 
 This repository contains an implementation of [Reddit
 Place](https://www.reddit.com/r/place/) created by a team in Rice's COMP413:
 Distributed Program Construction during the Fall of 2019.  
 
-## [Drive Folder](https://drive.google.com/drive/folders/1Ghaq_pQn_jVgO-GoLL2AyK7S69tdTuBV?usp=sharing)
+## building
 
-## [Functional Specification](https://docs.google.com/document/d/13_bi5Vf5WNiZuDCWOdyBopANCUBl-Cyt7jK-sCeUW2s/edit#heading=h.g79r6g88uz09)
+The backend is written in Go, but has a external dependency on RocksDB.  If you
+have RocksDB installed you should be able to simply build the backend using a
+typical `go build`.  Alternatively, we have a make target available that builds a
+docker image: `make image`. 
 
-## [Design Specification](https://docs.google.com/document/d/1KSX_3OYxqOvSgNRE_sHzmTzEveMyIyrT6FSyV5vjZfg/edit#heading=h.j179bo1otowl)
+## running
 
-## Development
+There are two methods of running a set of owlplace servers together locally.
 
-### [Frontend](./client)
+### docker compose
 
-### [Backend](./server)
+Build the service image.
+```
+make image
+```
+
+Start 3 owlplace services, see `docker-compose.yml` for details.  The container
+API ports are exposed at host (or `docker-machine`) ports `3001-3003`.
+```
+docker-compose up
+```
+
+Send a trigger to one of the backend services.
+```
+curl localhost:3001/consensus_trigger
+```
+
+### kubernetes
+
+**TODO**

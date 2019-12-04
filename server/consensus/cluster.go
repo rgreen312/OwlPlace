@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io/ioutil"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -92,7 +94,15 @@ func (p *KubernetesMembershipProvider) GetMembership() (map[uint64]string, error
 
 	members := make(map[uint64]string)
 	for _, pod := range pods.Items {
-		members[common.IPToNodeId(pod.Status.PodIP)] = fmt.Sprintf("%s:%d", pod.Status.PodIP, common.ConsensusPort)
+		podIP := pod.Status.PodIP
+		nodeID, err := common.IPToNodeId(podIP)
+		if err != nil {
+			log.WithFields(log.Fields{
+				"err":   err,
+				"podIP": podIP,
+			}).Error("converting pod IP from k8s to a node ID")
+		}
+		members[nodeID] = fmt.Sprintf("%s:%d", podIP, common.ConsensusPort)
 	}
 
 	return members, nil

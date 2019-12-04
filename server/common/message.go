@@ -26,6 +26,7 @@ const (
 	Close             MsgType = 9
 	VerificationFail  MsgType = 10
 	UserLoginResponse MsgType = 11
+    Heartbeat MsgType = 12
 )
 
 type MsgType int8

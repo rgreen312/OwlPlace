@@ -20,31 +20,31 @@ var (
 )
 
 type ApiServer struct {
-	nodeID   uint64
-	nodeAddr string
-	pool     *wsutil.Pool
-	mp       consensus.MembershipProvider
-	cons     consensus.IConsensus
+	nodeID  uint64
+	address string
+	pool    *wsutil.Pool
+	mp      consensus.MembershipProvider
+	cons    consensus.IConsensus
 }
 
-func NewApiServer(nodeID uint64, nodeAddr string, mp consensus.MembershipProvider) (*ApiServer, error) {
+func NewApiServer(nodeID uint64, address string, mp consensus.MembershipProvider) (*ApiServer, error) {
 	// First we create the pool because we're going to share it's broadcast
 	// channel with the consensus service.
 	pool := wsutil.NewPool()
 	go pool.Run()
 
 	return &ApiServer{
-		nodeID:   nodeID,
-		nodeAddr: nodeAddr,
-		pool:     pool,
-		mp:       mp,
+		nodeID:  nodeID,
+		address: address,
+		pool:    pool,
+		mp:      mp,
 	}, nil
 }
 
 func (api *ApiServer) ListenAndServe() error {
 
 	log.WithFields(log.Fields{
-		"api address": fmt.Sprintf("%s:%d", api.nodeAddr, common.ApiPort),
+		"api address": fmt.Sprintf("%s:%d", api.address, common.ApiPort),
 		"nodeID":      api.nodeID,
 	}).Info("owlplace is listening for a trigger to form a dragonboat cluster")
 
@@ -52,71 +52,35 @@ func (api *ApiServer) ListenAndServe() error {
 	http.HandleFunc("/json/image", api.HTTPGetImageJson)
 	http.HandleFunc("/ws", api.ServeWs)
 	http.HandleFunc("/update_pixel", api.HTTPUpdatePixel)
-	http.HandleFunc("/consensus_trigger", api.startConsensus)
-	http.HandleFunc("/consensus_join_message", api.joinConsensus)
+	http.HandleFunc("/consensus_trigger", func(w http.ResponseWriter, req *http.Request) {
+		api.startConsensus(false, w, req)
+	})
+	http.HandleFunc("/consensus_join_message", func(w http.ResponseWriter, req *http.Request) {
+		api.startConsensus(true, w, req)
+	})
 
 	return http.ListenAndServe(fmt.Sprintf(":%d", common.ApiPort), nil)
 }
 
-// joinCluster is an HTTP endpoint which indicates that there is an existing
-// Dragonboat cluster which can be joined.  This endpoint should not be called
-// manually, but rather triggered by the member which receives a consensus
-// trigger.
-func (api *ApiServer) joinConsensus(w http.ResponseWriter, req *http.Request) {
-	// Start the consensus service in the background
+// startConsensus is an HTTP endpoint which indicates this node should start
+// it's ConsensusService.  Additionally, this wrapper takes in a flag
+// indicating whether this node is being invited to join an existing cluster,
+// or whether it should start it's own.
+func (api *ApiServer) startConsensus(joinExistingCluster bool, w http.ResponseWriter, req *http.Request) {
 	var err error
-	api.cons, err = consensus.NewConsensusService(api.mp, api.nodeID, api.pool.Broadcast)
+	api.cons, err = consensus.NewConsensusService(api.mp, api.nodeID, api.address, api.pool.Broadcast)
 	if err != nil {
 		http.Error(w, errors.Wrap(err, "creating the ConsensusService").Error(), http.StatusInternalServerError)
+		return
 	}
 
-	joinExistingCluster := true
 	err = api.cons.Start(joinExistingCluster)
 	if err != nil {
 		http.Error(w, errors.Wrap(err, "starting the ConsensusService").Error(), http.StatusInternalServerError)
+		return
 	}
 
-	// Otherwise, indicate a successful join.
 	w.WriteHeader(200)
-}
-
-// startConsensus attempts to start the consensus module with a list of peers
-// collected from k8s.
-func (api *ApiServer) startConsensus(w http.ResponseWriter, req *http.Request) {
-
-	// Start the consensus service in the background
-	var err error
-	api.cons, err = consensus.NewConsensusService(api.mp, api.nodeID, api.pool.Broadcast)
-	if err != nil {
-		http.Error(w, errors.Wrap(err, "creating the ConsensusService").Error(), http.StatusInternalServerError)
-        return
-	}
-
-	// This parameter indicates that we're not joining an existing cluster, but
-	// forming a new one.
-	joinExistingCluster := false
-	err = api.cons.Start(joinExistingCluster)
-	if err != nil {
-		http.Error(w, errors.Wrap(err, "starting the ConsensusService").Error(), http.StatusInternalServerError)
-        return
-	}
-
-	// Send a join request to the remaining members.
-	servers, err := api.mp.GetMembership()
-
-	// servers contains a mapping from nodeID to a full consensus URI, e.g.
-	// domain:consensusPort.  We wish to make an HTTP request against the API
-	// port.
-	for _, conAddress := range servers {
-		apiAddress := common.ReplacePort(conAddress, common.ApiPort)
-		// Send an HTTP join request to the other nodes
-		_, err := http.Get(fmt.Sprintf("http://%s/consensus_join_message", apiAddress))
-		if err != nil {
-			// TODO: handle error.  I think we should collect all errors here
-			// and then report failure using http.Error as demonstrated above.
-			continue
-		}
-	}
 }
 
 func (api *ApiServer) HealthCheck(w http.ResponseWriter, req *http.Request) {
@@ -145,15 +109,11 @@ func (api *ApiServer) HTTPGetImageJson(w http.ResponseWriter, req *http.Request)
 		return
 	}
 
-	encodedString := common.Base64Encode(img)
-	msg := common.ImageMsg{
-		Type:         common.Image,
-		FormatString: encodedString,
-	}
 
-	log.WithFields(log.Fields{
-		"ImageMsg": msg,
-	}).Debug("constructed websocket message")
+	encodedString := common.Base64Encode(img)
+    msg := map[string]string{
+        "data": encodedString,
+    }
 
 	js, err := json.Marshal(msg)
 	if err != nil {

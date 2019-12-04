@@ -191,6 +191,8 @@ func (c *Client) handleMessage(p []byte) {
 		c.handleDrawPixel(p)
 	case common.LoginUser:
 		c.handleLoginUser(p)
+    case common.Heartbeat:
+        return
 	default:
 		log.WithFields(log.Fields{
 			"message type": dat.Type,

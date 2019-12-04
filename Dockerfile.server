@@ -39,7 +39,13 @@ RUN cd /tmp && \
 
 FROM builder AS compile-image
 
+COPY server/go.mod /app/go.mod
+COPY server/go.sum /app/go.sum
+
+RUN cd /app && go mod download
+
 COPY server /app
+
 RUN cd /app && go build
 
 FROM alpine:3.10 AS runtime-image
