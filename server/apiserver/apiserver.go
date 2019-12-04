@@ -5,9 +5,7 @@ import (
 	"fmt"
 
 	"net/http"
-	"os"
 
-	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/pkg/errors"
@@ -26,97 +24,42 @@ var (
 )
 
 type ApiServer struct {
-	pod_ip     string
-	node_id     uint64
-	upgrader *websocket.Upgrader
-	pool     *wsutil.Pool
-	cons     consensus.IConsensus
+	pod_ip  string
+	node_id uint64
+	pool    *wsutil.Pool
+	cons    consensus.IConsensus
 }
 
 func NewApiServer(pod_ip string) (*ApiServer, error) {
-	nodeid, err := common.IPToNodeId(pod_ip)
-	return &ApiServer{
-		pod_ip: pod_ip,
-		node_id: nodeid,
-	}, err
-}
-
-
-func (api *ApiServer) StartConsensus(join bool){
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		panic(err.Error())
-	}
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		panic(err.Error())
-	}
-
-	pods, err := clientset.CoreV1().Pods("dev").List(metav1.ListOptions{})
-	if err != nil {
-		panic(err.Error())
-	}
-
-	fmt.Printf("There are %d pods in the cluster\n", len(pods.Items))
-
-	servers :=  make(map[uint64]string)
-	for _, pod := range pods.Items {
-		if(pod.Status.PodIP != api.pod_ip && !join){
-			// Send an http join request to the other nodes
-			_, err := http.Get(fmt.Sprintf("http://%s:%d/consensus_join_message", pod.Status.PodIP, common.ApiPort))
-			if(err != nil) {
-				panic(err)
-			}
-		}
-		nodeid, _ := common.IPToNodeId(pod.Status.PodIP)
-		servers[nodeid] = pod.Status.PodIP
-    }
-	//At first, just print something so that we know http requests are working inside kubernetes
-	fmt.Fprintf(os.Stdout, "Pod Trigger Called\n")
-
-
 	// First we create the pool because we're going to share it's broadcast
 	// channel with the consensus service.
 	pool := wsutil.NewPool()
-	api.pool = pool
-	go api.pool.Run()
+	go pool.Run()
 
-	// Start the consensus service in the background
-	conService, err := consensus.NewConsensusService(servers, api.node_id, pool.Broadcast)
-	api.cons = conService
+	nodeID, err := common.IPToNodeId(pod_ip)
+	log.WithFields(log.Fields{
+		"pod ip":  pod_ip,
+		"node id": nodeID,
+	})
 
-	err = conService.Start(join)
-	// if err != nil {
-	// 	return nil, errors.Wrap(err, "starting ConsensusService")
-	// }
+	return &ApiServer{
+		pod_ip:  pod_ip,
+		node_id: nodeID,
+		pool:    pool,
+	}, err
 }
-
-
-func (api *ApiServer) ConsensusTrigger(w http.ResponseWriter, req *http.Request) {
-	fmt.Fprintf(os.Stdout, "ConsensusTrigger\n")
-	api.StartConsensus(false)
-}
-
-func (api *ApiServer) ConsensusJoinMessage(w http.ResponseWriter, req *http.Request){
-	fmt.Fprintf(os.Stdout, "ConsensusJoin\n")
-	api.StartConsensus(true)
-}
-
-func (api *ApiServer) HealthCheck(w http.ResponseWriter, req *http.Request){
-	fmt.Fprintf(os.Stdout, "HealthCheck\n")
-	w.WriteHeader(200)
-}
-
 
 func (api *ApiServer) ListenAndServe() {
 	http.HandleFunc("/", api.HealthCheck)
 	http.HandleFunc("/json/image", api.HTTPGetImageJson)
-	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-		wsutil.ServeWs(api.pool, api.cons, w, r)
-	})
+	http.HandleFunc("/ws", api.ServeWs)
 	http.HandleFunc("/update_pixel", api.HTTPUpdatePixel)
-	http.HandleFunc("/consensus_trigger", api.ConsensusTrigger)
-	http.HandleFunc("/consensus_join_message", api.ConsensusJoinMessage)
+	http.HandleFunc("/consensus_trigger", func(w http.ResponseWriter, req *http.Request) {
+		api.httpConsensusTrigger(false, w, req)
+	})
+	http.HandleFunc("/consensus_join_message", func(w http.ResponseWriter, req *http.Request) {
+		api.httpConsensusTrigger(true, w, req)
+	})
 
 	// Although there is nothing wrong with this line, it prevents us from
 	// running multiple nodes on a single machine.  Therefore, I am making
@@ -124,6 +67,75 @@ func (api *ApiServer) ListenAndServe() {
 	// same port (i.e. docker)
 	// log.Fatal(http.ListenAndServe(":3010", nil))
 	http.ListenAndServe(fmt.Sprintf(":%d", common.ApiPort), nil)
+}
+
+// startConsensus attempts to start the consensus module with a list of peers
+// collected from k8s.
+func (api *ApiServer) startConsensus(join bool) error {
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		return errors.Wrap(err, "retrieving cluster config")
+	}
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return errors.Wrap(err, "creating API handle")
+	}
+
+	pods, err := clientset.CoreV1().Pods("dev").List(metav1.ListOptions{})
+	if err != nil {
+		return errors.Wrap(err, "listing dev pods")
+	}
+
+	log.WithFields(log.Fields{
+		"numPods": len(pods.Items),
+	}).Debug("finding cluster peers")
+
+	servers := make(map[uint64]string)
+	for _, pod := range pods.Items {
+		if pod.Status.PodIP != api.pod_ip && !join {
+			// Send an http join request to the other nodes
+			_, err := http.Get(fmt.Sprintf("http://%s:%d/consensus_join_message", pod.Status.PodIP, common.ApiPort))
+			if err != nil {
+				return errors.Wrapf(err, "sending join request to server: %s:%d", pod.Status.PodIP, common.ApiPort)
+			}
+		}
+	  nodeid, _ := common.IPToNodeId(pod.Status.PodIP)
+		servers[nodeid] = pod.Status.PodIP
+	}
+
+	// Start the consensus service in the background
+	api.cons, err = consensus.NewConsensusService(servers, api.node_id, api.pool.Broadcast)
+	if err != nil {
+		return errors.Wrap(err, "creating the ConsensusService")
+	}
+
+	err = api.cons.Start(join)
+	if err != nil {
+		return errors.Wrap(err, "starting ConsensusService")
+	}
+
+	return nil
+}
+
+func (api *ApiServer) httpConsensusTrigger(join bool, w http.ResponseWriter, req *http.Request) {
+	log.WithFields(log.Fields{
+		"pod ip": api.pod_ip,
+		"join":   join,
+	}).Debug("ConsensusTrigger request received")
+
+	err := api.startConsensus(join)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
+func (api *ApiServer) HealthCheck(w http.ResponseWriter, req *http.Request) {
+	w.WriteHeader(200)
+}
+
+func (api *ApiServer) ServeWs(w http.ResponseWriter, req *http.Request) {
+	wsutil.ServeWs(api.pool, api.cons, w, req)
 }
 
 // HTTPGetImageJson provides a synchronous method with which to request the
@@ -154,7 +166,7 @@ func (api *ApiServer) HTTPGetImageJson(w http.ResponseWriter, req *http.Request)
 		"ImageMsg": msg,
 	}).Debug("constructed websocket message")
 
-    js, err := json.Marshal(msg)
+	js, err := json.Marshal(msg)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -177,5 +189,3 @@ func (api *ApiServer) HTTPUpdatePixel(w http.ResponseWriter, req *http.Request) 
 		return
 	}
 }
-
-

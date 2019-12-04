@@ -1,5 +1,5 @@
 import React, { FC, useState, useEffect } from 'react';
-import { PageHeader, Button, Menu, Dropdown, Icon, notification } from 'antd';
+import { PageHeader, Button, Menu, Dropdown, Icon } from 'antd';
 import { Link, useLocation } from 'react-router-dom';
 import './Header.scss';
 
@@ -81,10 +81,6 @@ const Header: FC<Props> = ({
     if (time <= 0) {
       clearInterval(interval);
       setTimeRemaining(0);
-    //   notification.success({
-    //     message: 'Place another pixel',
-    //     description: 'You can now update another pixel on the canvas.'
-    //   });
       return;
     }
 

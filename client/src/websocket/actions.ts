@@ -79,38 +79,50 @@ export const openWebSocket = () => (dispatch, getState) => {
     let json = JSON.parse(data);
     console.log('RECEIVED: ' + json.type);
     switch (json.type) {
-      case MsgType.IMAGE: {
-        // let msg = new ImageMsg(data.formatString); //now what?
-        let imageString = json.formatString;
-        console.log('Received an IMAGE message from the server!');
-        dispatch(setImage('data:image/png;base64,' + imageString));
-        break;
-      }
-      case MsgType.TESTING: {
-        console.log('Received a TESTING message from the server!');
-        console.log('Message: ' + json.msg);
-        break;
-      }
-      case MsgType.CHANGECLIENTPIXEL: {
-        console.log('Received a CHANGECLIENTPIXEL message from the server!');
-        let x = json.x;
-        let y = json.y;
-        // let color = { r: json.r, g: json.g, b: json.b }
-        dispatch(setColor(x, y, json.r, json.g, json.b));
-        break;
-      }
-      case MsgType.DRAWRESPONSE: {
-        let status = json.status;
-        console.log('Received a DRAWRESPONSE message from the server!');
-        console.log('The status was ' + status);
-        if (status === 503) {
-          // If update fails, we reset the pixel to its previous color
-          const prevMove = getLastMove(getState());
-          if (prevMove) {
-            const { x, y } = prevMove.position;
-            const { r, g, b } = prevMove.color;
-            dispatch(setColor(x, y, r, g, b));
-            dispatch({ type: CanvasActionTypes.UpdatePixelError });
+        case MsgType.IMAGE: {
+            // let msg = new ImageMsg(data.formatString); //now what?
+            let imageString = json.formatString
+            console.log("Received an IMAGE message from the server!");
+            dispatch(setImage('data:image/png;base64,' + imageString));
+            break;
+        }
+        case MsgType.TESTING: {
+          console.log("Received a TESTING message from the server!");
+          console.log("Message: " + json.msg);
+          break;
+        }
+        case MsgType.CHANGECLIENTPIXEL: {
+          console.log("Received a CHANGECLIENTPIXEL message from the server!");
+          let x = json.x
+          let y = json.y
+          // let color = { r: json.r, g: json.g, b: json.b }
+          dispatch(setColor(x, y, json.r, json.g, json.b))
+          break;
+        }
+        case MsgType.DRAWRESPONSE: {
+          let status = json.status
+          console.log("Received a DRAWRESPONSE message from the server!");
+          console.log("The status was " + status);
+          if (status === 503) {
+            // If update fails, we reset the pixel to its previous color
+            const prevMove = getLastMove(getState());
+            if (prevMove) {
+              const { x, y } = prevMove.position;
+              const { r, g, b } = prevMove.color;
+              dispatch(setColor(x, y, r, g, b));
+              dispatch({ type: CanvasActionTypes.UpdatePixelError });
+            }
+          } else if (status === 429) {
+            // If the user's cooldown hasn't expired yet
+            if (json.remainingTime > 0) {
+              dispatch(setTimeToNextMove(json.remainingTime));
+            } else {
+              // this might happen if someone manually makes a status message with code 429...
+              console.log("Received an ill-formatted DRAWRESPONSE cooldown message from the server!");
+            }
+          } else {
+            dispatch({ type: CanvasActionTypes.UpdatePixelSuccess });
+
           }
         } else {
           dispatch({ type: CanvasActionTypes.UpdatePixelSuccess });

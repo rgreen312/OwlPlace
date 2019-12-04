@@ -13,6 +13,7 @@ spec:
         app: owlplace-backend
     spec:
       containers:
+
         - name: owlplace-backend
           image: "southpawac/owlplace"
           ports:
@@ -33,3 +34,10 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
+          resources:
+            requests:
+              memory: "2048Mi"
+              cpu: "200m"
+            limits:
+              memory: "2048Mi"
+              cpu: "200m"

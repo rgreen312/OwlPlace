@@ -2,7 +2,7 @@
 // import { HOSTNAME } from '../constants';
 import { Color } from './types';
 import * as ActionTypes from './actionTypes';
-import { getZoomFactor, getCanvasContext } from './selectors';
+import { getZoomFactor } from './selectors';
 import { getWebSocket } from '../websocket/selectors';
 import { getUserEmail } from '../login/selectors';
 import { connectError, makeUpdateMessage } from '../websocket/actions';
@@ -104,7 +104,9 @@ export const updatePixel = (
   const socket = getWebSocket(getState());
   const email = getUserEmail(getState());
   console.log("This is being called!", newColor.r, newColor.g, newColor.b, x, y)
+  console.log(getState())
   if (socket && email) {
+    console.log("Socket sending!")
     socket.send(makeUpdateMessage(email, x, y, newColor.r, newColor.g, newColor.b));
   } else {
     dispatch(connectError('Could not connect'))

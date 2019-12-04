@@ -1,0 +1,14 @@
+name: build & test frontend
+
+on: pull_request
+
+jobs:
+  build-frontend:
+    runs-on: ubuntu-18.04
+    steps:
+    - uses: actions/checkout@v1.0.0
+    - name: build site
+      working-directory: ./client
+      run: |
+        npm install
+        npm run build
