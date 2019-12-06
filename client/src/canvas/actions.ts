@@ -6,6 +6,7 @@ import { getZoomFactor } from './selectors';
 import { getWebSocket } from '../websocket/selectors';
 import { getUserEmail } from '../login/selectors';
 import { connectError, makeUpdateMessage } from '../websocket/actions';
+import { HOSTNAME } from '../constants';
 
 const fetchImageDataStart = () => ({
   type: ActionTypes.FetchImageStart
@@ -127,4 +128,15 @@ export const setTimeToNextMove = (time: number) => dispatch => {
     dispatch(setTimeRemaining(0));
   }
   dispatch(setTimeRemaining(time));
+}
+
+export const getImageData = () => async dispatch => {
+  const response = await fetch(`https://cors-anywhere.herokuapp.com/${HOSTNAME}/json/image`);
+  const json = await response.json();
+  const data = json.formatString;
+
+  if (data) {
+    console.log('setting image to ', data);
+    dispatch(setImage('data:image/png;base64,' + data));
+  }
 }

@@ -9,6 +9,7 @@ import classNames from 'classnames';
 
 interface Props {
   //receivedError: boolean;
+  canvasContext?: CanvasRenderingContext2D;
   isLoading: boolean;
   registerContext: (context: CanvasRenderingContext2D) => void;
   updatePosition: (x: number, y: number) => void;
@@ -20,6 +21,7 @@ interface Props {
   initialImage?: string;
   canUpdatePixel: boolean;
   isLoggedIn: boolean;
+  getImageData: () => void;
 }
 
 interface State {
@@ -39,6 +41,7 @@ class Canvas extends Component<Props, State> {
 
   constructor(props) {
     super(props);
+    console.log('in constructor')
     this.canvasRef = createRef();
     this.state = {
       showColorPicker: false,
@@ -58,8 +61,12 @@ class Canvas extends Component<Props, State> {
   }
 
   componentDidMount() {
-    this.canvasRef.current!.width = 1000;
-    this.canvasRef.current!.height = 1000;
+    if (this.props.canvasContext) {
+      this.props.getImageData();
+    }
+
+    // this.canvasRef.current!.width = 1000;
+    // this.canvasRef.current!.height = 1000;
 
     const context = this.canvasRef.current!.getContext('2d');
 
@@ -70,10 +77,8 @@ class Canvas extends Component<Props, State> {
     context!.imageSmoothingEnabled = false;
 
     // TODO: remove this code
-    context!.fillStyle = '#000000';
-    context!.fillRect(0, 0, 1000, 500);
-    context!.fillStyle = '#ff0000';
-    context!.fillRect(0, 500, 1000, 500);
+    context!.fillStyle = '#ffffff';
+    context!.fillRect(0, 0, 1000, 1000);
 
     this.canvasRef.current!.addEventListener('mousemove', ev => {
       if (this.state.showColorPicker) return;
@@ -133,6 +138,7 @@ class Canvas extends Component<Props, State> {
 
       const { canUpdatePixel, updatePosition, isLoggedIn } = this.props;
       if (!this.state.isDrag) {
+        this.onCancel();
         if (canUpdatePixel && isLoggedIn) {
           const { x: xNew, y: yNew } = this.getMousePos(
             this.canvasRef.current,
@@ -299,7 +305,7 @@ class Canvas extends Component<Props, State> {
               className='zoom-canvas'
               style={{ transform: `scale(${zoomFactor}, ${zoomFactor})` }}
             >
-              <canvas ref={this.canvasRef} />
+              <canvas ref={this.canvasRef} width={1000} height={1000} />
             </div>
           </div>
           <div className='zoom-controls'>
