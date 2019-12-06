@@ -65,9 +65,6 @@ class Canvas extends Component<Props, State> {
       this.props.getImageData();
     }
 
-    // this.canvasRef.current!.width = 1000;
-    // this.canvasRef.current!.height = 1000;
-
     const context = this.canvasRef.current!.getContext('2d');
 
     if (context) {
